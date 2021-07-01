@@ -15,13 +15,11 @@ Central Reporting Database for PEPFAR Monitoring, Learning and Evaluation
 Environment variables
 ---------------------
 
-The minimal environment variables needed to run this project are:
+The minimal environment variables needed to run this project are::
 
-```bash
-export DATABASE_URL="postgres://app:app@localhost:5432/mle"
-export CELERY_BROKER_URL="redis://127.0.0.1:6379/0"
-export USE_DOCKER=false
-```
+  export DATABASE_URL="postgres://app:app@localhost:5432/mle"
+  export CELERY_BROKER_URL="redis://127.0.0.1:6379/0"
+  export USE_DOCKER=false
 
 The `DATABASE_URL` and `CELERY_BROKER_URL` should naturally be set to values that work for your local development environment.
 
