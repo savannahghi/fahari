@@ -11,11 +11,7 @@ from django.urls import reverse
 from pepfar_mle.users.forms import UserChangeForm
 from pepfar_mle.users.models import User
 from pepfar_mle.users.tests.factories import UserFactory
-from pepfar_mle.users.views import (
-    UserRedirectView,
-    UserUpdateView,
-    user_detail_view,
-)
+from pepfar_mle.users.views import UserRedirectView, UserUpdateView, user_detail_view
 
 pytestmark = pytest.mark.django_db
 
