@@ -75,8 +75,14 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    "pepfar_mle.common.apps.CommonConfig",
     "pepfar_mle.users.apps.UsersConfig",
-    # Your stuff: custom apps go here
+    "pepfar_mle.hts.apps.HTSConfig",
+    "pepfar_mle.pmtct.apps.PMTCTConfig",
+    "pepfar_mle.prevention.apps.PreventionConfig",
+    "pepfar_mle.retention.apps.RetentionConfig",
+    "pepfar_mle.tb.apps.TBConfig",
+    "pepfar_mle.treatment.apps.TreatmentConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
