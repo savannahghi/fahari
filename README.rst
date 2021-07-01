@@ -25,6 +25,15 @@ export USE_DOCKER=false
 
 The `DATABASE_URL` and `CELERY_BROKER_URL` should naturally be set to values that work for your local development environment.
 
+Pre-Commit Hooks
+-----------------
+
+Code quality checks are run via https://pre-commit.com/ . You'll have a better experience if you install Pre-Commit and set up the Git hook.
+
+GPG Signing
+------------
+
+
 Settings
 --------
 
