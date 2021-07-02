@@ -1,68 +1,31 @@
-import copy
-import itertools
 import logging
-import os
 import uuid
 from collections import defaultdict
+from typing import List
 
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models.base import ModelBase
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 
-from pepfar_mle.transitions.mixins import TransitionAndLogMixin
-
 from .constants import COUNTIES, COUNTRY_CODES
-from .utilities import load_system_data, send_email, unique_list
 
 LOGGER = logging.getLogger(__file__)
-ORG_TRANSITION_GRAPH = {True: [False], False: [True]}
 
 
-def send_email_on_org_create(organisation):
-    """Email the administrator on successful creation of an organisation."""
-    plain_text = "common/registration/organisation_success.txt"
-    html_temp = "common/registration/organisation_success.html"
-    context = {
-        "organisation_name": organisation["organisation_name"],
-        "organisation_email": organisation["email_address"],
-    }
-    subject = "You have been successfully registered."
-    return send_email(
-        context,
-        organisation["email_address"],
-        plain_text,
-        html_temp,
-        subject,
-    )
+def unique_list(list_object):
+    """Return a list that contains only unique items."""
+    seen = set()
+    new_list = []
+    for each in list_object:
+        if each in seen:
+            continue
+        new_list.append(each)
+        seen.add(each)
 
-
-class GetUserFullname(object):
-    """Helpers to work with users."""
-
-    def get_user_fullname(self, action_type):
-        """Return ``created_by`` || ``updated_by`` full name."""
-        guid = str(action_type)
-        user_model = get_user_model()
-        try:
-            user_obj = user_model.objects.get(pk=guid)
-            return user_obj.get_full_name()
-        except (user_model.DoesNotExist, ValidationError):
-            return None
-
-    @property
-    def made_by(self):
-        """Return ``created_by`` full name."""
-        return self.get_user_fullname(self.created_by)
-
-    @property
-    def updated_by_name(self):
-        """Return ``updated_by`` full name."""
-        return self.get_user_fullname(self.updated_by)
+    return new_list
 
 
 class ValidationMetaclass(ModelBase):
@@ -90,20 +53,70 @@ class ValidationMetaclass(ModelBase):
         return super(ValidationMetaclass, cls).__new__(cls, name, bases, attrs)
 
 
-class ValidationErrorsMixin(object):
-    """Run all model validations and aggregate errors.
+class OwnerlessAbstractBase(models.Model, metaclass=ValidationMetaclass):
+    """Base class for models that are not linked to an organisation."""
 
-    Errors are aggregated in either of the following ways:
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    active = models.BooleanField(default=True)
+    created = models.DateTimeField(default=timezone.now)
+    created_by = models.UUIDField(null=True, blank=True)
+    updated = models.DateTimeField(default=timezone.now)
+    updated_by = models.UUIDField(null=True, blank=True)
 
-    - if validation error was raised with a dict, aggregate the messages under
-        the relevant key
-    - if validation was raised with a message / list of messages, aggregate the
-        messages under __all__ key
-    """
+    model_validators = ["validate_updated_date_greater_than_created"]
 
     def _raise_errors(self, errors):
         if errors:
             raise ValidationError(errors)
+
+    def uuid_to_string(self):
+        """Convert uuid field to string."""
+        # uuid not supported in elastic search
+        return str(self.id)
+
+    def created_by_to_string(self):
+        """Convert uuid field to string."""
+        # uuid not supported in elastic search
+        return str(self.created_by)
+
+    def updated_by_to_string(self):
+        """Convert uuid field to string."""
+        # uuid not supported in elastic search
+        return str(self.updated_by)
+
+    def process_copy(self, copy):
+        """Use in ``make_copy`` to allow for modifications before saving."""
+        return copy
+
+    def exists(self, **kwargs):
+        """Determine if a similar instance already exists."""
+        return self.__class__.objects.filter(pk=self.pk, **kwargs).exists()
+
+    def get_self(self, **kwargs):
+        """Return an instance with the same PK, if it exists."""
+        try:
+            return self.__class__.objects.get(pk=self.pk, **kwargs)
+        except self.__class__.DoesNotExist:
+            return False
+
+    def validate_updated_date_greater_than_created(self):
+        """Ensure that updated is always after created."""
+        if self.updated and self.created and self.updated.date() < self.created.date():
+            # using dates to avoid a lot of fuss about milliseconds etc
+            raise ValidationError("The updated date cannot be less than the created date")
+
+    def preserve_created_and_created_by(self):
+        """Ensure that in created and created_by fields are not overwritten."""
+        try:
+            original = self.__class__.objects.get(pk=self.pk)
+            self.created = original.created
+            self.created_by = original.created_by
+        except self.__class__.DoesNotExist:
+            LOGGER.debug(
+                "preserve_created_and_created_by "
+                "Could not find an instance of {} with pk {} hence treating "
+                "this as a new record.".format(self.__class__, self.pk)
+            )
 
     def run_model_validators(self):
         """Ensure that all model validators run."""
@@ -131,113 +144,6 @@ class ValidationErrorsMixin(object):
         """Run validators declared under model_validators."""
         self.run_model_validators()
         super().clean()
-
-    def save(self, *args, **kwargs):
-        """Run full validation with each save."""
-        # the validate_unique=False is a "hack" to deal with some test
-        # failures that were not properly understood. It needs to be
-        # removed
-        self.full_clean(validate_unique=False)
-        super().save(*args, **kwargs)
-
-
-class OwnerlessAbstractBase(
-    ValidationErrorsMixin, models.Model, metaclass=ValidationMetaclass
-):
-    """Base class for models that are not linked to an organisation."""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    active = models.BooleanField(default=True)
-    created = models.DateTimeField(default=timezone.now)
-    created_by = models.UUIDField(null=True, blank=True)
-    updated = models.DateTimeField(default=timezone.now)
-    updated_by = models.UUIDField(null=True, blank=True)
-
-    model_validators = ["validate_updated_date_greater_than_created"]
-
-    def uuid_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.id)
-
-    def created_by_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.created_by)
-
-    def updated_by_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.updated_by)
-
-    def process_copy(self, copy):
-        """Use in ``make_copy`` to allow for modifications before saving."""
-        return copy
-
-    @transaction.atomic
-    def make_copy(self):
-        """Clone an object."""
-        obj = copy.copy(self)
-        obj.pk = None
-        obj = self.process_copy(obj)
-        obj.save()
-        related_objects = self._meta.related_objects
-        for each in related_objects:
-            instances = iter(())
-            for instance in getattr(self, each.get_accessor_name()).all():
-                # for a self reference field do not duplicate obj
-                if instance == obj:
-                    continue
-                instance.pk = None
-                setattr(instance, each.remote_field.name, obj)
-
-                # Create a many to many field in sales order copy
-                # Open to a better implementation...
-                if (
-                    instance.__class__.__name__ == "SalesOrderLine"
-                    and instance.quotation_line
-                ):
-                    instance.sales_order.quotations.add(
-                        instance.quotation_line.quotation
-                    )
-
-                instance.clean()
-                instances = itertools.chain(instances, [instance])
-            each.related_model.objects.bulk_create(instances)
-            instances = iter(())
-        return obj
-
-    def exists(self, **kwargs):
-        """Determine if a similar instance already exists."""
-        return self.__class__.objects.filter(pk=self.pk, **kwargs).exists()
-
-    def get_self(self, **kwargs):
-        """Return an instance with the same PK, if it exists."""
-        try:
-            return self.__class__.objects.get(pk=self.pk, **kwargs)
-        except self.__class__.DoesNotExist:
-            return False
-
-    def validate_updated_date_greater_than_created(self):
-        """Ensure that updated is always after created."""
-        if self.updated and self.created and self.updated.date() < self.created.date():
-            # using dates to avoid a lot of fuss about milliseconds etc
-            raise ValidationError(
-                "The updated date cannot be less than the created date"
-            )
-
-    def preserve_created_and_created_by(self):
-        """Ensure that in created and created_by fields are not overwritten."""
-        try:
-            original = self.__class__.objects.get(pk=self.pk)
-            self.created = original.created
-            self.created_by = original.created_by
-        except self.__class__.DoesNotExist:
-            LOGGER.debug(
-                "preserve_created_and_created_by "
-                "Could not find an instance of {} with pk {} hence treating "
-                "this as a new record.".format(self.__class__, self.pk)
-            )
 
     def save(self, *args, **kwargs):
         """Handle audit fields correctly when saving."""
@@ -305,31 +211,7 @@ class OrganisationAbstractBase(models.Model):
         abstract = True
 
 
-class OrganisationTransitionLog(GetUserFullname, OrganisationAbstractBase):
-    """Record every time an org changes between active and inactive."""
-
-    active_from = models.CharField(max_length=255)
-    active_to = models.CharField(max_length=255)
-    organisation = models.ForeignKey(
-        "Organisation",
-        related_name="organisation_logs",
-        on_delete=models.PROTECT,
-    )
-    note = models.TextField()
-
-    def __str__(self):
-        """Render note as a string representation."""
-        return self.note
-
-    @transaction.atomic
-    def save(self, *args, **kwargs):
-        """Ensure correct handling of audit fields when saving an org."""
-        self.updated = timezone.now()
-        self.preserve_created_and_created_by()
-        super().save()
-
-
-class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
+class Organisation(OrganisationAbstractBase):
     """
     Define organisations - the main unit of partitioning.
 
@@ -343,12 +225,7 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
     in migrations.
     """
 
-    _transition_field = "active"
-    _transition_log_model_fk_field = "organisation"
-    _transition_log_model = OrganisationTransitionLog
-    _transition_graph = ORG_TRANSITION_GRAPH
-
-    slade_code = models.IntegerField(unique=True)
+    code = models.IntegerField(unique=True)
     active = models.BooleanField(default=True)
     deleted = models.BooleanField(default=False)
     org_code = models.CharField(
@@ -367,15 +244,7 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
     description = models.TextField(null=True, blank=True)
     postal_address = models.CharField(max_length=100, blank=True)
     physical_address = models.TextField(blank=True)
-    default_country = models.CharField(
-        max_length=255, choices=COUNTRY_CODES, default="KEN"
-    )
-    # strict workstation filter specifies whether when displaying branches,
-    # departments, stores, workstation et al, the user's view should be
-    # limited to what is in the organisation unit the workstation they
-    # are logged into is attached to.
-    strict_workstation_filter = models.BooleanField(default=False)
-    financial_year_start_date = models.DateField()
+    default_country = models.CharField(max_length=255, choices=COUNTRY_CODES, default="KEN")
 
     def __str__(self):
         """Represent an organisation using it's name."""
@@ -387,7 +256,7 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
         original output --> organisation: "7b36cbdd-71f1-478a-9904-621fc3a1bf"
         new output --> organisation: "CM1206"
         """
-        return self.slade_code
+        return self.code
 
     def _set_organisation_code(self):
         code_sequence = _get_next_organisation_code_in_sequence()
@@ -408,113 +277,6 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
 
         return self.org_code
 
-    def _setup_default_user(self):
-        from pepfar_mle.common.models import Person, UserProfile
-
-        person = {
-            "first_name": self.organisation_name,
-            "last_name": "Admin",
-            "organisation": self,
-            "created_by": self.created_by,
-            "updated_by": self.updated_by,
-        }
-        user_data = {"guid": uuid.uuid4(), "email": self.email_address}
-        person = Person.objects.create(**person)
-        user = get_user_model().objects.create_user(**user_data)
-        UserProfile.objects.create(
-            user=user,
-            person=person,
-            organisation=self,
-            created_by=self.created_by,
-            updated_by=self.updated_by,
-        )
-        return user
-
-    def send_new_client_email(self):
-        """Send email on first creation."""
-        org_instance = {
-            "id": str(self.pk),
-            "email_address": self.email_address,
-            "organisation_name": self.organisation_name,
-        }
-        send_email_on_org_create(org_instance)
-
-    def create_financial_year(self):
-        """Ensure that an organisation has a financial year."""
-        # late import coz of financial year's this model dependecy
-        from pepfar_mle.common.models.financial_year import FinancialYear
-
-        # at point of creating organisation, there shouldn't be any
-        # existing financial years in the system for that organisation.
-        # so we delete any that could be in the system.
-        # this also helps us ensure you do not have contradicting
-        # financial year start which is specified when creating organisation.
-
-        FinancialYear.objects.filter(organisation=self).delete()
-        return FinancialYear.create_financial_year(self, self.updated_by)
-
-    @property
-    def default_currency(self):
-        """Ensure that an organisation has a currency."""
-        try:
-            return self.common_currency_related.get(is_default=True)
-        except ObjectDoesNotExist:
-            return self.create_default_currency()
-
-    @property
-    def active_financial_year(self):
-        """Return the organisation's active financial year."""
-        from pepfar_mle.common.models.financial_year import FinancialYear
-
-        return FinancialYear.get_active_financial_year(self)
-
-    @property
-    def current_financial_year(self):
-        """Determine the current financial year."""
-        from pepfar_mle.common.models.financial_year import FinancialYear
-
-        return FinancialYear.get_financial_year(self, timezone.now())
-
-    @property
-    def client_types(self):
-        """Return the client types linked to an organisation."""
-        return self.branches_orgclienttype_related.values("client_type", "id")
-
-    def create_default_currency(self):
-        """Create the default KES currency."""
-        vals = {
-            "name": "Kenyan Shilling",
-            "iso_code": "KES",
-            "is_default": True,
-            "conversion_rate": 1,
-            "organisation": self,
-            "created_by": self.updated_by,
-            "updated_by": self.updated_by,
-        }
-        return self.common_currency_related.create(**vals)
-
-    def load_system_data(self):
-        """Load system data and currencies."""
-        data_files = os.path.join(settings.BASE_DIR, "data/system/*/*.json")
-        load_system_data(data_files, self.pk, self.created_by)
-
-    def transition(self, data):
-        """Allow ``notes`` to be added to the ``OrganisationTransitionLog``."""
-        self.note = data["note"]
-        super().transition(data)
-
-    def transition_log_data(self):
-        """Prepare a transition log data dict that is ready to be saved."""
-        data = super().transition_log_data()
-        data.update(
-            {
-                "note": self.note,
-                "created_by": self.updated_by,
-                "updated_by": self.updated_by,
-            }
-        )
-        return data
-
     @transaction.atomic
     def save(self, *args, **kwargs):
         """Ensure that a newly created organisation gets system data."""
@@ -524,8 +286,6 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
 
         if not obj_exists:
             self._set_organisation_code()
-        else:
-            self.financial_year_start_date = obj_exists[0].financial_year_start_date
 
         super().save(*args, **kwargs)
 
@@ -533,60 +293,6 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
 
         if obj_existed:
             return self
-
-        if self.active and not self.deleted and not settings.DISABLE_ORG_SETUP:
-            d_user = self._setup_default_user()
-            # set financial_year
-            self.create_financial_year()
-            assert self.default_currency
-            self.load_system_data()
-
-            from sil.branches.models import WorkStation, WorkStationUser
-
-            workstation = WorkStation.objects.get(
-                name="Administration", organisation=self
-            )
-            WorkStationUser.objects.create(
-                workstation=workstation,
-                health_worker=d_user,
-                created_by=self.created_by,
-                updated_by=self.updated_by,
-                organisation=self,
-            )
-
-
-class OrganisationAbstractBase(models.Model):
-    """Base class for Organisation."""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created = models.DateTimeField(default=timezone.now)
-    updated = models.DateTimeField(default=timezone.now)
-    created_by = models.UUIDField()
-    updated_by = models.UUIDField()
-
-    def uuid_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.id)
-
-    def preserve_created_and_created_by(self):
-        """Ensure that created and created_by values are not overwritten."""
-        try:
-            original = self.__class__.objects.get(pk=self.pk)
-            self.created = original.created
-            self.created_by = original.created_by
-        except self.__class__.DoesNotExist:
-            LOGGER.debug(
-                "preserve_created_and_created_by "
-                "Could not find an instance of {} with pk {} hence treating "
-                "this as a new record.".format(self.__class__, self.pk)
-            )
-
-    class Meta:
-        """Define a sensible default ordering for organisations."""
-
-        ordering = ("-updated", "-created")
-        abstract = True
 
 
 class AbstractBase(OwnerlessAbstractBase):
@@ -600,7 +306,7 @@ class AbstractBase(OwnerlessAbstractBase):
         related_name="%(app_label)s_%(class)s_related",
     )
 
-    organisation_verify = []
+    organisation_verify: List[str] = []
     model_validators = [
         "validate_organisation",
         "validate_updated_date_greater_than_created",

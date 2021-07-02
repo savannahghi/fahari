@@ -52,11 +52,12 @@ INTERNAL_IPS = ["127.0.0.1", "10.0.2.2"]
 if env("USE_DOCKER") == "yes":
     import socket
 
-    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+    hostname, addresses, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
     try:
-        _, _, ips = socket.gethostbyname_ex("node")
+        hostname, addresses, ips = socket.gethostbyname_ex("node")
         INTERNAL_IPS.extend(ips)
+        print(f"hostname: {hostname}\naddresses: {addresses}\nips: {ips}")
     except socket.gaierror:
         # The node container isn't started (yet?)
         pass
