@@ -26,9 +26,10 @@ Loads data that is grouped by model. Data in the format:
 import copy
 from functools import wraps
 
-from data_fixtures.common import DataAlreadyExistsException
 from django.apps import apps
 from six import string_types
+
+from .common import DataAlreadyExistsException
 
 
 def model_instance_memo(func):

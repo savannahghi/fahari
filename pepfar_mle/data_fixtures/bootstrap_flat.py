@@ -24,8 +24,9 @@ import itertools
 import logging
 from collections import OrderedDict
 
-from data_fixtures.common import DataAlreadyExistsException
 from django.apps import apps
+
+from .common import DataAlreadyExistsException
 
 LOGGER = logging.getLogger(__name__)
 

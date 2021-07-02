@@ -16,6 +16,7 @@ urlpatterns = [
     ),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
+    path("grappelli/", include("grappelli.urls")),  # grappelli URLS
     # User management
     path("users/", include("pepfar_mle.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),

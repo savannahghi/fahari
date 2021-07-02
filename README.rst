@@ -31,6 +31,19 @@ Code quality checks are run via https://pre-commit.com/ . You'll have a better e
 GPG Signing
 ------------
 
+As a contributor, you need to sign your commits: https://docs.github.com/en/github/authenticating-to-github/managing-commit-signature-verification/signing-commits .
+
+Running
+--------
+
+In order to serve static assets for local development, you need to set up an `npm` development server:
+
+First, you need to install `npm`. We recommend `nvm`: https://github.com/nvm-sh/nvm .
+
+```bash
+> npm install
+> npm run dev
+```
 
 Settings
 --------

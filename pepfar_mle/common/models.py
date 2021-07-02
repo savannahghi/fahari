@@ -409,7 +409,7 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
         return self.org_code
 
     def _setup_default_user(self):
-        from sil.common.models import Person, UserProfile
+        from pepfar_mle.common.models import Person, UserProfile
 
         person = {
             "first_name": self.organisation_name,
@@ -442,7 +442,7 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
     def create_financial_year(self):
         """Ensure that an organisation has a financial year."""
         # late import coz of financial year's this model dependecy
-        from sil.common.models.financial_year import FinancialYear
+        from pepfar_mle.common.models.financial_year import FinancialYear
 
         # at point of creating organisation, there shouldn't be any
         # existing financial years in the system for that organisation.
@@ -464,14 +464,14 @@ class Organisation(TransitionAndLogMixin, OrganisationAbstractBase):
     @property
     def active_financial_year(self):
         """Return the organisation's active financial year."""
-        from sil.common.models.financial_year import FinancialYear
+        from pepfar_mle.common.models.financial_year import FinancialYear
 
         return FinancialYear.get_active_financial_year(self)
 
     @property
     def current_financial_year(self):
         """Determine the current financial year."""
-        from sil.common.models.financial_year import FinancialYear
+        from pepfar_mle.common.models.financial_year import FinancialYear
 
         return FinancialYear.get_financial_year(self, timezone.now())
 
@@ -637,7 +637,10 @@ class AbstractBase(OwnerlessAbstractBase):
 class MLEBase(AbstractBase):
     """Base model for monitoring, learning and evaluation models."""
 
-    pass
+    class Meta(AbstractBase.Meta):
+        """Define a sensible default ordering."""
+
+        abstract = True
 
 
 class Facility(AbstractBase):
