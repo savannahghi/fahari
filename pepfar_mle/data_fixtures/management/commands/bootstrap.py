@@ -1,9 +1,10 @@
 import glob
 import os
 
-from data_fixtures.bootstrap import process_json
-from data_fixtures.common import process_json_files
 from django.core.management import BaseCommand
+
+from .bootstrap import process_json
+from .common import process_json_files
 
 
 class Command(BaseCommand):
