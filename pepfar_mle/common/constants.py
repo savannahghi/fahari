@@ -299,3 +299,20 @@ COUNTRY_CODES = (
     ("ZMB", "Zambia"),
     ("ZWE", "Zimbabwe"),
 )
+
+CONTENT_TYPES = (
+    ("image/png", "PNG"),
+    ("image/jpeg", "JPEG"),
+    ("application/pdf", "PDF"),
+    ("application/vnd.ms-excel", "xlsx"),
+    ("application/msword", "doc"),
+    ("application/vnd.openxmlformats-officedocument.wordprocessingml.document.docx", "docx"),
+    (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "xlsx",
+    ),
+    ("text/plain", "text"),
+)
+
+
+IMAGE_TYPES = ["image/png", "image/jpeg"]

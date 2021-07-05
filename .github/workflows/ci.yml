@@ -1,22 +1,45 @@
 name: CI
 
-# Enable Buildkit and let compose use it to speed up image building
+on: [push]
+
 env:
-  DOCKER_BUILDKIT: 1
+  DOCKER_BUILDKIT: 1 # Enable Buildkit and let compose use it to speed up image building
   COMPOSE_DOCKER_CLI_BUILD: 1
-
-on:
-  pull_request:
-    branches: ["**"]
-    paths-ignore: ["docs/**"]
-
-  push:
-    branches: ["**"]
-    paths-ignore: ["docs/**"]
+  DJANGO_DEBUG: true
 
 jobs:
   linter:
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+      GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
+      DJANGO_GCP_STORAGE_BUCKET_NAME: ${{ secrets.DJANGO_GCP_STORAGE_BUCKET_NAME }}
+    services:
+      # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout Code Repository
         uses: actions/checkout@v2
@@ -32,12 +55,58 @@ jobs:
       - name: Install and Run Pre-commit
         uses: pre-commit/action@v2.0.3
 
+      - name: Install mypy
+        run: |
+          pip install -r requirements/local.txt && pip install -r requirements/production.txt
+
+      - name: mypy
+        run: |
+          mypy .
+
   pytest:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: 1 # Enable Buildkit and let compose use it to speed up image building
+      COMPOSE_DOCKER_CLI_BUILD: 1
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
+      DJANGO_GCP_STORAGE_BUCKET_NAME: ${{ secrets.DJANGO_GCP_STORAGE_BUCKET_NAME }}
+      CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      redis:
+        # Docker Hub image
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout Code Repository
         uses: actions/checkout@v2
+
+      - name: Decrypt GCS service account
+        run: ./.github/scripts/decrypt_secret.sh
+        env:
+          SECRET_PASSPHRASE: ${{ secrets.SECRET_PASSPHRASE }}
 
       - name: Build the Stack
         run: docker-compose -f local.yml build
@@ -45,16 +114,11 @@ jobs:
       - name: Run DB Migrations
         run: docker-compose -f local.yml run --rm django python manage.py migrate
 
+      - name: Collect static files
+        run: docker-compose -f local.yml run --rm django python manage.py collectstatic --noinput
+
       - name: Run Django Tests
         run: docker-compose -f local.yml run django pytest
 
       - name: Tear down the Stack
         run: docker-compose -f local.yml down
-
-  mypy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: MyPy Type Checking
-        uses: j
-        with:
-          path: "/github/workspace"
