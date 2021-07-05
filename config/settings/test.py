@@ -2,6 +2,9 @@
 With these settings, tests run faster.
 """
 
+
+from model_bakery import baker
+
 from .base import *  # noqa
 from .base import env
 
@@ -39,3 +42,27 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+
+def gen_func():
+    return "+254790360360"
+
+
+baker.generators.add("phonenumber_field.modelfields.PhoneNumberField", gen_func)
+
+# test with the real storages
+
+# STORAGES
+# ------------------------------------------------------------------------------
+# https://django-storages.readthedocs.io/en/latest/#installation
+INSTALLED_APPS += ["storages"]  # noqa F405
+GS_BUCKET_NAME = env("DJANGO_GCP_STORAGE_BUCKET_NAME", default="fahari-ya-jamii-test")
+GS_DEFAULT_ACL = "project-private"
+# STATIC
+# ------------------------
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# MEDIA
+# ------------------------------------------------------------------------------
+DEFAULT_FILE_STORAGE = "pepfar_mle.utils.storages.MediaRootGoogleCloudStorage"
+MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/media/"
+WHITENOISE_MANIFEST_STRICT = False

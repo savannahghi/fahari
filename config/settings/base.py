@@ -321,3 +321,6 @@ CORS_URLS_REGEX = r"^/api/.*$"
 # Your stuff...
 # ------------------------------------------------------------------------------
 DECIMAL_PLACES = 4
+
+MAX_IMAGE_HEIGHT = 4320
+MAX_IMAGE_WIDTH = 7680
