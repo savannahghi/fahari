@@ -1,16 +1,19 @@
 import logging
 import uuid
 from collections import defaultdict
+from fractions import Fraction
 from typing import List
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models.base import ModelBase
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
+from PIL import Image
 
-from .constants import COUNTIES, COUNTRY_CODES
+from .constants import CONTENT_TYPES, COUNTIES, COUNTRY_CODES, IMAGE_TYPES
 
 LOGGER = logging.getLogger(__file__)
 
@@ -26,6 +29,17 @@ def unique_list(list_object):
         seen.add(each)
 
     return new_list
+
+
+def get_directory(instance, filename):
+    """Determine the upload_to path for every model inheriting Attachment."""
+    org = instance.organisation.organisation_name
+    return "{}/{}/{}".format(org, instance.__class__.__name__.lower(), filename)
+
+
+def is_image_type(file_type):
+    """Check if file is an image."""
+    return file_type in IMAGE_TYPES
 
 
 class ValidationMetaclass(ModelBase):
@@ -68,36 +82,6 @@ class OwnerlessAbstractBase(models.Model, metaclass=ValidationMetaclass):
     def _raise_errors(self, errors):
         if errors:
             raise ValidationError(errors)
-
-    def uuid_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.id)
-
-    def created_by_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.created_by)
-
-    def updated_by_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.updated_by)
-
-    def process_copy(self, copy):
-        """Use in ``make_copy`` to allow for modifications before saving."""
-        return copy
-
-    def exists(self, **kwargs):
-        """Determine if a similar instance already exists."""
-        return self.__class__.objects.filter(pk=self.pk, **kwargs).exists()
-
-    def get_self(self, **kwargs):
-        """Return an instance with the same PK, if it exists."""
-        try:
-            return self.__class__.objects.get(pk=self.pk, **kwargs)
-        except self.__class__.DoesNotExist:
-            return False
 
     def validate_updated_date_greater_than_created(self):
         """Ensure that updated is always after created."""
@@ -149,6 +133,7 @@ class OwnerlessAbstractBase(models.Model, metaclass=ValidationMetaclass):
         """Handle audit fields correctly when saving."""
         self.updated = timezone.now() if self.updated is None else self.updated
         self.preserve_created_and_created_by()
+        self.full_clean()
         super().save(*args, **kwargs)
 
     class Meta:
@@ -185,11 +170,6 @@ class OrganisationAbstractBase(models.Model):
     updated = models.DateTimeField(default=timezone.now)
     created_by = models.UUIDField()
     updated_by = models.UUIDField()
-
-    def uuid_to_string(self):
-        """Convert uuid field to string."""
-        # uuid not supported in elastic search
-        return str(self.id)
 
     def preserve_created_and_created_by(self):
         """Ensure that created and created_by values are not overwritten."""
@@ -249,14 +229,6 @@ class Organisation(OrganisationAbstractBase):
     def __str__(self):
         """Represent an organisation using it's name."""
         return self.organisation_name
-
-    def natural_key(self):
-        """Emit a natural key when serializing data.
-
-        original output --> organisation: "7b36cbdd-71f1-478a-9904-621fc3a1bf"
-        new output --> organisation: "CM1206"
-        """
-        return self.code
 
     def _set_organisation_code(self):
         code_sequence = _get_next_organisation_code_in_sequence()
@@ -329,10 +301,9 @@ class AbstractBase(OwnerlessAbstractBase):
         if self.organisation_verify:
             for field in self.organisation_verify:
                 value = getattr(self, field)
-                if value:
-                    if str(self.organisation.id) != str(value.organisation.id):
-                        LOGGER.error(f"{field} has an inconsistent org")
-                        raise ValidationError({"organisation": _(error_msg)})
+                if value and str(self.organisation.id) != str(value.organisation.id):
+                    LOGGER.error(f"{field} has an inconsistent org")
+                    raise ValidationError({"organisation": _(error_msg)})
 
     class Meta(OwnerlessAbstractBase.Meta):
         """Define a sensible default ordering."""
@@ -340,18 +311,99 @@ class AbstractBase(OwnerlessAbstractBase):
         abstract = True
 
 
-class MLEBase(AbstractBase):
-    """Base model for monitoring, learning and evaluation models."""
+class Attachment(AbstractBase):
+    """Shared model for all attachments."""
 
-    class Meta(AbstractBase.Meta):
-        """Define a sensible default ordering."""
+    content_type = models.CharField(max_length=100, choices=CONTENT_TYPES)
+    data = models.FileField(upload_to=get_directory, max_length=65535)
+    title = models.CharField(max_length=255)
+    creation_date = models.DateTimeField(default=timezone.now)
+    size = models.IntegerField(help_text="The size of the attachment in bytes")
+    description = models.TextField(null=True, blank=True)
+    aspect_ratio = models.CharField(max_length=50, blank=True, null=True)
 
+    model_validators = ["validate_image_size"]
+
+    def validate_image_size(self):
+        """Ensure that the supplied image size matches the actual file."""
+        if not is_image_type(self.content_type):
+            return
+        image = Image.open(self.data)
+        width, height = image.size
+        msg_template = (
+            "Your image has a {axis} of {actual_size} {extra_text} "
+            "pixels which is larger than allowable dimension of "
+            "{expected_size} pixels."
+        )
+        msg = None
+        if height > settings.MAX_IMAGE_HEIGHT:
+            msg = msg_template.format(
+                axis="height",
+                actual_size=height,
+                expected_size=settings.MAX_IMAGE_HEIGHT,
+                extra_text="{extra_text}",
+            )
+
+        if width > settings.MAX_IMAGE_WIDTH:
+            msg = (
+                msg.format(extra_text="and width of {}".format(width))
+                if msg
+                else msg_template.format(
+                    axis="width",
+                    actual_size=width,
+                    expected_size=settings.MAX_IMAGE_WIDTH,
+                    extra_text="",
+                )
+            )
+
+        if msg:
+            msg = msg.format(extra_text="")
+            raise ValidationError(msg)
+
+        # Set the image aspect ratio
+        float_ratio = float(width / height)
+        fraction_ratio = str(Fraction(float_ratio).limit_denominator())
+        self.aspect_ratio = fraction_ratio.replace("/", ":")
+
+    class Meta:
+        """Declare Attachment as an abstract model."""
+
+        ordering = ("-updated", "-created")
         abstract = True
+
+    def __str__(self):
+        """Represent an attachment by its title."""
+        return self.title
 
 
 class Facility(AbstractBase):
     """A facility with M&E reporting."""
 
     name = models.TextField()
-    mfl_code = models.IntegerField()
+    mfl_code = models.IntegerField(unique=True)
     county = models.CharField(choices=COUNTIES, max_length=24)
+
+    model_validators = [
+        "facility_name_longer_than_three_characters",
+    ]
+
+    def facility_name_longer_than_three_characters(self):
+        if len(self.name) < 3:
+            raise ValidationError("the facility name should exceed 3 characters")
+
+    def __str__(self):
+        return f"{self.name} - {self.mfl_code} ({self.county})"
+
+
+class FacilityAttachment(Attachment):
+    """Any document attached to a facility."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    notes = models.TextField()
+
+    organisation_verify = ["facility"]
+
+    class Meta:
+        """Define ordering and other attributes for attachments."""
+
+        ordering = ("-updated", "-created")

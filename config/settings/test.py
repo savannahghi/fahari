@@ -1,6 +1,9 @@
 """
 With these settings, tests run faster.
 """
+import sys
+
+from model_bakery import baker
 
 from .base import *  # noqa
 from .base import env
@@ -39,3 +42,42 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+
+def gen_func():
+    return "+254790360360"
+
+
+baker.generators.add("phonenumber_field.modelfields.PhoneNumberField", gen_func)
+
+# test with the real storages
+
+# STORAGES
+# ------------------------------------------------------------------------------
+# https://django-storages.readthedocs.io/en/latest/#installation
+INSTALLED_APPS += ["storages"]  # noqa F405
+GS_BUCKET_NAME = env("DJANGO_GCP_STORAGE_BUCKET_NAME", default="fahari-ya-jamii-test")
+GS_DEFAULT_ACL = "project-private"
+# STATIC
+# ------------------------
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# MEDIA
+# ------------------------------------------------------------------------------
+DEFAULT_FILE_STORAGE = "pepfar_mle.utils.storages.MediaRootGoogleCloudStorage"
+MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/media/"
+WHITENOISE_MANIFEST_STRICT = False
+
+
+def require_env(name: str) -> str:
+    value = env(name)
+    if value is None:
+        print("Missing '{}' env variable".format(name))
+        sys.exit(1)
+    return value
+
+
+# ensure that environment variables that are needed to run tests successfully are present
+require_env("GOOGLE_APPLICATION_CREDENTIALS")
+require_env("DJANGO_GCP_STORAGE_BUCKET_NAME")
+require_env("DATABASE_URL")
+require_env("CELERY_BROKER_URL")

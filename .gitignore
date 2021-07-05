@@ -335,3 +335,6 @@ pepfar_mle/media/
 .env
 .envs/*
 !.envs/.local/
+
+secrets/*
+
