@@ -3,7 +3,8 @@ PEPFAR Monitoring, Learning and Evaluation
 
 Field Reporting Database for PEPFAR Monitoring, Learning and Evaluation.
 
-![example workflow](https://github.com/savannahghi/mle/actions/workflows/ci.yml/badge.svg)
+![Linting and Tests](https://github.com/savannahghi/mle/actions/workflows/ci.yml/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/savannahghi/mle/badge.svg?branch=main)](https://coveralls.io/github/savannahghi/mle?branch=main)
 
 Environment variables
 ---------------------
