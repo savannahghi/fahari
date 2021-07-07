@@ -43,7 +43,7 @@ This project was bootstrapped with <https://cookiecutter-django.readthedocs.io/e
 The standard settings are documented at <http://cookiecutter-django.readthedocs.io/en/latest/settings.html>.
 
 Setting Up Your Users
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
 * To create a **normal user account**, just go to Sign Up and fill out the form. Once you submit it, you'll see a "Verify Your E-mail Address" page. Go to your console to see a simulated email verification message. Copy the link into your browser. Now the user's email should be verified and ready to go.
 
@@ -57,7 +57,7 @@ For convenience, you can keep your normal user logged in on Chrome and your supe
 so that you can see how the site behaves for both kinds of users.
 
 Bootstrap
-^^^^^^^^^^^
+---------
 
 The Boostrap CSS is set up for live reloading and SASS compliation.
 
@@ -67,7 +67,7 @@ See:
 * <https://github.com/twbs/bootstrap/blob/v4-dev/scss/_variables.scss>
 
 Celery
-^^^^^^
+------
 
 This app uses Celery for background tasks.
 
@@ -82,7 +82,7 @@ Please note: For Celery's import magic to work, it is important *where* the cele
 If you are in the same folder with *manage.py*, you should be right.
 
 Email Server
-^^^^^^^^^^^^
+------------
 
 In development, it is often nice to be able to see emails that are being sent from your application.
 For that reason local SMTP server <https://github.com/mailhog/MailHog> with a web interface is available as docker container.
