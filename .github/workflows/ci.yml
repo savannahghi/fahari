@@ -16,6 +16,7 @@ env:
   CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
   GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
   DJANGO_GCP_STORAGE_BUCKET_NAME: ${{ secrets.DJANGO_GCP_STORAGE_BUCKET_NAME }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   linter:
@@ -70,6 +71,7 @@ jobs:
           mypy .
 
   pytest:
+    needs: linter
     runs-on: ubuntu-latest
 
     # Service containers to run with `container-job`
@@ -108,21 +110,23 @@ jobs:
         env:
           SECRET_PASSPHRASE: ${{ secrets.SECRET_PASSPHRASE }}
 
-      - name: Install Python requirements
+      - name: Install requirements
         run: |
           pip install -r requirements/local.txt && pip install -r requirements/production.txt
+          npm ci
 
-      - name: Install NodeJS requirements
-        run: npm ci
-
-      - name: Run migrations
+      - name: Set up Django
         run: |
           python manage.py migrate
-
-      - name: Collect static files
-        run: |
           python manage.py collectstatic --noinput
 
-      - name: Run tests
+      - name: Run tests and collect coverage
         run: |
           pytest
+          coveralls   --service=github
+
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          parallel-finished: true

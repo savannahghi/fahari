@@ -13,6 +13,7 @@ uvicorn[standard]==0.14.0  # https://github.com/encode/uvicorn
 django-phonenumber-field~=5.2.0
 phonenumbers~=8.12.26
 Fraction~=1.5.1
+coveralls~=3.1.0
 
 # Django
 # ------------------------------------------------------------------------------
