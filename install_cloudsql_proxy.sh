@@ -4,9 +4,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-if [ -z "${CLOUD_SQL_PROXY_VERSION}" ]; then
-    export CLOUD_SQL_PROXY_VERSION=v1.23.0
-fi
+export CLOUD_SQL_PROXY_VERSION=v1.23.0
 
 wget https://storage.googleapis.com/cloudsql-proxy/$CLOUD_SQL_PROXY_VERSION/cloud_sql_proxy.linux.amd64 -O /cloud_sql_proxy
 chmod +x /cloud_sql_proxy
