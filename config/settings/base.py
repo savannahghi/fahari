@@ -1,19 +1,25 @@
 """
 Base settings to build other settings files upon.
 """
+import io
+import os
 from pathlib import Path
 
 import environ
+from google.cloud import secretmanager
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # pepfar_mle/
 APPS_DIR = ROOT_DIR / "pepfar_mle"
 env = environ.Env()
 
-READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
-if READ_DOT_ENV_FILE:
-    # OS environment variables take precedence over variables from .env
-    env.read_env(str(ROOT_DIR / ".env"))
+if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    client = secretmanager.SecretManagerServiceClient()
+    settings_name = os.environ.get("SETTINGS_NAME", "mle_django_settings")
+    name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
+    payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
+    env.read_env(io.StringIO(payload))
 
 # GENERAL
 # ------------------------------------------------------------------------------

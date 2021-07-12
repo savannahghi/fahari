@@ -35,18 +35,12 @@ RUN pip wheel --wheel-dir /usr/src/app/wheels  \
 
 # Python 'run' stage
 FROM python as python-run-stage
-
 ARG BUILD_ENVIRONMENT=production
 ARG APP_HOME=/app
-
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV BUILD_ENV ${BUILD_ENVIRONMENT}
-
 WORKDIR ${APP_HOME}
-
-RUN addgroup --system django \
-  && adduser --system --ingroup django django
 
 
 # Install required system dependencies
@@ -70,7 +64,7 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
   && rm -rf /wheels/
 
 
-COPY  ./entrypoint /entrypoint
+COPY ./entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint
 RUN chmod +x /entrypoint
 
