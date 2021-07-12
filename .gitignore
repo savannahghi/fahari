@@ -334,4 +334,5 @@ pepfar_mle/media/
 !.envs/.local/
 
 secrets/*
+cloud_sql_proxy
 
