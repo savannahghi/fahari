@@ -21,7 +21,7 @@ ARG BUILD_ENVIRONMENT=production
 # Install apt packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
   # dependencies for building Python packages
-  build-essential \
+  build-essential wget \
   # psycopg2 dependencies
   libpq-dev
 
@@ -55,6 +55,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   libpq-dev \
   # Translations dependencies
   gettext \
+  # wget
+  wget \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
@@ -78,4 +80,10 @@ COPY --from=client-builder --chown=django:django ${APP_HOME} ${APP_HOME}
 # make django owner of the WORKDIR directory as well.
 RUN chown django:django ${APP_HOME}
 USER django
+
+# set up cloud SQL proxy
+ENV CLOUD_SQL_PROXY_VERSION v1.23.0
+RUN wget "https://storage.googleapis.com/cloudsql-proxy/${CLOUD_SQL_PROXY_VERSION}/cloud_sql_proxy.linux.amd64" -O /cloud_sql_proxy
+RUN chmod +x /cloud_sql_proxy
+
 ENTRYPOINT ["/entrypoint"]
