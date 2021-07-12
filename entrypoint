@@ -12,9 +12,13 @@ fi
 # omit the port when running on App Engine, Cloud Run etc
 if [ -z "${INSTANCE_CONNECTION_NAME}"]; then
     export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+    echo "Set up database URL for running in Cloud SQL (Unix Socket)"
 else
     export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}"
+    echo "Set up database URL for running outside Cloud SQL (host and port)"
 fi
+
+echo "Database URL: ${DATABASE_URL}"
 
 postgres_ready() {
 python << END
@@ -42,4 +46,35 @@ until postgres_ready; do
 done
 >&2 echo 'PostgreSQL is available'
 
-exec "/start"
+python /app/manage.py collectstatic --noinput
+>&2 echo 'Collected static files...'
+
+python /app/manage.py migrate
+>&2 echo 'Ran database migrations...'
+
+python /app/manage.py createcachetable
+>&2 echo 'Created the cache table...'
+
+compress_enabled() {
+python << END
+import sys
+
+from environ import Env
+
+env = Env(COMPRESS_ENABLED=(bool, True))
+if env('COMPRESS_ENABLED'):
+    sys.exit(0)
+else:
+    sys.exit(1)
+
+END
+}
+
+if compress_enabled; then
+  # NOTE this command will fail if django-compressor is disabled
+  python /app/manage.py compress
+  >&2 echo 'Compressed static assets...'
+fi
+
+>&2 echo 'About to run Gunicorn...'
+/usr/local/bin/gunicorn config.asgi --bind 0.0.0.0:$PORT --chdir=/app -k uvicorn.workers.UvicornWorker
