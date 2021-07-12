@@ -16,7 +16,7 @@ fi
 echo "Set/checked POSTGRES_USER..."
 
 # omit the port when running on App Engine, Cloud Run etc
-if [ -z "${INSTANCE_CONNECTION_NAME}"]]; then
+if [ -z "${INSTANCE_CONNECTION_NAME}" ]; then
     export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
     echo "Set up database URL for running in Cloud SQL (Unix Socket)"
 else
