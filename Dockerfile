@@ -82,8 +82,7 @@ RUN chown django:django ${APP_HOME}
 USER django
 
 # set up cloud SQL proxy
-ENV CLOUD_SQL_PROXY_VERSION v1.23.0
-RUN wget "https://storage.googleapis.com/cloudsql-proxy/${CLOUD_SQL_PROXY_VERSION}/cloud_sql_proxy.linux.amd64" -O /cloud_sql_proxy
+RUN wget "https://storage.googleapis.com/cloudsql-proxy/v1.23.0/cloud_sql_proxy.linux.amd64" -O /cloud_sql_proxy
 RUN chmod +x /cloud_sql_proxy
 
 ENTRYPOINT ["/entrypoint"]
