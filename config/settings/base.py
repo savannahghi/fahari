@@ -13,6 +13,11 @@ ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "pepfar_mle"
 env = environ.Env()
 
+# >>> from urllib.parse import quote_plus
+# >>> host = '/cloudsql/sghi-307909:europe-west1:clinical-instance'
+# >>> quote_plus(host)
+# '%2Fcloudsql%2Fsghi-307909%3Aeurope-west1%3Aclinical-instance'
+# >>>
 if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
     client = secretmanager.SecretManagerServiceClient()
@@ -20,6 +25,8 @@ if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
     name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
     payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
     env.read_env(io.StringIO(payload))
+    print("set env from secrets...")
+    print(f'database settings: {env.db("DATABASE_URL")}')
 
 # GENERAL
 # ------------------------------------------------------------------------------

@@ -4,11 +4,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-# run in the background and allow it some time to start before continuing
-/app/cloud_sql_proxy -verbose -structured_logs -dir=/cloudsql -instances=$INSTANCE_CONNECTION_NAME &
-sleep 10
-echo "Created Cloud SQL Proxy at $INSTANCE_CONNECTION_NAME, running in the background"
-
 if [ -z "${POSTGRES_USER}" ]; then
     base_postgres_image_default_user='postgres'
     export POSTGRES_USER="${base_postgres_image_default_user}"
