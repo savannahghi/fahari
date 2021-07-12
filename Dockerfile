@@ -70,15 +70,15 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
   && rm -rf /wheels/
 
 
-COPY --chown=django:django ./entrypoint /entrypoint
+COPY  ./entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint
 RUN chmod +x /entrypoint
 
 # copy application code to WORKDIR
-COPY --from=client-builder --chown=django:django ${APP_HOME} ${APP_HOME}
+COPY --from=client-builder ${APP_HOME} ${APP_HOME}
 
 # set up cloud SQL proxy
-COPY --chown=django:django ./install_cloudsql_proxy.sh /install_cloudsql_proxy.sh
+COPY ./install_cloudsql_proxy.sh /install_cloudsql_proxy.sh
 RUN sed -i 's/\r$//g' /install_cloudsql_proxy.sh
 RUN chmod +x /install_cloudsql_proxy.sh
 RUN /install_cloudsql_proxy.sh
