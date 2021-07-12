@@ -12,7 +12,6 @@ env:
   POSTGRES_DB: postgres
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
-  DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
   GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
   DJANGO_GCP_STORAGE_BUCKET_NAME: ${{ secrets.DJANGO_GCP_STORAGE_BUCKET_NAME }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

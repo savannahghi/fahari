@@ -79,4 +79,8 @@ def require_env(name: str) -> str:
 # ensure that environment variables that are needed to run tests successfully are present
 require_env("GOOGLE_APPLICATION_CREDENTIALS")
 require_env("DJANGO_GCP_STORAGE_BUCKET_NAME")
-require_env("DATABASE_URL")
+require_env("POSTGRES_DB")
+require_env("POSTGRES_USER")
+require_env("POSTGRES_PASSWORD")
+require_env("POSTGRES_HOST")
+require_env("POSTGRES_PORT")
