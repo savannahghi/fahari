@@ -1,5 +1,5 @@
 [MASTER]
-load-plugins=pylint_django, pylint_celery
+load-plugins=pylint_django
 django-settings-module=pepfar_mle.config.settings.test
 
 [FORMAT]
