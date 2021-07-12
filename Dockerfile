@@ -77,12 +77,9 @@ RUN chmod +x /entrypoint
 # copy application code to WORKDIR
 COPY --from=client-builder --chown=django:django ${APP_HOME} ${APP_HOME}
 
-# make django owner of the WORKDIR directory as well.
-RUN chown django:django ${APP_HOME}
-USER django
-
 # set up cloud SQL proxy
 COPY --chown=django:django ./install_cloudsql_proxy.sh /install_cloudsql_proxy.sh
+RUN sed -i 's/\r$//g' /install_cloudsql_proxy.sh
 RUN chmod +x /install_cloudsql_proxy.sh
 RUN /install_cloudsql_proxy.sh
 
