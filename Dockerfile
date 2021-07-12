@@ -83,7 +83,6 @@ USER django
 
 # set up cloud SQL proxy
 COPY --chown=django:django ./install_cloudsql_proxy.sh /install_cloudsql_proxy.sh
-RUN sed -i 's/\r$//g' /install_cloudsql_proxy.sh
 RUN chmod +x /install_cloudsql_proxy.sh
 RUN /install_cloudsql_proxy.sh
 
