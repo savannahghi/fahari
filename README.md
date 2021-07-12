@@ -67,21 +67,6 @@ See:
 * <http://cookiecutter-django.readthedocs.io/en/latest/live-reloading-and-sass-compilation.html>
 * <https://github.com/twbs/bootstrap/blob/v4-dev/scss/_variables.scss>
 
-Celery
-------
-
-This app uses Celery for background tasks.
-
-To run a celery worker:
-
-```bash
-> cd pepfar_mle
-> celery -A config.celery_app worker -l info
-```
-
-Please note: For Celery's import magic to work, it is important *where* the celery commands are run.
-If you are in the same folder with *manage.py*, you should be right.
-
 Email Server
 ------------
 

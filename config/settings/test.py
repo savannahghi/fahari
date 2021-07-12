@@ -80,4 +80,3 @@ def require_env(name: str) -> str:
 require_env("GOOGLE_APPLICATION_CREDENTIALS")
 require_env("DJANGO_GCP_STORAGE_BUCKET_NAME")
 require_env("DATABASE_URL")
-require_env("CELERY_BROKER_URL")

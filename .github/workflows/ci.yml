@@ -13,7 +13,6 @@ env:
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
   DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
-  CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
   GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
   DJANGO_GCP_STORAGE_BUCKET_NAME: ${{ secrets.DJANGO_GCP_STORAGE_BUCKET_NAME }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -22,17 +21,6 @@ jobs:
   linter:
     runs-on: ubuntu-latest
     services:
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
       postgres:
         image: postgres
         env:
@@ -76,17 +64,6 @@ jobs:
 
     # Service containers to run with `container-job`
     services:
-      # Label used to access the service container
-      redis:
-        # Docker Hub image
-        image: redis
-        # Set health checks to wait until redis has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
       postgres:
         image: postgres
         env:
@@ -118,6 +95,7 @@ jobs:
       - name: Set up Django
         run: |
           python manage.py migrate
+          python manage.py createcachetable
           python manage.py collectstatic --noinput
 
       - name: Run tests and collect coverage
