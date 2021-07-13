@@ -25,7 +25,7 @@ if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = env.bool("DJANGO_DEBUG", False)
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
 # Local time zone. Choices are
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # though not all of them may be available with every OS.
@@ -49,11 +49,11 @@ LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 DATABASES = {
     "default": {
-        "NAME": env.str("POSTGRES_DB", "mle"),
-        "USER": env.str("POSTGRES_USER", "user"),
-        "PASSWORD": env.str("POSTGRES_PASSWORD", "somesecret"),
-        "HOST": env.str("POSTGRES_HOST", "localhost"),
-        "PORT": env.str("POSTGRES_PORT", None),
+        "NAME": env.str("POSTGRES_DB", default="mle"),
+        "USER": env.str("POSTGRES_USER", default="user"),
+        "PASSWORD": env.str("POSTGRES_PASSWORD", default="somesecret"),
+        "HOST": env.str("POSTGRES_HOST", default="localhost"),
+        "PORT": env.str("POSTGRES_PORT", default=None),
         "ENGINE": "django.db.backends.postgresql",
         "ATOMIC_REQUESTS": True,
     }
@@ -316,3 +316,7 @@ DECIMAL_PLACES = 4
 
 MAX_IMAGE_HEIGHT = 4320
 MAX_IMAGE_WIDTH = 7680
+
+# minimal django-compressor settings
+COMPRESS_ENABLED = True
+COMPRESS_OFFLINE = True
