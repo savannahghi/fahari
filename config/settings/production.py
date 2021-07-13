@@ -52,7 +52,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = env.bool("DJANGO_SECURE_CONTENT_TYPE_NOSNIFF", def
 # ------------------------------------------------------------------------------
 # https://django-storages.readthedocs.io/en/latest/#installation
 INSTALLED_APPS += ["storages"]  # noqa F405
-GS_BUCKET_NAME = env("DJANGO_GCP_STORAGE_BUCKET_NAME")
+GS_BUCKET_NAME = env("DJANGO_GCP_STORAGE_BUCKET_NAME", default="")
 GS_DEFAULT_ACL = "project-private"
 # STATIC
 # ------------------------
@@ -93,7 +93,7 @@ EMAIL_SUBJECT_PREFIX = env(
 # ADMIN
 # ------------------------------------------------------------------------------
 # Django Admin URL regex.
-ADMIN_URL = env("DJANGO_ADMIN_URL")
+ADMIN_URL = env("DJANGO_ADMIN_URL", default="/admin")
 
 # Anymail
 # ------------------------------------------------------------------------------
@@ -104,8 +104,8 @@ INSTALLED_APPS += ["anymail"]  # noqa F405
 # https://anymail.readthedocs.io/en/stable/esps/mailgun/
 EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
 ANYMAIL = {
-    "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),
-    "MAILGUN_SENDER_DOMAIN": env("MAILGUN_DOMAIN"),
+    "MAILGUN_API_KEY": env("MAILGUN_API_KEY", default=""),
+    "MAILGUN_SENDER_DOMAIN": env("MAILGUN_DOMAIN", default=""),
     "MAILGUN_API_URL": env("MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
 }
 
@@ -170,7 +170,7 @@ LOGGING = {
 
 # Sentry
 # ------------------------------------------------------------------------------
-SENTRY_DSN = env("SENTRY_DSN")
+SENTRY_DSN = env("SENTRY_DSN", default="")
 SENTRY_LOG_LEVEL = env.int("DJANGO_SENTRY_LOG_LEVEL", logging.INFO)
 
 sentry_logging = LoggingIntegration(
