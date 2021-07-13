@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+python manage.py collectstatic --noinput
+>&2 echo 'Collected static files...'
+
+python manage.py compress
+>&2 echo 'Compressed static assets...'
