@@ -58,7 +58,6 @@ DATABASES = {
         "ATOMIC_REQUESTS": True,
     }
 }
-print(f"databases: {DATABASES}")
 
 # URLS
 # ------------------------------------------------------------------------------

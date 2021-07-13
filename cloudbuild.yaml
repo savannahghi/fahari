@@ -24,6 +24,7 @@ steps:
       '--region', 'europe-west1',
       '--platform', 'managed',
       '--allow-unauthenticated',
+      '--min-instances', '1',
       '--add-cloudsql-instances', '${_CLOUDSQL_INSTANCE_CONNECTION_NAME}',
       '--set-env-vars', 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,SETTINGS_NAME=mle_django_settings'
   ]
