@@ -92,9 +92,9 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
-    # "jet.dashboard",
-    "jet",
-    "django.contrib.admin",  # needs to come after jet so that jet static files are preferred
+    "grappelli.dashboard",
+    "grappelli",
+    "django.contrib.admin",  # needs to come after grappelli
 ]
 
 LOCAL_APPS = [
@@ -237,7 +237,7 @@ CSRF_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
-X_FRAME_OPTIONS = "SAMEORIGIN"  # needs to be SAMEORIGIN for the jet admin to work
+X_FRAME_OPTIONS = "DENY"  # needs to be SAMEORIGIN for the jet admin to work
 
 # EMAIL
 # ------------------------------------------------------------------------------
@@ -322,3 +322,8 @@ CORS_URLS_REGEX = r"^/api/.*$"
 DECIMAL_PLACES = 4
 MAX_IMAGE_HEIGHT = 4320
 MAX_IMAGE_WIDTH = 7680
+
+# Grappelli
+GRAPPELLI_ADMIN_TITLE = "Program Database"
+GRAPPELLI_AUTOCOMPLETE_LIMIT = 25
+GRAPPELLI_INDEX_DASHBOARD = "pepfar_mle.dashboard.CustomIndexDashboard"

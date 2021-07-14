@@ -15,10 +15,7 @@ urlpatterns = [
         TemplateView.as_view(template_name="pages/about.html"),
         name="about",
     ),
-    # path(
-    #     "jet/dashboard/", include("jet.dashboard.urls", "jet-dashboard")
-    # ),  # Django JET dashboard URLS
-    path("jet/", include("jet.urls", "jet")),  # Django JET URLS
+    path("grappelli/", include("grappelli.urls")),  # grappelli URLS
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management

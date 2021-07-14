@@ -11,7 +11,6 @@ phonenumbers~=8.12.26
 Fraction~=1.5.1
 coveralls~=3.1.0
 google-cloud-secret-manager~=2.5.0
-cifrazia-django-jet~=1.1.4
 google-api-python-client~=2.13.0
 
 # Django
@@ -27,3 +26,4 @@ djangorestframework~=3.12.4  # https://github.com/encode/django-rest-framework
 django-cors-headers~=3.7.0 # https://github.com/adamchainz/django-cors-headers
 django-storages[google]~=1.11.1  # https://github.com/jschneier/django-storages
 django-anymail[mailgun]~=8.4  # https://github.com/anymail/django-anymail
+django-grappelli~=2.15.1
