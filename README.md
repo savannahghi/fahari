@@ -82,7 +82,5 @@ your browser and go to ``http://127.0.0.1:8025``
 Deployment
 ----------
 
-This application can be deployed via:
-
-* Heroku: <http://cookiecutter-django.readthedocs.io/en/latest/deployment-on-heroku.html>
-* Docker Compose: <http://cookiecutter-django.readthedocs.io/en/latest/deployment-with-docker.html>
+This application is deployed via Google Cloud Build ( <https://cloud.google.com/build> ) to Google Cloud Run ( <https://cloud.google.com/run> ).
+There's a `cloudbuild.yaml` file in the home folder. Secrets (e.g production settings) are managed with Google Secret Manager ( <https://cloud.google.com/secret-manager> ).
