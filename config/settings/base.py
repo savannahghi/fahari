@@ -11,7 +11,11 @@ from google.cloud import secretmanager
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # pepfar_mle/
 APPS_DIR = ROOT_DIR / "pepfar_mle"
+ENVS_DIR = ROOT_DIR / "envs"
+ENV_PATH = os.path.join(ENVS_DIR, ".env")
+
 env = environ.Env()
+env.read_env(ENV_PATH)
 
 if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
