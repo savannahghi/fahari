@@ -4,32 +4,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-postgres_ready() {
-python << END
-import sys
-
-import psycopg2
-
-try:
-    psycopg2.connect(
-        dbname="${POSTGRES_DB}",
-        user="${POSTGRES_USER}",
-        password="${POSTGRES_PASSWORD}",
-        host="${POSTGRES_HOST}",
-        port="${POSTGRES_PORT}",
-    )
-except psycopg2.OperationalError:
-    sys.exit(-1)
-sys.exit(0)
-
-END
-}
-until postgres_ready; do
-  >&2 echo 'Waiting for PostgreSQL to become available...'
-  sleep 1
-done
->&2 echo 'PostgreSQL is available'
-
 python /app/manage.py migrate
 >&2 echo 'Ran database migrations...'
 
@@ -39,26 +13,8 @@ python /app/manage.py createcachetable
 python /app/manage.py collectstatic --noinput
 >&2 echo 'Collected static files...'
 
-compress_enabled() {
-python << END
-import sys
-
-from environ import Env
-
-env = Env(COMPRESS_ENABLED=(bool, True))
-if env('COMPRESS_ENABLED'):
-    sys.exit(0)
-else:
-    sys.exit(1)
-
-END
-}
-
-if compress_enabled; then
-  # NOTE this command will fail if django-compressor is disabled
-  python /app/manage.py compress
-  >&2 echo 'Compressed static assets...'
-fi
+python /app/manage.py compress
+>&2 echo 'Compressed static assets...'
 
 >&2 echo 'About to run Gunicorn...'
 /usr/local/bin/gunicorn config.asgi --bind 0.0.0.0:$PORT --chdir=/app -k uvicorn.workers.UvicornWorker

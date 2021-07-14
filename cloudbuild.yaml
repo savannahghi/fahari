@@ -25,7 +25,7 @@ steps:
       '--platform', 'managed',
       '--allow-unauthenticated',
       '--add-cloudsql-instances', '${_CLOUDSQL_INSTANCE_CONNECTION_NAME}',
-      '--set-env-vars', 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,SETTINGS_NAME=mle_django_settings',
+      '--set-env-vars', 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,SETTINGS_NAME=mle_django_settings,DJANGO_SETTINGS_MODULE=config.settings.production',
       '--min-instances', '1'
   ]
 
