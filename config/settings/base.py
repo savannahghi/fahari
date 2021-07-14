@@ -68,6 +68,10 @@ ROOT_URLCONF = "config.urls"
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
 WSGI_APPLICATION = "config.wsgi.application"
 
+# BigAutoField needs migration of existing data and either changes to
+# dependencies or overriding dependencies
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
 # APPS
 # ------------------------------------------------------------------------------
 DJANGO_APPS = [
@@ -78,7 +82,6 @@ DJANGO_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
-    "django.contrib.admin",
     "django.forms",
 ]
 THIRD_PARTY_APPS = [
@@ -89,7 +92,9 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
-    "grappelli",
+    # "jet.dashboard",
+    "jet",
+    "django.contrib.admin",  # needs to come after jet so that jet static files are preferred
 ]
 
 LOCAL_APPS = [
@@ -232,7 +237,7 @@ CSRF_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
-X_FRAME_OPTIONS = "DENY"
+X_FRAME_OPTIONS = "SAMEORIGIN"  # needs to be SAMEORIGIN for the jet admin to work
 
 # EMAIL
 # ------------------------------------------------------------------------------
@@ -315,6 +320,5 @@ CORS_URLS_REGEX = r"^/api/.*$"
 # Your stuff...
 # ------------------------------------------------------------------------------
 DECIMAL_PLACES = 4
-
 MAX_IMAGE_HEIGHT = 4320
 MAX_IMAGE_WIDTH = 7680
