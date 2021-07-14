@@ -318,7 +318,9 @@ class Attachment(AbstractBase):
     data = models.FileField(upload_to=get_directory, max_length=65535)
     title = models.CharField(max_length=255)
     creation_date = models.DateTimeField(default=timezone.now)
-    size = models.IntegerField(help_text="The size of the attachment in bytes")
+    size = models.IntegerField(
+        help_text="The size of the attachment in bytes", null=True, blank=True
+    )
     description = models.TextField(null=True, blank=True)
     aspect_ratio = models.CharField(max_length=50, blank=True, null=True)
 
@@ -328,7 +330,10 @@ class Attachment(AbstractBase):
         """Ensure that the supplied image size matches the actual file."""
         if not is_image_type(self.content_type):
             return
+
         image = Image.open(self.data)
+        self.size = len(image.fp.read())
+
         width, height = image.size
         msg_template = (
             "Your image has a {axis} of {actual_size} {extra_text} "
