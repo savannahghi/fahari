@@ -1,198 +1,92 @@
-{% load static i18n compress%}<!DOCTYPE html>
+{% load static i18n compress%}
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <title>
-      {% block title %}PEPFAR Monitoring, Learning and Evaluation{% endblock
-      title %}
-    </title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Central Reporting Database for Fahari ya Jamii"
-    />
-    <meta
-      name="author"
-      content="Savannah Informatics Global Health Institute"
-    />
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{% block title %}PEPFAR Monitoring, Learning and Evaluation{% endblock title %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Central Reporting Database for PEPFAR Monitoring, Learning and Evaluation">
+    <meta name="author" content="Savannah Informatics Global Health Institute">
 
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
 
-    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}"> {% block css %}
 
-    {% comment %}
-    <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png" />
-    <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png" />
-    <link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png" />
-    <link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png" />
-    <link
-      rel="apple-touch-icon"
-      sizes="114x114"
-      href="/apple-icon-114x114.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="120x120"
-      href="/apple-icon-120x120.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="144x144"
-      href="/apple-icon-144x144.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="152x152"
-      href="/apple-icon-152x152.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/apple-icon-180x180.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="/android-icon-192x192.png"
-    />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="msapplication-TileColor" content="#ffffff" />
-    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png" />
-    <meta name="theme-color" content="#ffffff" />
-    {% endcomment %} {% block css %}
-
-    <!-- Your stuff: Third-party CSS libraries go here -->
-    {% compress css %}
+    <!-- Your stuff: Third-party CSS libraries go here -->{% compress css %}
     <!-- This file stores project-specific CSS -->
-    <link href="{% static 'css/project.css' %}" rel="stylesheet" />
-    {% endcompress %} {% endblock %}
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">{% endcompress %} {% endblock %}
     <!-- Le javascript
     ================================================== -->
-    {# Placed at the top of the document so pages load faster with defer #} {%
-    block javascript %}
-    <!-- Vendor dependencies bundled as one file-->
-    {% compress js %}
-    <script defer src="{% static 'js/vendors.js' %}"></script>
-    {% endcompress %}
+    {# Placed at the top of the document so pages load faster with defer #} {% block javascript %}
+    <!-- Vendor dependencies bundled as one file-->{% compress js %}
+    <script defer src="{% static 'js/vendors.js' %}"></script>{% endcompress %}
 
-    <!-- place project specific Javascript in this file -->
-    {% compress js %}
-    <script defer src="{% static 'js/project.js' %}"></script>
-    {% endcompress %} {% endblock javascript %}
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-WW2W29ZMTZ"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WW2W29ZMTZ"></script>
 
-      gtag("config", "G-WW2W29ZMTZ");
-    </script>
-  </head>
+    <!-- place project specific Javascript in this file -->{% compress js %}
+    <script defer src="{% static 'js/project.js' %}"></script>{% endcompress %} {% endblock javascript %}
 
-  <body>
+</head>
+
+<body>
+
     <div class="mb-1">
-      <nav class="navbar navbar-expand-md navbar-light bg-light">
-        <button
-          class="navbar-toggler navbar-toggler-right"
-          type="button"
-          data-toggle="collapse"
-          data-target="#navbarSupportedContent"
-          aria-controls="navbarSupportedContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <a class="navbar-brand" href="{% url 'home' %}"
-          >PEPFAR Monitoring, Learning and Evaluation</a
-        >
+        <nav class="navbar navbar-expand-md navbar-light bg-light">
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+            <a class="navbar-brand" href="{% url 'home' %}">PEPFAR Monitoring, Learning and Evaluation</a>
 
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
-              <a class="nav-link" href="{% url 'home' %}"
-                >Home <span class="sr-only">(current)</span></a
-              >
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'about' %}">About</a>
-            </li>
-            {% if request.user.is_authenticated %}
-            <li class="nav-item">
-              {# URL provided by django-allauth/account/urls.py #}
-              <a
-                class="nav-link"
-                href="{% url 'users:detail' request.user.username  %}"
-                >{% trans "My Profile" %}</a
-              >
-            </li>
-            <li class="nav-item">
-              {# URL provided by django-allauth/account/urls.py #}
-              <a class="nav-link" href="{% url 'account_logout' %}"
-                >{% trans "Sign Out" %}</a
-              >
-            </li>
-            {% else %}
-            <li class="nav-item">
-              {# URL provided by django-allauth/account/urls.py #}
-              <a
-                id="sign-up-link"
-                class="nav-link"
-                href="{% url 'account_signup' %}"
-                >{% trans "Sign Up" %}</a
-              >
-            </li>
-            <li class="nav-item">
-              {# URL provided by django-allauth/account/urls.py #}
-              <a
-                id="log-in-link"
-                class="nav-link"
-                href="{% url 'account_login' %}"
-                >{% trans "Sign In" %}</a
-              >
-            </li>
-            {% endif %}
-          </ul>
-        </div>
-      </nav>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'about' %}">About</a>
+                    </li>
+                    {% if request.user.is_authenticated %}
+                    <li class="nav-item">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a class="nav-link" href="{% url 'users:detail' request.user.username  %}">{% trans "My Profile" %}</a>
+                    </li>
+                    <li class="nav-item">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a class="nav-link" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a id="sign-up-link" class="nav-link" href="{% url 'account_signup' %}">{% trans "Sign Up" %}</a>
+                    </li>
+                    <li class="nav-item">
+                        {# URL provided by django-allauth/account/urls.py #}
+                        <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </nav>
+
     </div>
 
     <div class="container">
-      {% if messages %} {% for message in messages %}
-      <div
-        class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}"
-      >
-        {{ message }}<button
-          type="button"
-          class="close"
-          data-dismiss="alert"
-          aria-label="Close"
-        >
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      {% endfor %} {% endif %} {% block content %}
-      <p>Use this document as a way to quick start any new project.</p>
-      {% endblock content %}
+
+        {% if messages %} {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+        {% endfor %} {% endif %} {% block content %}
+        <p>Use this document as a way to quick start any new project.</p>
+        {% endblock content %}
+
     </div>
     <!-- /container -->
 
-    {% block modal %}{% endblock modal %} {% block inline_javascript %} {#
-    Script tags with only code, no src (defer by default) #} {% endblock
-    inline_javascript %}
-  </body>
+    {% block modal %}{% endblock modal %} {% block inline_javascript %} {# Script tags with only code, no src (defer by default) #} {% endblock inline_javascript %}
+</body>
+
 </html>
