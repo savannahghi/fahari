@@ -4,6 +4,13 @@ from .models import Facility, FacilityAttachment, Organisation
 
 
 class BaseAdmin(admin.ModelAdmin):
+    readonly_fields = (
+        "created",
+        "created_by",
+        "updated",
+        "updated_by",
+    )
+
     def save_model(self, request, obj, form, change):
         if not change:
             obj.created_by = request.user.pk
