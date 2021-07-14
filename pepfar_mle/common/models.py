@@ -168,8 +168,8 @@ class OrganisationAbstractBase(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(default=timezone.now)
-    created_by = models.UUIDField()
-    updated_by = models.UUIDField()
+    created_by = models.UUIDField(blank=True, null=True)
+    updated_by = models.UUIDField(blank=True, null=True)
 
     def preserve_created_and_created_by(self):
         """Ensure that created and created_by values are not overwritten."""
@@ -393,6 +393,9 @@ class Facility(AbstractBase):
 
     def __str__(self):
         return f"{self.name} - {self.mfl_code} ({self.county})"
+
+    class Meta(AbstractBase.Meta):
+        verbose_name_plural = "facilities"
 
 
 class FacilityAttachment(Attachment):

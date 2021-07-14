@@ -3,15 +3,27 @@ from django.contrib import admin
 from .models import Facility, FacilityAttachment, Organisation
 
 
-class FacilityAdmin(admin.ModelAdmin):
+class BaseAdmin(admin.ModelAdmin):
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user.pk
+            obj.updated_by = request.user.pk
+
+        if change:
+            obj.updated_by = request.user.pk
+
+        obj.save()
+
+
+class FacilityAdmin(BaseAdmin):
     pass
 
 
-class FacilityAttachmentAdmin(admin.ModelAdmin):
+class FacilityAttachmentAdmin(BaseAdmin):
     pass
 
 
-class OrganisationAdmin(admin.ModelAdmin):
+class OrganisationAdmin(BaseAdmin):
     pass
 
 
