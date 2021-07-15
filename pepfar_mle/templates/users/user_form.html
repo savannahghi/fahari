@@ -3,15 +3,45 @@
 
 {% block title %}{{ user.username }}{% endblock %}
 
-{% block content %}
-  <h1>{{ user.username }}</h1>
-  <form class="form-horizontal" method="post" action="{% url 'users:update' %}">
-    {% csrf_token %}
-    {{ form|crispy }}
-    <div class="control-group">
-      <div class="controls">
-        <button type="submit" class="btn btn-primary">Update</button>
+{% block head_title %}Update User Profile Details{% endblock %}
+
+{% block bodyclass %}
+  class="bg-gradient-primary"
+{% endblock %}
+
+{% block page %}
+  {# no modal #}
+{% endblock page %}
+
+{% block inner %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-xl-10 col-lg-12 col-md-9">
+      <div class="card o-hidden border-0 shadow-lg my-5">
+        <div class="card-body p-0">
+          <div class="row">
+            <div class="col-lg-6 d-none d-lg-block login-background-image"></div>
+              <div class="col-lg-6">
+                <div class="p-5">
+                  <h1>Update User Details ({{ user.username }})</h1>
+                  <form class="form-horizontal" method="post" action="{% url 'users:update' %}">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="control-group">
+                      <div class="controls">
+                        <button type="submit" class="btn btn-primary">Update</button>
+                      </div>
+                    </div>
+                  </form>
+                  <hr/>
+                  <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </form>
-{% endblock %}
+  </div>
+</div>
+{% endblock inner %}

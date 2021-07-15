@@ -1,11 +1,35 @@
 {% extends "base.html" %} {% block title %}Forbidden{% endblock %} {% block pagetitle %}{% endblock pagetitle %}{% block content %}
-<h1>Page not found</h1>
+<h1 class="text-center">Permission Denied</h1>
+
+{% block sidebar %}
+    {#% do not show the sidebar %#}
+{% endblock sidebar %}
+
+{% block topbar %}
+     {#% do not show the top bar %#}
+{% endblock topbar %}
 
 <!-- 403 Error Text -->
 <div class="text-center">
-    <div class="error mx-auto" data-text="403">403</div>
-    <p class="lead text-gray-800 mb-5">Forbidden</p>
-    <p class="text-gray-500 mb-0">You do not have permission to access this page. If you think this is a mistake, please contact us.</p>
+    <div class="error mx-auto" data-text="403">
+        403
+    </div>
+    <p class="lead text-gray-800 mb-5">
+        {% if user.is_approved %}
+            Forbidden
+        {% else %}
+            Profile Not Approved
+        {% endif %}
+    </p>
+    {% if user.is_approved %}
+        <p class="text-gray-500 mb-0">
+            You do not have permission to access this page. If you think this is a mistake, please contact us.
+        </p>
+    {% else %}
+        <p class="text-gray-500 mb-0">
+            Your user profile is <strong>not yet approved</strong>. Please contact the system administrator for assistance.
+        </p>
+    {% endif %}
     <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
 </div>
 {% endblock content %}

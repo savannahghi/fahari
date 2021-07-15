@@ -5,10 +5,12 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
 
+from pepfar_mle.common.views import ApprovedMixin
+
 User = get_user_model()
 
 
-class UserDetailView(LoginRequiredMixin, DetailView):
+class UserDetailView(LoginRequiredMixin, ApprovedMixin, DetailView):
 
     model = User
     slug_field = "username"
@@ -18,7 +20,7 @@ class UserDetailView(LoginRequiredMixin, DetailView):
 user_detail_view = UserDetailView.as_view()
 
 
-class UserUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class UserUpdateView(LoginRequiredMixin, ApprovedMixin, SuccessMessageMixin, UpdateView):
 
     model = User
     fields = ["name"]
@@ -34,7 +36,7 @@ class UserUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 user_update_view = UserUpdateView.as_view()
 
 
-class UserRedirectView(LoginRequiredMixin, RedirectView):
+class UserRedirectView(LoginRequiredMixin, ApprovedMixin, RedirectView):
 
     permanent = False
 

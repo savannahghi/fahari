@@ -1,5 +1,14 @@
 {% extends "base.html" %} {% block title %}System Error{% endblock %} {% block pagetitle %}{% endblock pagetitle %}{% block content %}
-<h1>System Error</h1>
+
+<h1 class="text-center">System Error</h1>
+
+{% block sidebar %}
+    {#% do not show the sidebar %#}
+{% endblock sidebar %}
+
+{% block topbar %}
+     {#% do not show the top bar %#}
+{% endblock topbar %}
 <!--  Error Text -->
 <div class="text-center">
     <div class="error mx-auto" data-text="500">500</div>
