@@ -243,8 +243,27 @@ X_FRAME_OPTIONS = "SAMEORIGIN"  # needs to be SAMEORIGIN for the jet admin to wo
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND",
-    default="django.core.mail.backends.smtp.EmailBackend",
+    # alternative for local dev with mailhog: django.core.mail.backends.smtp.EmailBackend
+    default="anymail.backends.mailgun.EmailBackend",
 )
+DEFAULT_FROM_EMAIL = env(
+    "DJANGO_DEFAULT_FROM_EMAIL",
+    default="Fahari ya Jamii M&E System <mle@savannahghi.org>",
+)
+# https://docs.djangoproject.com/en/dev/ref/settings/#server-email
+SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-subject-prefix
+EMAIL_SUBJECT_PREFIX = env(
+    "DJANGO_EMAIL_SUBJECT_PREFIX",
+    default="[Fahari ya Jamii M&E System ]",
+)
+# https://anymail.readthedocs.io/en/stable/installation/#anymail-settings-reference
+# https://anymail.readthedocs.io/en/stable/esps/mailgun/
+ANYMAIL = {
+    "MAILGUN_API_KEY": env("MAILGUN_API_KEY", default=""),  # blank default for local dev and tests
+    "MAILGUN_SENDER_DOMAIN": env("MAILGUN_DOMAIN", default="mle.savannahghi.org"),
+    "MAILGUN_API_URL": env("MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
+}
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
 EMAIL_TIMEOUT = 5
 

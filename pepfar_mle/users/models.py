@@ -15,7 +15,10 @@ class User(AbstractUser):
     name = CharField(_("Name of User"), blank=True, max_length=255)
     first_name = None  # type: ignore
     last_name = None  # type: ignore
-    is_approved = BooleanField(default=False)
+    is_approved = BooleanField(
+        default=False,
+        help_text="When true, the user is able to log in to the main website (and vice versa)",
+    )
 
     def get_absolute_url(self):
         """Get url for user's detail view.

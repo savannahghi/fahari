@@ -13,8 +13,25 @@
 {% endblock page %}
 
 {% block inner %}
-    <h1>{% trans "Verify Your E-mail Address" %}</h1>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-xl-10 col-lg-12 col-md-9">
+      <div class="card o-hidden border-0 shadow-lg my-5">
+        <div class="card-body p-0">
+          <div class="row">
+            <div class="col-lg-6 d-none d-lg-block login-background-image"></div>
+              <div class="col-lg-6">
+                <div class="p-5">
+                  <h1>{% trans "Verify Your E-mail Address" %}</h1>
 
-    <p>{% blocktrans %}We have sent an e-mail to you for verification. Follow the link provided to finalize the signup process. Please contact us if you do not receive it within a few minutes.{% endblocktrans %}</p>
-
+                  <p>{% blocktrans %}We have sent an e-mail to you for verification. Follow the link provided to finalize the signup process. Please contact us if you do not receive it within a few minutes.{% endblocktrans %}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
