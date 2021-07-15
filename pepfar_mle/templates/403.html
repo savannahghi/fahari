@@ -1,9 +1,11 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block title %}Forbidden{% endblock %} {% block pagetitle %}{% endblock pagetitle %}{% block content %}
+<h1>Page not found</h1>
 
-{% block title %}Forbidden (403){% endblock %}
-
-{% block content %}
-<h1>Forbidden (403)</h1>
-
-<p>{% if exception %}{{ exception }}{% else %}You're not allowed to access this page.{% endif %}</p>
+<!-- 403 Error Text -->
+<div class="text-center">
+    <div class="error mx-auto" data-text="403">403</div>
+    <p class="lead text-gray-800 mb-5">Forbidden</p>
+    <p class="text-gray-500 mb-0">You do not have permission to access this page. If you think this is a mistake, please contact us.</p>
+    <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
+</div>
 {% endblock content %}
