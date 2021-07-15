@@ -23,8 +23,8 @@
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet"> {% endcompress %} {% endblock %}
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet"> {# Placed at the top of the document so pages load faster with defer #} {% block javascript %}
     <!-- Vendor dependencies bundled as one file-->{% compress js %}
-
-    <script defer src="{% static 'js/vendors.js' %}"></script>{% endcompress %}
+    <script defer src="{% static 'js/vendors.min.js' %}"></script>
+    <script defer src="{% static 'js/sb-admin-2.min.js' %}"></script>{% endcompress %}
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WW2W29ZMTZ"></script>
     <script src="https://kit.fontawesome.com/e1c9d8c99d.js" crossorigin="anonymous"></script>
 
@@ -46,7 +46,7 @@
                 <div class="sidebar-brand-icon rotate-n-15">
                     <i class="fas fa-laugh-wink"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">Program Database</div>
             </a>
 
             <!-- Divider -->
