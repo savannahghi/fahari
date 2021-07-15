@@ -91,12 +91,14 @@ function scripts() {
 // Vendor Javascript minification
 function vendorScripts() {
     return src(paths.vendorsJs)
+        .pipe(sourcemaps.init())
         .pipe(concat("vendors.js"))
         .pipe(lec({ verbose: true, eolc: "LF", encoding: "utf8" }))
         .pipe(dest(paths.js))
         .pipe(plumber()) // Checks for errors
         .pipe(uglify()) // Minifies the js
         .pipe(rename({ suffix: ".min" }))
+        .pipe(sourcemaps.write())
         .pipe(dest(paths.js));
 }
 
