@@ -1,32 +1,22 @@
 {% extends "account/base.html" %}
+
 {% load i18n %}
 {% load account socialaccount %}
 {% load crispy_forms_tags %}
+
 {% block head_title %}
   {% trans "Sign In" %}
 {% endblock %}
+
 {% block bodyclass %}
   class="bg-gradient-primary"
 {% endblock %}
-{%block sidebar %}
-  {# no side bar #}
-{%endblock sidebar %}
-{% block topbar %}
-  {# no top bar #}
-{% endblock topbar %}
-{% block footer %}
-  {# no footer #}
-{% endblock footer %}
-{% block modal %}
-  {# no modal #}
-{% endblock modal %}
 
 {% block page %}
   {# no modal #}
 {% endblock page %}
 
 {% block inner %}
-
 <div class="container">
   <div class="row justify-content-center">
     <div class="col-xl-10 col-lg-12 col-md-9">
@@ -56,7 +46,7 @@
                       <a class="small" href="{% url 'account_reset_password' %}">Forgot Password?</a>
                     </div>
                     <div class="text-center">
-                      <a class="small" href=href="{{ signup_url }}">Create an Account!</a>
+                      <a class="small" href="{{ signup_url }}">Create an Account!</a>
                     </div>
                     </form>
                 </div>
