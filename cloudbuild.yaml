@@ -36,3 +36,6 @@ steps:
 
 images:
   - "europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle:$COMMIT_SHA"
+
+timeout: 1200s
+queueTtl: 3600s
