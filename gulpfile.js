@@ -30,7 +30,6 @@ function pathsConfig(appName) {
 
     return {
         bootstrapSass: `${vendorsRoot}/bootstrap/scss`,
-        fontAwesomeSass: `${vendorsRoot}/@fortawesome/fontawesome-free/css/all.css`,
         vendorsJs: [
             `${vendorsRoot}/jquery/dist/jquery.js`,
             `${vendorsRoot}/popper.js/dist/umd/popper.js`,
@@ -38,7 +37,6 @@ function pathsConfig(appName) {
             `${vendorsRoot}/chart.js/dist/*.js`,
             `${vendorsRoot}/datatables.net/js/*.js`,
             `${vendorsRoot}/datatables.net-bs4/js/*.js`,
-            `${vendorsRoot}/@fortawesome/fontawesome-free/js/*.js`,
             `${vendorsRoot}/jquery.easing/*.js`,
         ],
         app: this.app,
@@ -68,12 +66,7 @@ function styles() {
     return src(`${paths.sass}/project.scss`)
         .pipe(
             sass({
-                includePaths: [
-                    paths.bootstrapSass,
-                    paths.fontAwesomeSass,
-                    paths.sass,
-                    paths.dataTablesCSS,
-                ],
+                includePaths: [paths.bootstrapSass, paths.sass, paths.dataTablesCSS],
             }).on("error", sass.logError)
         )
         .pipe(plumber()) // Checks for errors

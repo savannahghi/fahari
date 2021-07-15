@@ -22,7 +22,6 @@
     ],
     "license": "MIT",
     "dependencies": {
-        "@fortawesome/fontawesome-free": "5.15.3",
         "bootstrap": "^4.3.1",
         "chart.js": "2.9.4",
         "datatables.net-bs4": "1.10.24",
