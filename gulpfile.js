@@ -30,7 +30,7 @@ function pathsConfig(appName) {
 
     return {
         bootstrapSass: `${vendorsRoot}/bootstrap/scss`,
-        fontAwesomeSass: `${vendorsRoot}/@fortawesome/fontawesome-free/scss`,
+        fontAwesomeSass: `${vendorsRoot}/@fortawesome/fontawesome-free/css/all.css`,
         vendorsJs: [
             `${vendorsRoot}/jquery/dist/jquery.js`,
             `${vendorsRoot}/popper.js/dist/umd/popper.js`,
