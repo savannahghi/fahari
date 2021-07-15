@@ -29,7 +29,7 @@ steps:
       '--set-env-vars', 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,SETTINGS_NAME=mle_django_settings,DJANGO_SETTINGS_MODULE=config.settings.production',
       '--min-instances', '1',
       '--max-instances', '4',
-      '--memory', '256M',
+      '--memory', '512M',
       '--cpu', '1',
       '--set-secrets', '/tmp/secrets/.env=mle_django_settings:latest'
   ]
