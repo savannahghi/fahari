@@ -1,13 +1,12 @@
 import pytest
-from django.core.management import call_command
 from model_bakery import baker
 
 pytestmark = pytest.mark.django_db
 
 
 class TestStorages:
-    def test_static_root_google_cloud_storage(self):
-        call_command("collectstatic", "--noinput")
+    # def test_static_root_google_cloud_storage(self):
+    #     call_command("collectstatic", "--noinput")
 
     def test_media_root_google_cloud_storage(self):
         org = baker.make("common.Organisation")
