@@ -29,15 +29,21 @@
     <script src="https://kit.fontawesome.com/e1c9d8c99d.js" crossorigin="anonymous"></script>
 
     <!-- place project specific Javascript in this file -->{% compress js %}
-    <script defer src="{% static 'js/project.js' %}"></script>{% endcompress %} {% endblock javascript %}
+    <script defer src="{% static 'js/project.min.js' %}"></script>{% endcompress %} {% endblock javascript %}
 
 </head>
 
-<body id="page-top">
+<body id="page-top" {% block bodyclass %}{% endblock bodyclass %}>
+    {% block inner %}
+        {# pages that do not need the wrapper (e.g login) should use this slot and turn off the page block #}
+    {% endblock inner %}
+
+    {% block page %}
 
     <!-- Page wrapper -->
     <div id="wrapper">
 
+        {% block sidebar %}
         <!-- Sidebar -->
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
@@ -150,6 +156,7 @@
             </div>
 
         </ul>
+        {% endblock sidebar %}
         <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
@@ -159,6 +166,7 @@
             <div id="content">
 
                 <!-- Topbar -->
+                {% block topbar %}
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
                     <!-- Sidebar Toggle (Topbar) -->
@@ -341,13 +349,14 @@
                     </ul>
 
                 </nav>
+                {% endblock topbar %}
                 <!-- End of Topbar -->
 
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
 
                     <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">{% block pagetitle %}Page Title{%endblock pagetitle %}</h1>
+                    <h1 class="h3 mb-4 text-gray-800">{% block pagetitle %}{%endblock pagetitle %}</h1>
 
                     {% if messages %} {% for message in messages %}
                     <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
@@ -364,6 +373,7 @@
             <!-- End of Main Content -->
 
             <!-- Footer -->
+            {% block footer %}
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
@@ -371,6 +381,7 @@
                     </div>
                 </div>
             </footer>
+            {% endblock footer %}
             <!-- End of Footer -->
 
         </div>
@@ -402,7 +413,13 @@
             </div>
         </div>
     </div>
-    {% endblock modal %} {% block inline_javascript %} {# Script tags with only code, no src (defer by default) #} {% endblock inline_javascript %}
+    {% endblock modal %}
+
+    {% endblock page %}
+
+    {% block inline_javascript %}
+        {# Script tags with only code, no src (defer by default) #}
+    {% endblock inline_javascript %}
 </body>
 
 </html>

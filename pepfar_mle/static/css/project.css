@@ -8662,3 +8662,18 @@ a.text-dark:hover, a.text-dark:focus {
   background-color: #f2dede;
   border-color: #eed3d7;
   color: #b94a48; }
+
+.login-background-image {
+  background: url("../../static/images/doc_keyboard.png");
+  background-position: center;
+  background-size: cover; }
+
+.register-background-image {
+  background: url("../../static/images/doc_keyboard.png");
+  background-position: center;
+  background-size: cover; }
+
+.password-background-image {
+  background: url("../../static/images/doc_keyboard.png");
+  background-position: center;
+  background-size: cover; }

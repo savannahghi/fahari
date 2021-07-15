@@ -42,7 +42,7 @@ function pathsConfig(appName) {
         app: this.app,
         templates: `${this.app}/templates`,
         css: `${this.app}/static/css`,
-        dataTablesCSS: `${vendorsRoot}/datatables.net-bs4/css/*.css`, // TODO
+        dataTablesCSS: `${vendorsRoot}/datatables.net-bs4/css/*.css`,
         sass: `${this.app}/static/sass`,
         fonts: `${this.app}/static/fonts`,
         images: `${this.app}/static/images`,
