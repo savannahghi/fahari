@@ -1,1 +1,6 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block title %}About{% endblock %} {% block pagetitle %}{% endblock pagetitle %}{% block content %}
+<h1>About this system</h1>
+<p class="text-gray-500 mb-0">
+    This is a centralized reporting database, created to meet the reporting needs of PEPFAR supported HI/AIDS care delivery programs.
+</p>
+<a href="{% url 'home' %}">&larr; Back to Dashboard</a> {% endblock content %}
