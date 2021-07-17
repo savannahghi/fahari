@@ -15,3 +15,11 @@ class HomeView(LoginRequiredMixin, ApprovedMixin, TemplateView):
 
 class AboutView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/about.html"
+
+
+class FacilityView(LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/common/facilities.html"
+
+
+class SystemsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/common/systems.html"

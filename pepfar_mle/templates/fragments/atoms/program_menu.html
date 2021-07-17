@@ -1,0 +1,24 @@
+{% load static i18n compress%}
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities" aria-expanded="true" aria-controls="collapseUtilities">
+        <i class="fas fa-fw fa-tasks"></i>
+        <span>Program Reports</span>
+    </a>
+    <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities" data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <a class="collapse-item" href="{% url 'ops:activity_log' %}">
+                Activity Log
+            </a>
+            <a class="collapse-item" href="{% url 'ops:site_mentorship' %}">
+                Site Mentorship
+            </a>
+            <a class="collapse-item" href="{% url 'ops:daily_site_updates' %}">
+                Daily Updates
+            </a>
+            <a class="collapse-item" href="{% url 'ops:timesheets' %}">
+                Timesheets
+            </a>
+        </div>
+    </div>
+</li>

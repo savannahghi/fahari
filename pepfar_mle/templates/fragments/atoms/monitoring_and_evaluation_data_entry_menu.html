@@ -1,0 +1,25 @@
+{% load static i18n compress%}
+
+<li class="nav-item">
+    <a class="nav-link" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true" aria-controls="collapsePages">
+        <i class="fas fa-fw fa-file"></i>
+        <span>M & E Data Entry</span>
+    </a>
+    <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">DATIM</h6>
+                <a class="collapse-item" href="#">Prevention</a>
+                <a class="collapse-item" href="#">Testing</a>
+                <a class="collapse-item" href="#">Testing - Recent</a>
+                <a class="collapse-item" href="#">Testing - Others</a>
+                <a class="collapse-item" href="#">Treatment</a>
+                <a class="collapse-item" href="#">Viral Suppression</a>
+                <a class="collapse-item" href="#">Health Systems</a>
+            <div class="collapse-divider"></div>
+            <h6 class="collapse-header">Surge</h6>
+                <a class="collapse-item" href="{% url 'about' %}">Testing</a>
+                <a class="collapse-item" href="{% url 'about' %}">APNS</a>
+                <a class="collapse-item" href="{% url 'about' %}">Treatment</a>
+        </div>
+    </div>
+</li>

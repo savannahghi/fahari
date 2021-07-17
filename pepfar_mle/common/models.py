@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models.base import ModelBase
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from PIL import Image
 
@@ -411,7 +411,20 @@ class FacilityAttachment(Attachment):
 
     organisation_verify = ["facility"]
 
-    class Meta:
+    class Meta(AbstractBase.Meta):
         """Define ordering and other attributes for attachments."""
 
         ordering = ("-updated", "-created")
+
+
+class System(AbstractBase):
+    """List of systems used in the public sector e.g Kenya EMR."""
+
+    name = models.CharField(max_length=128, null=False, blank=False, unique=True)
+    description = models.TextField()
+
+    class Meta(AbstractBase.Meta):
+        ordering = (
+            "name",
+            "-updated",
+        )

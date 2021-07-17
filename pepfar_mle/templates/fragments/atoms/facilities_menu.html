@@ -1,0 +1,24 @@
+{% load static i18n compress%}
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+        <i class="fas fa-fw fa-hospital"></i>
+        <span>Facilities</span>
+    </a>
+    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <a class="collapse-item" href="{% url 'common:facilities' %}">
+                Facilities
+            </a>
+            <a class="collapse-item" href="{% url 'common:systems' %}">
+                Systems
+            </a>
+            <a class="collapse-item" href="{% url 'ops:versions' %}">
+                System Versions
+            </a>
+            <a class="collapse-item" href="{% url 'ops:tickets' %}">
+                Tickets
+            </a>
+        </div>
+    </div>
+</li>
