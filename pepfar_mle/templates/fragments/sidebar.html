@@ -1,0 +1,18 @@
+{% load static i18n compress%}
+
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+    {% block brand %}
+        {% include "fragments/atoms/brand.html" %}
+    {% endblock brand %}
+    {% include "fragments/atoms/dashboard_link.html" %}
+
+    <hr class="sidebar-divider">
+    <div class="sidebar-heading">Operations</div>
+    {% include "fragments/atoms/facilities_menu.html" %}
+    {% include "fragments/atoms/program_menu.html" %}
+
+    <hr class="sidebar-divider">
+    <div class="sidebar-heading">Monitoring and Evaluation</div>
+    {% include "fragments//atoms/monitoring_and_evaluation_data_entry_menu.html" %}
+    {% include "fragments//atoms/sidebar_toggle.html" %}
+</ul>

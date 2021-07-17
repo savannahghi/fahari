@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Facility, FacilityAttachment, Organisation
+from .models import Facility, FacilityAttachment, Organisation, System
 
 
 class BaseAdmin(admin.ModelAdmin):
@@ -34,6 +34,11 @@ class OrganisationAdmin(BaseAdmin):
     pass
 
 
+class SystemAdmin(BaseAdmin):
+    pass
+
+
 admin.site.register(Facility, FacilityAdmin)
 admin.site.register(FacilityAttachment, FacilityAttachmentAdmin)
 admin.site.register(Organisation, OrganisationAdmin)
+admin.site.register(System, SystemAdmin)
