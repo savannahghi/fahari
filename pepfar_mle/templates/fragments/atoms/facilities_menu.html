@@ -1,22 +1,22 @@
 {% load static i18n compress%}
 
-<li class="nav-item">
-    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+<li class="nav-item {% if active == "facilities-nav" %}active{% endif %}" id="facilities-nav">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#facilities-menu" aria-expanded="true" aria-controls="facilities-menu">
         <i class="fas fa-fw fa-hospital"></i>
         <span>Facilities</span>
     </a>
-    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+    <div id="facilities-menu" class="collapse {% if active == "facilities-nav" %}show{% endif %}" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
-            <a class="collapse-item" href="{% url 'common:facilities' %}">
+            <a class="collapse-item {% if selected == "facilities" %}active {% endif %}" id="facilities" href="{% url 'common:facilities' %}">
                 Facilities
             </a>
-            <a class="collapse-item" href="{% url 'common:systems' %}">
+            <a class="collapse-item {% if selected == "systems" %}active {% endif %}" id="systems" href="{% url 'common:systems' %}">
                 Systems
             </a>
-            <a class="collapse-item" href="{% url 'ops:versions' %}">
+            <a class="collapse-item {% if selected == "versions" %}active {% endif %}" id="versions" href="{% url 'ops:versions' %}">
                 System Versions
             </a>
-            <a class="collapse-item" href="{% url 'ops:tickets' %}">
+            <a class="collapse-item {% if selected == "tickets" %}active {% endif %}" id="tickets" href="{% url 'ops:tickets' %}">
                 Tickets
             </a>
         </div>
