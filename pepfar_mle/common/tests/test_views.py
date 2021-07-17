@@ -1,6 +1,8 @@
 import pytest
 from django.core.exceptions import PermissionDenied
+from django.urls import reverse
 from model_bakery import baker
+from rest_framework import status
 
 from pepfar_mle.common.views import HomeView
 
@@ -28,3 +30,31 @@ def test_approved_mixin_non_approved_authenticated_user(rf, django_user_model):
         view.dispatch(request)  # no error raised
 
     assert "PermissionDenied" in str(e)
+
+
+def test_home_view(user, client):
+    client.force_login(user)
+    url = reverse("home")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_about_view(user, client):
+    client.force_login(user)
+    url = reverse("about")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_facility_view(user, client):
+    client.force_login(user)
+    url = reverse("common:facilities")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_systems_view(user, client):
+    client.force_login(user)
+    url = reverse("common:systems")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK

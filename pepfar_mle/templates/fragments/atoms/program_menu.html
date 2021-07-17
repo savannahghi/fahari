@@ -1,22 +1,22 @@
 {% load static i18n compress%}
 
-<li class="nav-item">
-    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities" aria-expanded="true" aria-controls="collapseUtilities">
+<li class="nav-item {% if active == "program-nav" %}active {% endif %}" id="program-nav">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#program-menu" aria-expanded="true" aria-controls="program-menu">
         <i class="fas fa-fw fa-tasks"></i>
         <span>Program Reports</span>
     </a>
-    <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities" data-parent="#accordionSidebar">
+    <div id="program-menu" class="collapse {% if active == "program-nav" %}show{% endif %}" aria-labelledby="program-menu" data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
-            <a class="collapse-item" href="{% url 'ops:activity_log' %}">
+            <a class="collapse-item {% if selected == "activity-log" %}active {% endif %}" id="activity-log" href="{% url 'ops:activity_log' %}">
                 Activity Log
             </a>
-            <a class="collapse-item" href="{% url 'ops:site_mentorship' %}">
+            <a class="collapse-item {% if selected == "site-mentorship" %}active {% endif %}" id="site-mentorship" href="{% url 'ops:site_mentorship' %}">
                 Site Mentorship
             </a>
-            <a class="collapse-item" href="{% url 'ops:daily_site_updates' %}">
-                Daily Updates
+            <a class="collapse-item {% if selected == "daily-site-updates" %}active {% endif %}" id="daily-site-updates" href="{% url 'ops:daily_site_updates' %}">
+                Daily Site Updates
             </a>
-            <a class="collapse-item" href="{% url 'ops:timesheets' %}">
+            <a class="collapse-item {% if selected == "timesheets" %}active {% endif %}" id="timesheets" href="{% url 'ops:timesheets' %}">
                 Timesheets
             </a>
         </div>
