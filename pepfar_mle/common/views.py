@@ -1,9 +1,13 @@
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    UserPassesTestMixin,
+)
 from django.views.generic import TemplateView, View
 
 
-class ApprovedMixin(UserPassesTestMixin, View):
-    permission_denied_message = "Your account is pending approval"
+class ApprovedMixin(UserPassesTestMixin, PermissionRequiredMixin, View):
+    permission_denied_message = "Permission Denied"
 
     def test_func(self):
         return self.request.user.is_authenticated and self.request.user.is_approved
@@ -11,6 +15,7 @@ class ApprovedMixin(UserPassesTestMixin, View):
 
 class HomeView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/home.html"
+    permission_required = "users.can_view_dashboard"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -20,6 +25,7 @@ class HomeView(LoginRequiredMixin, ApprovedMixin, TemplateView):
 
 class AboutView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/about.html"
+    permission_required = "users.can_view_about"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -29,6 +35,7 @@ class AboutView(LoginRequiredMixin, ApprovedMixin, TemplateView):
 
 class FacilityView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/common/facilities.html"
+    permission_required = "common.view_facility"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -39,6 +46,7 @@ class FacilityView(LoginRequiredMixin, ApprovedMixin, TemplateView):
 
 class SystemsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/common/systems.html"
+    permission_required = "common.view_system"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

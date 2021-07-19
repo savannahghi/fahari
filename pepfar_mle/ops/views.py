@@ -6,6 +6,7 @@ from pepfar_mle.common.views import ApprovedMixin
 
 class VersionsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/ops/versions.html"
+    permission_required = "ops.view_facilitysystem"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -16,6 +17,7 @@ class VersionsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
 
 class TicketsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/ops/tickets.html"
+    permission_required = "ops.view_facilitysystemticket"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -24,8 +26,20 @@ class TicketsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
         return context
 
 
+class TimeSheetsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/ops/timesheets.html"
+    permission_required = "ops.view_timesheet"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "timesheets"  # id of selected page
+        return context
+
+
 class ActivityLogView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/ops/activity_log.html"
+    permission_required = "ops.view_activitylog"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -36,6 +50,7 @@ class ActivityLogView(LoginRequiredMixin, ApprovedMixin, TemplateView):
 
 class SiteMentorshipView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/ops/site_mentorship.html"
+    permission_required = "ops.view_sitementorship"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -46,6 +61,7 @@ class SiteMentorshipView(LoginRequiredMixin, ApprovedMixin, TemplateView):
 
 class DailySiteUpdatesView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/ops/daily_site_updates.html"
+    permission_required = "ops.view_dailyupdate"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -54,11 +70,16 @@ class DailySiteUpdatesView(LoginRequiredMixin, ApprovedMixin, TemplateView):
         return context
 
 
-class TimeSheetsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
-    template_name = "pages/ops/timesheets.html"
+class WeeklyProgramUpdatesView(LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/ops/weekly_program_updates.html"
+    permission_required = (
+        "ops.view_weeklyprogramupdate",
+        "ops.view_activity",
+        "ops.view_operationalarea",
+    )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["active"] = "program-nav"  # id of active nav element
-        context["selected"] = "timesheets"  # id of selected page
+        context["selected"] = "weekly-program-updates"  # id of selected page
         return context

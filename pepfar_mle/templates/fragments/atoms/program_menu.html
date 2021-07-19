@@ -7,18 +7,35 @@
     </a>
     <div id="program-menu" class="collapse {% if active == "program-nav" %}show{% endif %}" aria-labelledby="program-menu" data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
-            <a class="collapse-item {% if selected == "activity-log" %}active {% endif %}" id="activity-log" href="{% url 'ops:activity_log' %}">
-                Activity Log
-            </a>
-            <a class="collapse-item {% if selected == "site-mentorship" %}active {% endif %}" id="site-mentorship" href="{% url 'ops:site_mentorship' %}">
-                Site Mentorship
-            </a>
-            <a class="collapse-item {% if selected == "daily-site-updates" %}active {% endif %}" id="daily-site-updates" href="{% url 'ops:daily_site_updates' %}">
-                Daily Site Updates
-            </a>
-            <a class="collapse-item {% if selected == "timesheets" %}active {% endif %}" id="timesheets" href="{% url 'ops:timesheets' %}">
-                Timesheets
-            </a>
+            {% if perms.ops.view_activitylog %}
+                <a class="collapse-item {% if selected == "activity-log" %}active {% endif %}" id="activity-log" href="{% url 'ops:activity_log' %}">
+                    Activity Log
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_sitementorship %}
+                <a class="collapse-item {% if selected == "site-mentorship" %}active {% endif %}" id="site-mentorship" href="{% url 'ops:site_mentorship' %}">
+                    Site Mentorship
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_dailyupdate %}
+                <a class="collapse-item {% if selected == "daily-site-updates" %}active {% endif %}" id="daily-site-updates" href="{% url 'ops:daily_site_updates' %}">
+                    Daily Site Updates
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_timesheet %}
+                <a class="collapse-item {% if selected == "timesheets" %}active {% endif %}" id="timesheets" href="{% url 'ops:timesheets' %}">
+                    Timesheets
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_weeklyprogramupdate and perms.ops.view_activity and perms.ops.view_operationalarea %}
+                <a class="collapse-item {% if selected == "weekly-program-updates" %}active {% endif %}" id="weekly-program-updates" href="{% url 'ops:weekly_program_updates' %}">
+                    Weekly Program Updates
+                </a>
+            {% endif %}
         </div>
     </div>
 </li>

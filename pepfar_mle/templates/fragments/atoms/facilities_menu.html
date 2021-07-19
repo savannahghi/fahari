@@ -7,18 +7,29 @@
     </a>
     <div id="facilities-menu" class="collapse {% if active == "facilities-nav" %}show{% endif %}" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
-            <a class="collapse-item {% if selected == "facilities" %}active {% endif %}" id="facilities" href="{% url 'common:facilities' %}">
-                Facilities
-            </a>
+            {% if perms.common.view_facility %}
+                <a class="collapse-item {% if selected == "facilities" %}active {% endif %}" id="facilities" href="{% url 'common:facilities' %}">
+                    Facilities
+                </a>
+            {% endif %}
+
+            {% if perms.common.view_system %}
             <a class="collapse-item {% if selected == "systems" %}active {% endif %}" id="systems" href="{% url 'common:systems' %}">
                 Systems
             </a>
+            {% endif %}
+
+            {% if perms.ops.view_facilitysystem %}
             <a class="collapse-item {% if selected == "versions" %}active {% endif %}" id="versions" href="{% url 'ops:versions' %}">
                 System Versions
             </a>
+            {% endif %}
+
+            {% if perms.ops.view_facilitysystemticket %}
             <a class="collapse-item {% if selected == "tickets" %}active {% endif %}" id="tickets" href="{% url 'ops:tickets' %}">
                 Tickets
             </a>
+            {% endif %}
         </div>
     </div>
 </li>

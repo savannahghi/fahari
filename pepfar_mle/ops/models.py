@@ -1,9 +1,12 @@
+from django.contrib.auth import get_user_model
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
 from pepfar_mle.common.models import AbstractBase, Facility, System
-from pepfar_mle.users.models import User
+
+User = get_user_model()
 
 
 class TimeSheet(AbstractBase):
@@ -98,3 +101,111 @@ class FacilitySystemTicket(AbstractBase):
             "-raised",
             "-resolved",
         )
+
+
+class ActivityLog(AbstractBase):
+    activity = models.TextField(help_text="Activity as budgeted for")
+    planned_date = models.DateField(help_text="Planned date for the activity")
+    requested_date = models.DateField(help_text="Date requested")
+    procurement_date = models.DateField(help_text="Date received by procurement")
+    finance_approval_date = models.DateField(help_text="Date received by Finance for approvals")
+    final_approval_date = models.DateField(help_text="Date approved by COP/DCOP/FAD")
+    done_date = models.DateField(help_text="Date when activity/procurement done")
+    invoiced_date = models.DateField(
+        help_text="Date when payment invoice was submitted to Finance"
+    )
+    remarks = models.TextField()
+
+    class Meta:
+        ordering = (
+            "-requested_date",
+            "-planned_date",
+            "-procurement_date",
+        )
+
+
+class SiteMentorship(AbstractBase):
+    staff_member = models.ForeignKey(User, on_delete=models.PROTECT)
+    day = models.DateField()
+    start = models.TimeField()
+    end = models.TimeField()
+    site = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    objective = models.TextField()
+    pick_up_point = models.TextField()
+    drop_off_point = models.TextField()
+
+    class Meta:
+        ordering = (
+            "-day",
+            "-end",
+            "-start",
+            "site__name",
+        )
+
+
+class DailyUpdate(AbstractBase):
+    """
+    Daily updates from facilities.
+
+    e.g
+
+        16/6/2021
+        Clients booked -18
+        Kept appointment -17
+        Came early -0
+        Total -17
+        Missed appointment- 1
+        Unscheduled - 36
+        Appointment keeping - 94%
+        New FT - 0
+        IPT New adults- 0
+        IPT New paeds  - 0
+    """
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    date = models.DateField()
+    total = models.IntegerField()
+    clients_booked = models.IntegerField()
+    kept_appointment = models.IntegerField()
+    missed_appointment = models.IntegerField()
+    came_early = models.IntegerField()
+    unscheduled = models.IntegerField()
+    new_ft = models.IntegerField()
+    ipt_new_adults = models.IntegerField()
+    ipt_new_paeds = models.IntegerField()
+
+    @property
+    def appointment_keeping(self):
+        if self.clients_booked == 0:
+            return 0
+
+        return (self.kept_appointment / self.clients_booked) * 100
+
+
+class OperationalArea(AbstractBase):
+    """List of program areas."""
+
+    name = models.CharField(max_length=64)
+    description = models.TextField()
+
+
+class Activity(AbstractBase):
+    area = models.ForeignKey(OperationalArea, on_delete=models.PROTECT)
+    name = models.CharField(max_length=64)
+    description = models.TextField()
+    responsibility = models.ForeignKey(User, on_delete=models.PROTECT)
+    deadline = models.DateField()
+    is_complete = models.BooleanField(default=False)
+
+
+class WeeklyProgramUpdate(AbstractBase):
+    """
+    Record of updates made at the weekly "touch base" meetings.
+    """
+
+    date = models.DateField()
+    attendees = ArrayField(
+        models.TextField(),
+    )
+    activity = models.ForeignKey(Activity, on_delete=models.PROTECT)
+    comments = models.TextField()

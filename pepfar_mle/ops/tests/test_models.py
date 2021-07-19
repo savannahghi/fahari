@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from model_bakery import baker
 
-from pepfar_mle.ops.models import FacilitySystemTicket, TimeSheet
+from pepfar_mle.ops.models import DailyUpdate, FacilitySystemTicket, TimeSheet
 
 pytestmark = pytest.mark.django_db
 
@@ -64,3 +64,14 @@ def test_facility_ticket_validate_resolved(admin_user):
         bad_ticket_resolve.save()
 
     assert "resolved and resolved_by must both be set" in str(e)
+
+
+def test_daily_update_appointment_keeping_percentage():
+    update_with_no_clients_booked = baker.make(DailyUpdate, clients_booked=0)
+    assert update_with_no_clients_booked.appointment_keeping == 0
+
+    update_with_all_clients_kept = baker.make(DailyUpdate, kept_appointment=5, clients_booked=5)
+    assert update_with_all_clients_kept.appointment_keeping == 100
+
+    update_with_half_booking = baker.make(DailyUpdate, kept_appointment=2, clients_booked=4)
+    assert update_with_half_booking.appointment_keeping == 50
