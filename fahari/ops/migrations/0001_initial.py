@@ -13,74 +13,164 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('common', '0007_alter_system_options'),
+        ("common", "0007_alter_system_options"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='FacilitySystem',
+            name="FacilitySystem",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('active', models.BooleanField(default=True)),
-                ('created', models.DateTimeField(default=django.utils.timezone.now)),
-                ('created_by', models.UUIDField(blank=True, null=True)),
-                ('updated', models.DateTimeField(default=django.utils.timezone.now)),
-                ('updated_by', models.UUIDField(blank=True, null=True)),
-                ('version', models.CharField(max_length=64)),
-                ('facility', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='common.facility')),
-                ('organisation', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='ops_facilitysystem_related', to='common.organisation')),
-                ('system', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='common.system')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("active", models.BooleanField(default=True)),
+                ("created", models.DateTimeField(default=django.utils.timezone.now)),
+                ("created_by", models.UUIDField(blank=True, null=True)),
+                ("updated", models.DateTimeField(default=django.utils.timezone.now)),
+                ("updated_by", models.UUIDField(blank=True, null=True)),
+                ("version", models.CharField(max_length=64)),
+                (
+                    "facility",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, to="common.facility"
+                    ),
+                ),
+                (
+                    "organisation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="ops_facilitysystem_related",
+                        to="common.organisation",
+                    ),
+                ),
+                (
+                    "system",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, to="common.system"
+                    ),
+                ),
             ],
             options={
-                'ordering': ('facility__name', 'system__name', '-version', '-updated_by', '-created_by'),
+                "ordering": (
+                    "facility__name",
+                    "system__name",
+                    "-version",
+                    "-updated_by",
+                    "-created_by",
+                ),
             },
         ),
         migrations.CreateModel(
-            name='TimeSheet',
+            name="TimeSheet",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('active', models.BooleanField(default=True)),
-                ('created', models.DateTimeField(default=django.utils.timezone.now)),
-                ('created_by', models.UUIDField(blank=True, null=True)),
-                ('updated', models.DateTimeField(default=django.utils.timezone.now)),
-                ('updated_by', models.UUIDField(blank=True, null=True)),
-                ('date', models.DateField()),
-                ('activity', models.TextField()),
-                ('output', models.TextField()),
-                ('hours', models.IntegerField()),
-                ('location', models.TextField()),
-                ('approved_at', models.DateTimeField(blank=True, null=True)),
-                ('approved_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL)),
-                ('organisation', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='ops_timesheet_related', to='common.organisation')),
-                ('staff', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='timesheet_staff', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("active", models.BooleanField(default=True)),
+                ("created", models.DateTimeField(default=django.utils.timezone.now)),
+                ("created_by", models.UUIDField(blank=True, null=True)),
+                ("updated", models.DateTimeField(default=django.utils.timezone.now)),
+                ("updated_by", models.UUIDField(blank=True, null=True)),
+                ("date", models.DateField()),
+                ("activity", models.TextField()),
+                ("output", models.TextField()),
+                ("hours", models.IntegerField()),
+                ("location", models.TextField()),
+                ("approved_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "approved_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "organisation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="ops_timesheet_related",
+                        to="common.organisation",
+                    ),
+                ),
+                (
+                    "staff",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="timesheet_staff",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ('-date', '-approved_at', 'staff__name'),
+                "ordering": ("-date", "-approved_at", "staff__name"),
             },
         ),
         migrations.CreateModel(
-            name='FacilitySystemTicket',
+            name="FacilitySystemTicket",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('active', models.BooleanField(default=True)),
-                ('created', models.DateTimeField(default=django.utils.timezone.now)),
-                ('created_by', models.UUIDField(blank=True, null=True)),
-                ('updated', models.DateTimeField(default=django.utils.timezone.now)),
-                ('updated_by', models.UUIDField(blank=True, null=True)),
-                ('details', models.TextField()),
-                ('raised', models.DateTimeField(default=django.utils.timezone.now)),
-                ('raised_by', models.TextField()),
-                ('resolved', models.DateTimeField(blank=True, null=True)),
-                ('resolved_by', models.TextField(blank=True, null=True)),
-                ('facility_system', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='ops.facilitysystem')),
-                ('organisation', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='ops_facilitysystemticket_related', to='common.organisation')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("active", models.BooleanField(default=True)),
+                ("created", models.DateTimeField(default=django.utils.timezone.now)),
+                ("created_by", models.UUIDField(blank=True, null=True)),
+                ("updated", models.DateTimeField(default=django.utils.timezone.now)),
+                ("updated_by", models.UUIDField(blank=True, null=True)),
+                ("details", models.TextField()),
+                ("raised", models.DateTimeField(default=django.utils.timezone.now)),
+                ("raised_by", models.TextField()),
+                ("resolved", models.DateTimeField(blank=True, null=True)),
+                ("resolved_by", models.TextField(blank=True, null=True)),
+                (
+                    "facility_system",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="ops.facilitysystem",
+                    ),
+                ),
+                (
+                    "organisation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="ops_facilitysystemticket_related",
+                        to="common.organisation",
+                    ),
+                ),
             ],
             options={
-                'ordering': ('facility_system__facility__name', 'facility_system__system__name', '-raised', '-resolved'),
+                "ordering": (
+                    "facility_system__facility__name",
+                    "facility_system__system__name",
+                    "-raised",
+                    "-resolved",
+                ),
             },
         ),
         migrations.AddConstraint(
-            model_name='facilitysystem',
-            constraint=models.UniqueConstraint(fields=('facility', 'system', 'version'), name='unique_together_facility_and_system_and_version'),
+            model_name="facilitysystem",
+            constraint=models.UniqueConstraint(
+                fields=("facility", "system", "version"),
+                name="unique_together_facility_and_system_and_version",
+            ),
         ),
     ]

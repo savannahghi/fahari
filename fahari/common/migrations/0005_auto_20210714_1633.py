@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('common', '0004_auto_20210714_1339'),
+        ("common", "0004_auto_20210714_1339"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='facilityattachment',
-            name='size',
-            field=models.IntegerField(blank=True, help_text='The size of the attachment in bytes', null=True),
+            model_name="facilityattachment",
+            name="size",
+            field=models.IntegerField(
+                blank=True, help_text="The size of the attachment in bytes", null=True
+            ),
         ),
     ]

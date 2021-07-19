@@ -6,13 +6,31 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('common', '0001_initial'),
+        ("common", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='facilityattachment',
-            name='content_type',
-            field=models.CharField(choices=[('image/png', 'PNG'), ('image/jpeg', 'JPEG'), ('application/pdf', 'PDF'), ('application/vnd.ms-excel', 'xlsx'), ('application/msword', 'doc'), ('application/vnd.openxmlformats-officedocument.wordprocessingml.document.docx', 'docx'), ('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx'), ('text/plain', 'text')], max_length=100),
+            model_name="facilityattachment",
+            name="content_type",
+            field=models.CharField(
+                choices=[
+                    ("image/png", "PNG"),
+                    ("image/jpeg", "JPEG"),
+                    ("application/pdf", "PDF"),
+                    ("application/vnd.ms-excel", "xlsx"),
+                    ("application/msword", "doc"),
+                    (
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document.docx",
+                        "docx",
+                    ),
+                    (
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "xlsx",
+                    ),
+                    ("text/plain", "text"),
+                ],
+                max_length=100,
+            ),
         ),
     ]
