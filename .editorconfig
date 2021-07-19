@@ -14,7 +14,7 @@ indent_size = 4
 
 [*.py]
 line_length = 99
-known_first_party = pepfar_mle,config
+known_first_party = fahari,config
 multi_line_output = 3
 default_section = THIRDPARTY
 recursive = true

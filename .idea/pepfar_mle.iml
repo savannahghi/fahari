@@ -34,7 +34,7 @@
     <option name="TEMPLATE_CONFIGURATION" value="Django" />
     <option name="TEMPLATE_FOLDERS">
       <list>
-        <option value="$MODULE_DIR$/pepfar_mle/templates" />
+        <option value="$MODULE_DIR$/fahari/templates" />
       </list>
     </option>
   </component>

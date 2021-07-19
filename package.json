@@ -1,6 +1,6 @@
 {
     "title": "Reporting Database",
-    "name": "pepfar_mle",
+    "name": "fahari",
     "description": "A reporting database for PEPFAR supported HIV/AIDS programs",
     "version": "0.0.1",
     "keywords": [

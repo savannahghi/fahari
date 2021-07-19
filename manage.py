@@ -24,8 +24,8 @@ if __name__ == "__main__":
         raise
 
     # This allows easy placement of apps within the interior
-    # pepfar_mle directory.
+    # fahari directory.
     current_path = Path(__file__).parent.resolve()
-    sys.path.append(str(current_path / "pepfar_mle"))
+    sys.path.append(str(current_path / "fahari"))
 
     execute_from_command_line(sys.argv)

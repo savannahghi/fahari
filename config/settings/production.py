@@ -65,7 +65,7 @@ GS_DEFAULT_ACL = "project-private"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # MEDIA
 # ------------------------------------------------------------------------------
-DEFAULT_FILE_STORAGE = "pepfar_mle.utils.storages.MediaRootGoogleCloudStorage"
+DEFAULT_FILE_STORAGE = "fahari.utils.storages.MediaRootGoogleCloudStorage"
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/media/"
 
 # TEMPLATES
