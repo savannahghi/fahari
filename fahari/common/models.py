@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from PIL import Image
 
-from .constants import CONTENT_TYPES, COUNTIES, COUNTRY_CODES, IMAGE_TYPES
+from .constants import CONTENT_TYPES, COUNTRY_CODES, IMAGE_TYPES
 
 LOGGER = logging.getLogger(__file__)
 
@@ -382,11 +382,34 @@ class Attachment(AbstractBase):
 
 
 class Facility(AbstractBase):
-    """A facility with M&E reporting."""
+    """A facility with M&E reporting.
 
-    name = models.TextField()
+    The data is fetched - and updated - from the Kenya Master Health Facilities List.
+    """
+
+    name = models.TextField(unique=True)
     mfl_code = models.IntegerField(unique=True)
-    county = models.CharField(choices=COUNTIES, max_length=24)
+    county = models.CharField(max_length=64)
+    sub_county = models.CharField(max_length=64, null=True, blank=True)
+    constituency = models.CharField(max_length=64, null=True, blank=True)
+    ward = models.CharField(max_length=64, null=True, blank=True)
+    operation_status = models.CharField(max_length=24, default="Operational")
+    registration_number = models.CharField(max_length=64, null=True, blank=True)
+    keph_level = models.CharField(max_length=12, null=True, blank=True)
+    facility_type = models.CharField(max_length=64, null=True, blank=True)
+    facility_type_category = models.CharField(max_length=64, null=True, blank=True)
+    facility_owner = models.CharField(max_length=64, null=True, blank=True)
+    owner_type = models.CharField(max_length=64, null=True, blank=True)
+    regulatory_body = models.CharField(max_length=64, null=True, blank=True)
+    beds = models.IntegerField(default=0)
+    cots = models.IntegerField(default=0)
+    open_whole_day = models.BooleanField(default=False)
+    open_public_holidays = models.BooleanField(default=False)
+    open_weekends = models.BooleanField(default=False)
+    open_late_night = models.BooleanField(default=False)
+    approved = models.BooleanField(default=True)
+    public_visible = models.BooleanField(default=True)
+    closed = models.BooleanField(default=False)
 
     model_validators = [
         "facility_name_longer_than_three_characters",

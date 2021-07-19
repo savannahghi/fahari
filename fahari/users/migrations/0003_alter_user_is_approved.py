@@ -6,13 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0002_user_is_approved'),
+        ("users", "0002_user_is_approved"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='user',
-            name='is_approved',
-            field=models.BooleanField(default=False, help_text='When true, the user is able to log in to the main website (and vice versa)'),
+            model_name="user",
+            name="is_approved",
+            field=models.BooleanField(
+                default=False,
+                help_text="When true, the user is able to log in to the main website (and vice versa)",
+            ),
         ),
     ]
