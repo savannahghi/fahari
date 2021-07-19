@@ -9,7 +9,7 @@ import environ
 from google.cloud import secretmanager
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
-APPS_DIR = ROOT_DIR / "pepfar_mle"
+APPS_DIR = ROOT_DIR / "fahari"
 ENV_PATH = "/tmp/secrets/.env"
 
 env = environ.Env()
@@ -79,21 +79,21 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    "pepfar_mle.common.apps.CommonConfig",
-    "pepfar_mle.users.apps.UsersConfig",
-    "pepfar_mle.hts.apps.HTSConfig",
-    "pepfar_mle.pmtct.apps.PMTCTConfig",
-    "pepfar_mle.prevention.apps.PreventionConfig",
-    "pepfar_mle.retention.apps.RetentionConfig",
-    "pepfar_mle.tb.apps.TBConfig",
-    "pepfar_mle.treatment.apps.TreatmentConfig",
-    "pepfar_mle.ops.apps.OpsConfig",
+    "fahari.common.apps.CommonConfig",
+    "fahari.users.apps.UsersConfig",
+    "fahari.hts.apps.HTSConfig",
+    "fahari.pmtct.apps.PMTCTConfig",
+    "fahari.prevention.apps.PreventionConfig",
+    "fahari.retention.apps.RetentionConfig",
+    "fahari.tb.apps.TBConfig",
+    "fahari.treatment.apps.TreatmentConfig",
+    "fahari.ops.apps.OpsConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------
-MIGRATION_MODULES = {"sites": "pepfar_mle.contrib.sites.migrations"}
+MIGRATION_MODULES = {"sites": "fahari.contrib.sites.migrations"}
 
 # AUTHENTICATION
 # ------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
-                "pepfar_mle.utils.context_processors.settings_context",
+                "fahari.utils.context_processors.settings_context",
             ],
         },
     }
@@ -251,8 +251,8 @@ ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_ADAPTER = "pepfar_mle.users.adapters.AccountAdapter"
-SOCIALACCOUNT_ADAPTER = "pepfar_mle.users.adapters.SocialAccountAdapter"
+ACCOUNT_ADAPTER = "fahari.users.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "fahari.users.adapters.SocialAccountAdapter"
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = True
 ACCOUNT_SESSION_REMEMBER = None  # ask the user 'Remember me'
 ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = True

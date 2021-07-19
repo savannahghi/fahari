@@ -7,7 +7,7 @@ from django.urls import include, path
 from django.views import defaults as default_views
 from rest_framework.authtoken.views import obtain_auth_token
 
-from pepfar_mle.common.views import AboutView, HomeView
+from fahari.common.views import AboutView, HomeView
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
@@ -20,11 +20,11 @@ urlpatterns = [
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
-    path("users/", include("pepfar_mle.users.urls", namespace="users")),
+    path("users/", include("fahari.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
     # our apps
-    path("common/", include("pepfar_mle.common.urls", namespace="common")),
-    path("ops/", include("pepfar_mle.ops.urls", namespace="ops")),
+    path("common/", include("fahari.common.urls", namespace="common")),
+    path("ops/", include("fahari.ops.urls", namespace="ops")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

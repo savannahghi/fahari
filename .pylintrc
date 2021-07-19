@@ -1,6 +1,6 @@
 [MASTER]
 load-plugins=pylint_django
-django-settings-module=pepfar_mle.config.settings.test
+django-settings-module=fahari.config.settings.test
 
 [FORMAT]
 max-line-length=99

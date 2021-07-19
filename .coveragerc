@@ -1,7 +1,7 @@
 [run]
 branch=True
-source=pepfar_mle
-omit=pepfar_mle/config/*,pepfar_mle/**/migrations/*,scripts/*,pepfar_mle/**/tests/*
+source=fahari
+omit=fahari/config/*,fahari/**/migrations/*,scripts/*,fahari/**/tests/*
 
 [report]
 show_missing=True
