@@ -10,7 +10,7 @@ from pepfar_mle.common.views import ApprovedMixin
 User = get_user_model()
 
 
-class UserDetailView(LoginRequiredMixin, ApprovedMixin, DetailView):
+class UserDetailView(LoginRequiredMixin, DetailView):
 
     model = User
     slug_field = "username"
