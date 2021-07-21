@@ -295,8 +295,8 @@ class AuditAbstractBaseModelTest(TestCase):
         self.leo = timezone.now()
         self.jana = timezone.now() - datetime.timedelta(days=1)
         self.juzi = timezone.now() - datetime.timedelta(days=2)
-        self.user_1 = baker.make(settings.AUTH_USER_MODEL)
-        self.user_2 = baker.make(settings.AUTH_USER_MODEL)
+        self.user_1 = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
+        self.user_2 = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
 
     def test_validate_updated_date_greater_than_created(self):
         """Test that updated date is greater than created."""

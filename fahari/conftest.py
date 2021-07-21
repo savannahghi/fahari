@@ -11,6 +11,11 @@ def media_storage(settings, tmpdir):
     settings.MEDIA_ROOT = tmpdir.strpath
 
 
+@pytest.fixture(autouse=True)
+def test_email_backend(settings):
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+
 @pytest.fixture
 def user() -> User:
     return UserFactory()
@@ -23,6 +28,13 @@ def user_with_all_permissions(user) -> User:
         user.user_permissions.add(perm)
     user.save()
     return user
+
+
+@pytest.fixture
+def staff_user(user_with_all_permissions) -> User:
+    user_with_all_permissions.is_staff = True
+    user_with_all_permissions.save()
+    return user_with_all_permissions
 
 
 @pytest.fixture

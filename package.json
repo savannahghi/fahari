@@ -1,15 +1,15 @@
 {
     "title": "Reporting Database",
     "name": "fahari",
-    "description": "A reporting database for PEPFAR supported HIV/AIDS programs",
+    "description": "A reporting database for Fahari HIV/AIDS programs",
     "version": "0.0.1",
     "keywords": [
         "monitoring",
         "evaluation",
         "reporting",
-        "PEPFAR",
         "HIV",
-        "care"
+        "care",
+        "fahari"
     ],
     "homepage": "https://github.com/savannahghi/mle",
     "repository": {
@@ -27,6 +27,7 @@
         "datatables.net-bs4": "1.10.24",
         "jquery": ">=3.6.0",
         "jquery.easing": "^1.4.1",
+        "mjml": "^4.10.1",
         "pg": "^8.6.0",
         "popper.js": "^1.16.1"
     },

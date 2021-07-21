@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 class User(AbstractUser):
-    """Default user for PEPFAR Monitoring, Learning and Evaluation."""
+    """Default user model."""
 
     id = UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -18,6 +18,10 @@ class User(AbstractUser):
     is_approved = BooleanField(
         default=False,
         help_text="When true, the user is able to log in to the main website (and vice versa)",
+    )
+    approval_notified = BooleanField(
+        default=False,
+        help_text="When true, the user has been notified that their account is approved",
     )
 
     @property

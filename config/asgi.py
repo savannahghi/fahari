@@ -1,5 +1,5 @@
 """
-ASGI config for PEPFAR Monitoring, Learning and Evaluation project.
+ASGI config for Fahari Reporting project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

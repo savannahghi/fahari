@@ -14,7 +14,7 @@ def update_site_forward(apps, schema_editor):
         id=settings.SITE_ID,
         defaults={
             "domain": "savannahghi.org",
-            "name": "PEPFAR Monitoring, Learning and Evaluation",
+            "name": "Fahari Reporting",
         },
     )
 
