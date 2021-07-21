@@ -72,5 +72,6 @@ RUN chmod +x /entrypoint
 # copy application code to WORKDIR
 COPY --from=client-builder ${APP_HOME} ${APP_HOME}
 RUN npm run build
+RUN npm install -g mjml
 
 ENTRYPOINT ["/entrypoint"]

@@ -26,7 +26,7 @@ django.setup()
 
 # -- Project information -----------------------------------------------------
 
-project = "PEPFAR Monitoring, Learning and Evaluation"
+project = "Fahari Reporting"
 copyright = """2021, Savannah Informatics Global Health Institute"""
 author = "Savannah Informatics Global Health Institute"
 

@@ -15,6 +15,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
   DJANGO_GCP_STORAGE_BUCKET_NAME: ${{ secrets.DJANGO_GCP_STORAGE_BUCKET_NAME }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  DJANGO_EMAIL_BACKEND: ${{secrets.DJANGO_EMAIL_BACKEND}}
 
 jobs:
   linter:
@@ -52,6 +53,8 @@ jobs:
       - name: Install requirements
         run: |
           pip install -r requirements/local.txt && pip install -r requirements/production.txt
+          npm ci
+          npm install -g mjml
 
       - name: mypy
         run: |
@@ -90,6 +93,7 @@ jobs:
         run: |
           pip install -r requirements/local.txt && pip install -r requirements/production.txt
           npm ci
+          npm install -g mjml
 
       - name: Set up Django
         run: |

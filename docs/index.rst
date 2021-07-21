@@ -1,10 +1,10 @@
-.. PEPFAR Monitoring, Learning and Evaluation documentation master file, created by
+.. Fahari reporting documentation master file, created by
    sphinx-quickstart.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PEPFAR Monitoring, Learning and Evaluation's documentation!
-======================================================================
+Welcome to Fahari Reporting
+============================
 
 .. toctree::
    :maxdepth: 2

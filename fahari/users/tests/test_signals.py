@@ -1,0 +1,124 @@
+from unittest.mock import MagicMock
+
+import pytest
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from faker import Faker
+from model_bakery import baker
+
+from fahari.users.signals import (
+    account_confirmed_handler,
+    email_confirmed_hander,
+    send_admin_awaiting_approval_email,
+    send_user_account_approved_email,
+    send_user_awaiting_approval_email,
+)
+
+pytestmark = pytest.mark.django_db
+
+User = get_user_model()
+fake = Faker()
+
+
+def test_send_user_account_approved_email(mailoutbox):
+    user = baker.make(User, email=fake.email(), is_approved=False, approval_notified=False)
+    assert user.approval_notified is False
+    send_user_account_approved_email(user)
+    assert user.approval_notified is True
+    assert len(mailoutbox) >= 1  # an automatic user approval email was also sent
+
+    expected_subject = "Fahari System Account Approved"
+    expected_email = settings.SERVER_EMAIL
+    successful_messages = 0
+    for m in mailoutbox:
+        if (
+            m.subject == expected_subject
+            and m.from_email == expected_email
+            and user.email in list(m.to)
+        ):
+            successful_messages = 1
+
+    assert successful_messages == 1
+
+
+def test_send_user_awaiting_approval_email(mailoutbox):
+    user = baker.make(User, email=fake.email(), is_approved=True, approval_notified=False)
+    send_user_awaiting_approval_email(user)  # no error
+    assert len(mailoutbox) >= 1  # an automatic user approval email was also sent
+    m = mailoutbox[len(mailoutbox) - 1]
+    assert m.subject == "Fahari System Account Pending Approval"
+    assert m.from_email == settings.SERVER_EMAIL
+    assert list(m.to) == [
+        user.email,
+    ]
+
+
+def test_send_admin_awaiting_approval_email(mailoutbox):
+    user = baker.make(User, email=fake.email(), is_approved=True, approval_notified=False)
+    send_admin_awaiting_approval_email(user)  # no error
+    assert len(mailoutbox) >= 1
+    m = mailoutbox[len(mailoutbox) - 1]
+    assert m.subject == "New Fahari System Account Pending Approval"
+    assert m.from_email == settings.SERVER_EMAIL
+    assert list(m.to) == [
+        user.email,
+    ]
+
+
+def test_account_confirmed_handler_newly_created():
+    user = baker.make(
+        User,
+        email=fake.email(),
+    )
+    assert account_confirmed_handler(User, user, created=True) is None
+
+
+def test_account_confirmed_handler_not_approved():
+    user = baker.make(User, email=fake.email(), is_approved=False)
+    assert account_confirmed_handler(User, user, created=False) is None
+
+
+def test_account_confirmed_handler_already_notified():
+    user = baker.make(User, email=fake.email(), is_approved=True, approval_notified=True)
+    assert account_confirmed_handler(User, user, created=False) is None
+
+
+def test_account_confirmed_handler_happy_case(mailoutbox):
+    user = baker.make(User, email=fake.email(), is_approved=True, approval_notified=False)
+    assert user.approval_notified is False
+    assert account_confirmed_handler(User, user, created=False) is True
+    assert user.approval_notified is True
+    assert len(mailoutbox) >= 1
+
+    expected_subject = "Fahari System Account Approved"
+    expected_email = settings.SERVER_EMAIL
+    successful_messages = 0
+    for m in mailoutbox:
+        if (
+            m.subject == expected_subject
+            and m.from_email == expected_email
+            and user.email in list(m.to)
+        ):
+            successful_messages = 1
+
+    assert successful_messages == 1
+
+
+def test_email_confirmed_handler_user_does_not_exist():
+    fake_email = fake.email()
+    request = MagicMock()
+    assert email_confirmed_hander(request, fake_email) is False
+
+
+def test_email_confirmed_handler_approved_user():
+    approved_user = baker.make(User, email=fake.email(), is_approved=True)
+    request = MagicMock()
+    email = approved_user.email
+    assert email_confirmed_hander(request, email) is False
+
+
+def test_email_confirmed_handler_user_awaiting_approval():
+    approved_user = baker.make(User, email=fake.email(), is_approved=False)
+    request = MagicMock()
+    email = approved_user.email
+    assert email_confirmed_hander(request, email) is True

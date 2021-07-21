@@ -1,7 +1,7 @@
-PEPFAR Monitoring, Learning and Evaluation
-==========================================
+Fahari Reporting Database
+==========================
 
-Field Reporting Database for PEPFAR Monitoring, Learning and Evaluation.
+Field Reporting Database for the Fahari care delivery projects.
 
 ![Linting and Tests](https://github.com/savannahghi/mle/actions/workflows/ci.yml/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/savannahghi/mle/badge.svg?branch=main)](https://coveralls.io/github/savannahghi/mle?branch=main)

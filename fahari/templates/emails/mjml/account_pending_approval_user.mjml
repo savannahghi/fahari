@@ -1,0 +1,40 @@
+<mjml lang="en" owa="desktop">
+  <mj-head>
+    <mj-title>Account Pending Approval</mj-title>
+    <mj-preview>User Account Pending Approval</mj-preview>
+  </mj-head>
+  <mj-body width="600px" background-color="#fafafa">
+    <mj-section background-color="#f0f0f0">
+      <mj-column>
+        <mj-text font-style="italic" font-size="20px" color="#626262">
+          Fahari Reporting System
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-url="https://sghi-307909.web.app/images/background_small.png" background-size="cover" background-repeat="no-repeat">
+      <mj-column width="600px">
+        <mj-spacer height="200px" />
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#fafafa">
+      <mj-column width="400px">
+        <mj-text color="#525252">Hello {{name}},</mj-text>
+        <mj-text color="#525252">
+          Thank you for confirming your email address.
+        </mj-text>
+        <mj-text color="#525252">
+          Your account will now need to be approved before you can log in.
+        </mj-text>
+        <mj-text color="#525252">
+          We will notify you when it is approved.
+        </mj-text>
+        <mj-text color="#525252">
+          With kind regards,
+        </mj-text>
+        <mj-text color="#525252" font-style="italic">
+          Fahari System Team
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

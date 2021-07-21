@@ -74,6 +74,7 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
+    "mjml",
     "jet",
     "django.contrib.admin",  # needs to come after jet so that jet static files are preferred
 ]
@@ -287,3 +288,8 @@ MAX_IMAGE_WIDTH = 7680
 # BigAutoField needs migration of existing data and either changes to
 # dependencies or overriding dependencies
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+# mjml responsive emails
+MJML_BACKEND_MODE = "cmd"
+MJML_EXEC_CMD = "mjml"
+MJML_CHECK_CMD_ON_STARTUP = True
