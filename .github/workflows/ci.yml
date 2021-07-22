@@ -52,6 +52,7 @@ jobs:
 
       - name: Install requirements
         run: |
+          sudo apt-get install postgis gdal-bin libgdal-dev
           pip install -r requirements/local.txt && pip install -r requirements/production.txt
           npm ci
           npm install -g mjml
@@ -67,7 +68,7 @@ jobs:
     # Service containers to run with `container-job`
     services:
       postgres:
-        image: postgres
+        image: postgis/postgis
         env:
           POSTGRES_PASSWORD: postgres
         # Set health checks to wait until postgres has started
@@ -91,6 +92,7 @@ jobs:
 
       - name: Install requirements
         run: |
+          sudo apt-get install postgis gdal-bin libgdal-dev
           pip install -r requirements/local.txt && pip install -r requirements/production.txt
           npm ci
           npm install -g mjml

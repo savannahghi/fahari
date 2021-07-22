@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
-from django.db import models
 from django.utils import timezone
 
 from fahari.common.models import AbstractBase, Facility, System
