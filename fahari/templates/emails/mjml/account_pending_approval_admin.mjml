@@ -20,7 +20,7 @@
       <mj-column width="400px">
         <mj-text color="#525252">Hello,</mj-text>
         <mj-text color="#525252">
-          A new Fahari Reporting System user account has been created by {{name}} ({{email}}).
+          A new Fahari Reporting System user account has been created by {{user.name}} ({{user.email}}).
           It's currently awaiting review and approval.
         </mj-text>
         <mj-text color="#525252">
