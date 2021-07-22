@@ -52,9 +52,10 @@ def update_long_lat(data):
 
         try:
             facility = Facility.objects.get(mfl_code=mfl_code)
-            facility.lon = lon
-            facility.lat = lat
-            facility.save()
+            if facility.lat == 0.0 and facility.lon == 0.0:
+                facility.lon = lon
+                facility.lat = lat
+                facility.save()
         except Facility.DoesNotExist:
             print(f"no facility with MFL Code {mfl_code}, please add it")
             continue

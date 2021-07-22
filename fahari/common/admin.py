@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Facility, FacilityAttachment, Organisation, System
+from .models import Facility, FacilityAttachment, FacilityUser, Organisation, System
 
 
 class BaseAdmin(admin.ModelAdmin):
@@ -22,11 +22,40 @@ class BaseAdmin(admin.ModelAdmin):
         obj.save()
 
 
+class FacilityUserInline(admin.TabularInline):
+    model = FacilityUser
+
+
+class FacilityAttachmentInline(admin.TabularInline):
+    model = FacilityAttachment
+
+
 class FacilityAdmin(BaseAdmin):
-    pass
+    inlines = [FacilityUserInline, FacilityAttachmentInline]
+    list_display = (
+        "name",
+        "mfl_code",
+        "county",
+        "sub_county",
+        "constituency",
+        "ward",
+        "registration_number",
+        "keph_level",
+    )
+    list_filter = (
+        "county",
+        "operation_status",
+        "keph_level",
+        "facility_type",
+        "owner_type",
+    )
 
 
 class FacilityAttachmentAdmin(BaseAdmin):
+    pass
+
+
+class FacilityUserAdmin(BaseAdmin):
     pass
 
 
@@ -40,5 +69,6 @@ class SystemAdmin(BaseAdmin):
 
 admin.site.register(Facility, FacilityAdmin)
 admin.site.register(FacilityAttachment, FacilityAttachmentAdmin)
+admin.site.register(FacilityUser, FacilityUserAdmin)
 admin.site.register(Organisation, OrganisationAdmin)
 admin.site.register(System, SystemAdmin)
