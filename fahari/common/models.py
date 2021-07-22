@@ -5,6 +5,7 @@ from fractions import Fraction
 from typing import List
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -17,6 +18,7 @@ from PIL import Image
 from .constants import CONTENT_TYPES, COUNTRY_CODES, IMAGE_TYPES
 
 LOGGER = logging.getLogger(__file__)
+User = get_user_model()
 
 
 def unique_list(list_object):
@@ -434,6 +436,20 @@ class FacilityAttachment(Attachment):
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     notes = models.TextField()
+
+    organisation_verify = ["facility"]
+
+    class Meta(AbstractBase.Meta):
+        """Define ordering and other attributes for attachments."""
+
+        ordering = ("-updated", "-created")
+
+
+class FacilityUser(Attachment):
+    """A user assigned to a facility."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
 
     organisation_verify = ["facility"]
 
