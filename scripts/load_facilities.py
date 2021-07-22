@@ -32,9 +32,9 @@ def load_facilities(source_path):
         if r["Code"] is not None and r["Code"] != "None":
             try:
                 facility, created = Facility.objects.get_or_create(
-                    name=r["Name"],
                     mfl_code=r["Code"],
                     defaults={
+                        "name": r["Name"],
                         "created_by": created_by,
                         "updated_by": created_by,
                         "organisation": org,
