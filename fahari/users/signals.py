@@ -3,6 +3,7 @@ import logging
 from allauth.account.signals import email_confirmed
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.mail import EmailMessage
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -10,6 +11,14 @@ from django.dispatch import receiver
 from django.template.loader import get_template
 
 LOGGER = logging.getLogger(__name__)
+BASIC_PERMISSIONS = [
+    "users.can_view_dashboard",
+    "users.can_view_about",
+    "common.view_system",
+    "common.view_facility",
+    "ops.view_facilitysystemticket",
+    "ops.view_timesheet",
+]
 
 User = get_user_model()
 
@@ -36,9 +45,21 @@ def email_confirmed_hander(request, email_address, **kwargs):
         return False
 
 
+def assign_basic_permissions(user):
+    for perm_string in BASIC_PERMISSIONS:
+        content_type_app_label, perm_code_name = perm_string.split(".")
+        perm = Permission.objects.get(
+            content_type__app_label=content_type_app_label, codename=perm_code_name
+        )
+        user.user_permissions.add(perm)
+
+    user.save()
+
+
 @receiver(post_save, sender=User)
 def account_confirmed_handler(sender, instance, created, **kwargs):
     if created:
+        assign_basic_permissions(instance)
         return  # ignore newly saved models...account confirmation is an update
 
     if not instance.is_approved:

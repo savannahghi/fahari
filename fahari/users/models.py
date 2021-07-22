@@ -41,7 +41,7 @@ class User(AbstractUser):
                 ]
             )
             perms = perms | group_perms
-        return ",\n".join(list(perms)) or "-"
+        return ",\n".join(list(perms))
 
     @property
     def gps(self):
