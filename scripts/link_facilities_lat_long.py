@@ -52,7 +52,7 @@ def update_long_lat(data):
 
         try:
             facility = Facility.objects.get(mfl_code=mfl_code)
-            if facility.lat == 0.0 and facility.lon == 0.0:
+            if facility.lat == 0.0 and facility.lon == 0.0 and lon is not None and lat is not None:
                 facility.lon = lon
                 facility.lat = lat
                 facility.save()
