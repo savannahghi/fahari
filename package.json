@@ -22,12 +22,13 @@
     ],
     "license": "MIT",
     "dependencies": {
+        "better-npm-audit": "^3.1.2",
         "bootstrap": "^4.3.1",
         "chart.js": "2.9.4",
         "datatables.net-bs4": "1.10.24",
         "jquery": ">=3.6.0",
         "jquery.easing": "^1.4.1",
-        "mjml": "^4.10.1",
+        "mjml": "^4.10.2",
         "pg": "^8.6.0",
         "popper.js": "^1.16.1"
     },
@@ -41,12 +42,12 @@
         "gulp-clean-css": "4.3.0",
         "gulp-concat": "^2.6.1",
         "gulp-header": "2.0.9",
-        "gulp-imagemin": "^5.0.3",
+        "gulp-imagemin": "^7.1.0",
         "gulp-line-ending-corrector": "^1.0.3",
         "gulp-plumber": "^1.2.1",
         "gulp-postcss": "^8.0.0",
         "gulp-rename": "2.0.0",
-        "gulp-sass": "4.1.0",
+        "gulp-sass": "^5.0.0",
         "gulp-sourcemaps": "^3.0.0",
         "gulp-uglify": "3.0.2",
         "gulp-uglify-es": "^1.0.4",
@@ -62,6 +63,8 @@
     ],
     "scripts": {
         "dev": "gulp",
-        "build": "gulp generate-assets"
+        "build": "gulp generate-assets",
+        "prepush": "npm run test && npm run audit",
+        "audit": "better-npm-audit audit"
     }
 }
