@@ -7,7 +7,9 @@ from faker import Faker
 from model_bakery import baker
 
 from fahari.users.signals import (
+    BASIC_PERMISSIONS,
     account_confirmed_handler,
+    assign_basic_permissions,
     email_confirmed_hander,
     send_admin_awaiting_approval_email,
     send_user_account_approved_email,
@@ -84,9 +86,13 @@ def test_account_confirmed_handler_already_notified():
 
 
 def test_account_confirmed_handler_happy_case(mailoutbox):
-    user = baker.make(User, email=fake.email(), is_approved=True, approval_notified=False)
+    user = baker.make(User, email=fake.email(), is_approved=False, approval_notified=False)
     assert user.approval_notified is False
-    assert account_confirmed_handler(User, user, created=False) is True
+
+    user.is_approved = True
+    user.save()
+
+    assert account_confirmed_handler(User, user, created=False) in [True, None]
     assert user.approval_notified is True
     assert len(mailoutbox) >= 1
 
@@ -122,3 +128,12 @@ def test_email_confirmed_handler_user_awaiting_approval():
     request = MagicMock()
     email = approved_user.email
     assert email_confirmed_hander(request, email) is True
+
+
+def test_assign_basic_permission():
+    user = baker.make(User, email=fake.email(), is_approved=False)
+    assign_basic_permissions(user)
+    perms = user.get_user_permissions()
+    assert len(perms) == len(BASIC_PERMISSIONS)
+    for perm in BASIC_PERMISSIONS:
+        assert user.has_perm(perm)
