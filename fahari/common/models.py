@@ -5,8 +5,9 @@ from fractions import Fraction
 from typing import List
 
 from django.conf import settings
+from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import transaction
 from django.db.models.base import ModelBase
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -410,6 +411,8 @@ class Facility(AbstractBase):
     approved = models.BooleanField(default=True)
     public_visible = models.BooleanField(default=True)
     closed = models.BooleanField(default=False)
+    lon = models.FloatField(default=0.0)
+    lat = models.FloatField(default=0.0)
 
     model_validators = [
         "facility_name_longer_than_three_characters",
