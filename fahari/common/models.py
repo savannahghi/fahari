@@ -415,6 +415,7 @@ class Facility(AbstractBase):
     closed = models.BooleanField(default=False)
     lon = models.FloatField(default=0.0)
     lat = models.FloatField(default=0.0)
+    is_fahari_facility = models.BooleanField(default=True)
 
     model_validators = [
         "facility_name_longer_than_three_characters",
