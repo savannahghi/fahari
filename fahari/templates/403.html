@@ -18,18 +18,23 @@
         {% if user.is_approved %}
             Forbidden
         {% else %}
-            Profile Not Approved
+            Profile Not Approved.
         {% endif %}
     </p>
     {% if user.is_approved %}
         <p class="text-gray-500 mb-0">
             You do not have permission to access this page. If you think this is a mistake, please contact us.
         </p>
+        <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
     {% else %}
         <p class="text-gray-500 mb-0">
             Your user profile is <strong>not yet approved</strong>. Please contact the system administrator for assistance.
+
+            <hr/>
+            <a href="{% url 'account_logout' %}">
+                &larr; Click here to log out.
+            </a>
         </p>
     {% endif %}
-    <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
 </div>
 {% endblock content %}
