@@ -1,7 +1,6 @@
 {% load static i18n compress%}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -15,20 +14,24 @@
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
 
-    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}"> {% block css %}
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}">
 
-    <!-- Your stuff: Third-party CSS libraries go here -->{% compress css %}
-    <!-- This file stores project-specific CSS -->
-    <link href="{% static 'css/project.min.css' %}" rel="stylesheet">
-    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet"> {% endcompress %} {% endblock %}
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet"> {# Placed at the top of the document so pages load faster with defer #} {% block javascript %}
-    <!-- Vendor dependencies bundled as one file-->{% compress js %}
-    <script defer src="{% static 'js/vendors.min.js' %}"></script>
-    <script defer src="{% static 'js/sb-admin-2.min.js' %}"></script>{% endcompress %}
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WW2W29ZMTZ"></script>
-    <script src="https://kit.fontawesome.com/e1c9d8c99d.js" crossorigin="anonymous"></script>
+    {% block css %}
+      {% compress css %}
+        <link href="{% static 'css/project.min.css' %}" rel="stylesheet">
+        <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+      {% endcompress %}
+      <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+      <link href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+    {% endblock css %}
 
-    <!-- place project specific Javascript in this file -->{% compress js %}
-    <script defer src="{% static 'js/project.min.js' %}"></script>{% endcompress %} {% endblock javascript %}
-
+    {% block javascript %}
+      {% compress js %}
+        <script defer src="{% static 'js/vendors.min.js' %}"></script>
+        <script defer src="{% static 'js/sb-admin-2.min.js' %}"></script>
+        <script defer src="{% static 'js/project.min.js' %}"></script>
+      {% endcompress %}
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-WW2W29ZMTZ"></script>
+      <script src="https://kit.fontawesome.com/e1c9d8c99d.js" crossorigin="anonymous"></script>
+    {% endblock javascript %}
 </head>

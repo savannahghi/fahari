@@ -13,7 +13,7 @@ URL = (
 )
 PROJECT_ID = "sghi-307909"
 SECRET_NAME = "mfl_authentication_token"
-BEARER_TOKEN = "RwYcApURXBLii4PgAsExWMndfujSmo"
+BEARER_TOKEN = "P9ssCH0Uay76WcIdCCk6HadOZQtRpX"
 
 
 def get_long_lat_data():

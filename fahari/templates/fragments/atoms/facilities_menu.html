@@ -5,7 +5,7 @@
         <i class="fas fa-fw fa-hospital"></i>
         <span>Facilities</span>
     </a>
-    <div id="facilities-menu" class="collapse {% if active == "facilities-nav" %}show{% endif %}" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+    <div id="facilities-menu" class="collapse {% if active == "facilities-nav" %}show{% endif %}"  data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
             {% if perms.common.view_facility %}
                 <a class="collapse-item {% if selected == "facilities" %}active {% endif %}" id="facilities" href="{% url 'common:facilities' %}">

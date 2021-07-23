@@ -31,7 +31,8 @@ steps:
       '--max-instances', '4',
       '--memory', '512M',
       '--cpu', '1',
-      '--set-secrets', '/tmp/secrets/.env=mle_django_settings:latest'
+      '--set-secrets', '/tmp/secrets/.env=mle_django_settings:latest',
+      '--timeout', '59m59s'
   ]
 
 images:

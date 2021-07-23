@@ -1,3 +1,7 @@
+WHITELIST_COUNTIES = [
+    "Kajiado",
+    "Nairobi",
+]
 COUNTIES = (
     ("47_NAIROBI_CITY", "Nairobi City"),
     ("46_NYAMIRA", "Nyamira"),

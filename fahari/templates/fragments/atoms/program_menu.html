@@ -5,7 +5,7 @@
         <i class="fas fa-fw fa-tasks"></i>
         <span>Program Reports</span>
     </a>
-    <div id="program-menu" class="collapse {% if active == "program-nav" %}show{% endif %}" aria-labelledby="program-menu" data-parent="#accordionSidebar">
+    <div id="program-menu" class="collapse {% if active == "program-nav" %}show{% endif %}"  data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
             {% if perms.ops.view_activitylog %}
                 <a class="collapse-item {% if selected == "activity-log" %}active {% endif %}" id="activity-log" href="{% url 'ops:activity_log' %}">

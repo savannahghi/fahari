@@ -72,8 +72,10 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "django_filters",
     "rest_framework",
     "rest_framework.authtoken",
+    "rest_framework_datatables",
     "corsheaders",
     "mjml",
     "jet",
@@ -271,6 +273,29 @@ STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 # django-rest-framework
 # -------------------------------------------------------------------------------
 REST_FRAMEWORK = {
+    "DEFAULT_MODEL_SERIALIZER_CLASS": ("rest_framework.serializers.ModelSerializer",),
+    "DEFAULT_RENDERER_CLASSES": (
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework_datatables.renderers.DatatablesRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+        "rest_framework.renderers.AdminRenderer",
+    ),
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FileUploadParser",
+    ),
+    "DEFAULT_FILTER_BACKENDS": (
+        "rest_framework_datatables.filters.DatatablesFilterBackend",
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.OrderingFilter",
+        "fahari.common.filters.OrganisationFilterBackend",
+    ),
+    "DEFAULT_PAGINATION_CLASS": (
+        "rest_framework_datatables.pagination.DatatablesPageNumberPagination"
+    ),
+    "PAGE_SIZE": 50,
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
@@ -280,7 +305,17 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.DjangoModelPermissions",
         "rest_framework.permissions.DjangoObjectPermissions",
     ),
+    "DEFAULT_METADATA_CLASS": "rest_framework.metadata.SimpleMetadata",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {"user": "1000/second", "anon": "1000/minute"},
+    "DATETIME_FORMAT": "iso-8601",
+    "DATE_FORMAT": "iso-8601",
+    "TIME_FORMAT": "iso-8601",
 }
+
 CORS_URLS_REGEX = r"^/api/.*$"
 
 # Project specific settings
@@ -289,6 +324,11 @@ CORS_URLS_REGEX = r"^/api/.*$"
 DECIMAL_PLACES = 4
 MAX_IMAGE_HEIGHT = 4320
 MAX_IMAGE_WIDTH = 7680
+ORGANISATION_NAME = env(
+    "ORGANISATION_NAME", default="Savannah Informatics Global Health Institute"
+)
+ORGANISATION_EMAIL = env("ORGANISATION_EMAIL", default="info@savannahghi.org")
+ORGANISATION_PHONE = env("ORGANISATION_PHONE", default="+254790360360")
 
 # BigAutoField needs migration of existing data and either changes to
 # dependencies or overriding dependencies
