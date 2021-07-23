@@ -1,9 +1,36 @@
 import uuid
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
-from django.db.models import BooleanField, CharField, UUIDField
+from django.db.models import PROTECT, BooleanField, CharField, ForeignKey, UUIDField
+from django.db.utils import ProgrammingError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+
+DEFAULT_ORG_ID = "4181df12-ca96-4f28-b78b-8e8ad88b25df"
+DEFAULT_ORG_CODE = 1
+
+
+def default_organisation():
+    from fahari.common.models import Organisation  # noqa
+
+    try:
+        org = Organisation.objects.get(code=DEFAULT_ORG_CODE)
+        return org.pk
+    except Organisation.DoesNotExist:
+        org, _ = Organisation.objects.get_or_create(
+            code=DEFAULT_ORG_CODE,
+            id=DEFAULT_ORG_ID,
+            defaults={
+                "organisation_name": settings.ORGANISATION_NAME,
+                "email_address": settings.ORGANISATION_EMAIL,
+                "phone_number": settings.ORGANISATION_PHONE,
+            },
+        )
+        return org.pk
+    except ProgrammingError:  # pragma: nocover
+        # this will occur during initial migrations on a clean db
+        return DEFAULT_ORG_ID
 
 
 class User(AbstractUser):
@@ -22,6 +49,11 @@ class User(AbstractUser):
     approval_notified = BooleanField(
         default=False,
         help_text="When true, the user has been notified that their account is approved",
+    )
+    organisation = ForeignKey(
+        "common.Organisation",
+        on_delete=PROTECT,
+        default=default_organisation,
     )
 
     @property

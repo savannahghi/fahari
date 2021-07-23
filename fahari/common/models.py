@@ -269,6 +269,12 @@ class Organisation(OrganisationAbstractBase):
         if obj_existed:
             return self
 
+    class Meta:
+        """Define a sensible default ordering for organisations."""
+
+        ordering = ("-updated", "-created")
+        abstract = False
+
 
 class AbstractBase(OwnerlessAbstractBase):
     """Base class for most models in the application."""

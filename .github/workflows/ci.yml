@@ -22,9 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres
+        image: postgis/postgis:13-3.1
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -68,9 +70,11 @@ jobs:
     # Service containers to run with `container-job`
     services:
       postgres:
-        image: postgis/postgis
+        image: postgis/postgis:13-3.1
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
