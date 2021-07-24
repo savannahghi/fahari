@@ -182,6 +182,7 @@ TEMPLATES = [
 ]
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
+CRISPY_FAIL_SILENTLY = not DEBUG
 
 # FIXTURES
 # ------------------------------------------------------------------------------
