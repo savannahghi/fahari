@@ -54,6 +54,7 @@ jobs:
 
       - name: Install requirements
         run: |
+          sudo apt-get update
           sudo apt-get install postgis gdal-bin libgdal-dev
           pip install -r requirements/local.txt && pip install -r requirements/production.txt
           npm ci
@@ -96,6 +97,7 @@ jobs:
 
       - name: Install requirements
         run: |
+          sudo apt-get update
           sudo apt-get install postgis gdal-bin libgdal-dev
           pip install -r requirements/local.txt && pip install -r requirements/production.txt
           npm ci

@@ -1,22 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Facilities{% endblock %}
-{% block pagetitle %}Facilities{% endblock pagetitle %}
 {% block content %}
-<div class="card shadow mb-4">
+<h1 class="h3 mb-4 text-gray-800">
+    Facilities
+</h1>
+<div class="card shadow mb-1">
     <div class="card-header py-3">
         <div class="toolbar float-right">
-            <a href="#" class="btn btn-secondary btn-icon-split">
-                <span class="icon text-white-50">
-                    <i class="fas fa-table"></i>
-                </span>
-                <span class="text">Export Facilities</span>
-            </a>
-            <a href="#" class="btn btn-primary btn-icon-split">
-                <span class="icon text-white-50">
-                    <i class="fas fa-plus"></i>
-                </span>
-                <span class="text">Add Facility</span>
-            </a>
+            {% if perms.common.add_facility %}
+                <a href="{% url 'common:facility_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Add Facility</span>
+                </a>
+            {% endif %}
         </div>
     </div>
     <div class="card-body">
@@ -34,13 +32,14 @@
                 data-ajax="/api/facilities/?format=datatables">
                 <thead>
                     <tr>
-                        <th data-data="name" data-name="name">Name</th>
-                        <th data-data="mfl_code" data-name="mfl_code">MFL Code</th>
-                        <th data-data="county">County</th>
-                        <th data-data="sub_county">Sub-County</th>
-                        <th data-data="ward">Ward</th>
-                        <th data-data="keph_level">KEPH Level</th>
-                        <th data-data="facility_type">Type</th>
+                        <th>Name</th>
+                        <th>MFL Code</th>
+                        <th>County</th>
+                        <th>Sub-County</th>
+                        <th>Ward</th>
+                        <th>KEPH Level</th>
+                        <th>Type</th>
+                        <th></th>
                     </tr>
                 </thead>
             </table>
@@ -52,7 +51,23 @@
 <script>
 window.addEventListener("load", function(){
     $(document).ready(function() {
-        $('#facilities-list').DataTable();
+        $('#facilities-list').DataTable( {
+            columns: [
+                {data: 'name', name: "name"},
+                {data: "mfl_code", name: "mfl_code"},
+                {data: "county"},
+                {data: "sub_county"},
+                {data: "ward"},
+                {data: "keph_level"},
+                {data: "facility_type"},
+                {
+                    data: "url",
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
+            ]
+        } );
     });
 });
 </script>

@@ -1,9 +1,13 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     PermissionRequiredMixin,
     UserPassesTestMixin,
 )
-from django.views.generic import TemplateView, View
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView, View
+from django.views.generic.edit import ModelFormMixin
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -11,8 +15,31 @@ from rest_framework.viewsets import ModelViewSet
 from fahari.common.filters import FacilityFilter
 
 from .constants import WHITELIST_COUNTIES
+from .forms import FacilityForm
 from .models import Facility
 from .serializers import FacilitySerializer
+
+User = get_user_model()
+
+
+class BaseFormMixin(ModelFormMixin, View):
+    def form_valid(self, form):
+        user = self.request.user
+        instance = form.instance
+        instance.updated_by = user.pk
+        instance.updated = timezone.now()
+
+        if instance.created_by is None:  # pragma: nobranch
+            instance.created_by = user.pk
+
+        if (
+            getattr(instance, "organisation", None) is None
+            and isinstance(user, User)
+            and getattr(user, "organisation", None) is not None
+        ):
+            instance.organisation = user.organisation
+
+        return super().form_valid(form)
 
 
 class BaseView(ModelViewSet):
@@ -65,20 +92,6 @@ class AboutView(LoginRequiredMixin, ApprovedMixin, TemplateView):
         return context
 
 
-class FacilityView(LoginRequiredMixin, ApprovedMixin, TemplateView):
-    template_name = "pages/common/facilities.html"
-    permission_required = "common.view_facility"
-
-    # TODO Actions...add
-    # TODO Edit other page
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["active"] = "facilities-nav"  # id of active nav element
-        context["selected"] = "facilities"  # id of selected page
-        return context
-
-
 class SystemsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/common/systems.html"
     permission_required = "common.view_system"
@@ -88,6 +101,37 @@ class SystemsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
         context["active"] = "facilities-nav"  # id of active nav element
         context["selected"] = "systems"  # id of selected page
         return context
+
+
+class FacilityContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "facilities-nav"  # id of active nav element
+        context["selected"] = "facilities"  # id of selected page
+        return context
+
+
+class FacilityView(FacilityContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/common/facilities.html"
+    permission_required = "common.view_facility"
+
+
+class FacilityCreateView(FacilityContextMixin, BaseFormMixin, CreateView):
+    form_class = FacilityForm
+    success_url = reverse_lazy("common:facilities")
+    model = Facility
+
+
+class FacilityUpdateView(FacilityContextMixin, UpdateView, BaseFormMixin):
+    form_class = FacilityForm
+    model = Facility
+    success_url = reverse_lazy("common:facilities")
+
+
+class FacilityDeleteView(FacilityContextMixin, DeleteView, BaseFormMixin):
+    form_class = FacilityForm
+    model = Facility
+    success_url = reverse_lazy("common:facilities")
 
 
 class FacilityViewSet(BaseView):

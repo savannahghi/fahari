@@ -6,6 +6,8 @@ from functools import partial
 from os import path
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.test import TestCase
 from django.urls import reverse
 from faker import Faker
 from model_bakery import baker
@@ -62,6 +64,9 @@ class LoggedInMixin(APITestCase):
             password="pass123",
             username=username,
         )
+        all_perms = Permission.objects.all()
+        for perm in all_perms:
+            self.user.user_permissions.add(perm)
         self.user.organisation = self.global_organisation
         self.user.save()
 
@@ -99,7 +104,6 @@ class FacilityViewsetTest(LoggedInMixin, APITestCase):
     """Test suite for facilities API."""
 
     def setUp(self):
-        """Create person for test."""
         self.url_list = reverse("api:facility-list")
         super().setUp()
 
@@ -278,3 +282,63 @@ class FacilityViewsetTest(LoggedInMixin, APITestCase):
 
         assert response.status_code == 200, response.json()
         assert response.data["mfl_code"] == data["mfl_code"]
+
+
+class FacilityFormTest(LoggedInMixin, TestCase):
+    def test_create(self):
+        data = {
+            "name": fake.name(),
+            "mfl_code": random.randint(1, 999_999_999),
+            "county": random.choice(WHITELIST_COUNTIES),
+            "is_fahari_facility": True,
+            "operation_status": "Operational",
+            "lon": 0.0,
+            "lat": 0.0,
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(reverse("common:facility_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            organisation=self.global_organisation,
+        )
+        data = {
+            "pk": facility.pk,
+            "name": fake.name(),
+            "mfl_code": random.randint(1, 999_999_999),
+            "county": random.choice(WHITELIST_COUNTIES),
+            "is_fahari_facility": True,
+            "operation_status": "Operational",
+            "lon": 0.0,
+            "lat": 0.0,
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(
+            reverse("common:facility_update", kwargs={"pk": facility.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            organisation=self.global_organisation,
+        )
+        response = self.client.post(
+            reverse("common:facility_delete", kwargs={"pk": facility.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )

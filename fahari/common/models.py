@@ -10,6 +10,7 @@ from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models.base import ModelBase
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
@@ -397,7 +398,7 @@ class Facility(AbstractBase):
     """
 
     name = models.TextField(unique=True)
-    mfl_code = models.IntegerField(unique=True)
+    mfl_code = models.IntegerField(unique=True, help_text="MFL Code")
     county = models.CharField(max_length=64)
     sub_county = models.CharField(max_length=64, null=True, blank=True)
     constituency = models.CharField(max_length=64, null=True, blank=True)
@@ -426,6 +427,10 @@ class Facility(AbstractBase):
     model_validators = [
         "facility_name_longer_than_three_characters",
     ]
+
+    def get_absolute_url(self):
+        update_url = reverse("common:facility_update", kwargs={"pk": self.pk})
+        return update_url
 
     def facility_name_longer_than_three_characters(self):
         if len(self.name) < 3:
