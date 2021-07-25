@@ -1,11 +1,50 @@
 import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from faker import Faker
 from model_bakery import baker
 
-from fahari.ops.models import DailyUpdate, FacilitySystemTicket, TimeSheet
+from fahari.common.models import Facility, Organisation, System
+from fahari.ops.models import DailyUpdate, FacilitySystem, FacilitySystemTicket, TimeSheet
 
 pytestmark = pytest.mark.django_db
+
+fake = Faker()
+
+
+def test_facility_system_str():
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name="Test")
+    system = baker.make(System, organisation=org, name="System")
+    vrs = "0.0.1"
+    facility_system = baker.make(
+        FacilitySystem,
+        facility=facility,
+        system=system,
+        version=vrs,
+    )
+    assert str(facility_system) == "Test - System, version 0.0.1"
+
+
+def test_facility_system_ticket_str():
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name="Test")
+    system = baker.make(System, organisation=org, name="System")
+    vrs = "0.0.1"
+    facility_system = baker.make(
+        FacilitySystem,
+        facility=facility,
+        system=system,
+        version=vrs,
+    )
+    facility_system_details = baker.make(
+        FacilitySystemTicket,
+        facility_system=facility_system,
+        details="Details",
+    )
+    assert (
+        str(facility_system_details) == "Facility: Test; System: System; Version: 0.0.1 (Details)"
+    )
 
 
 def test_facility_ticket_status(staff_user):
@@ -62,14 +101,6 @@ def test_facility_ticket_validate_resolved(staff_user):
     with pytest.raises(ValidationError) as e:
         bad_ticket_resolve = baker.prepare(
             FacilitySystemTicket, resolved=timezone.now(), resolved_by=None
-        )
-        bad_ticket_resolve.save()
-
-    assert "resolved and resolved_by must both be set" in str(e)
-
-    with pytest.raises(ValidationError) as e:
-        bad_ticket_resolve = baker.prepare(
-            FacilitySystemTicket, resolved=None, resolved_by=staff_user
         )
         bad_ticket_resolve.save()
 

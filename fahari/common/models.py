@@ -481,6 +481,9 @@ class System(AbstractBase):
         update_url = reverse("common:system_update", kwargs={"pk": self.pk})
         return update_url
 
+    def __str__(self) -> str:
+        return self.name
+
     class Meta(AbstractBase.Meta):
         ordering = (
             "name",

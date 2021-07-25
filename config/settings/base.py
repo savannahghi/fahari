@@ -83,15 +83,10 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    "fahari.common.apps.CommonConfig",
     "fahari.users.apps.UsersConfig",
-    "fahari.hts.apps.HTSConfig",
-    "fahari.pmtct.apps.PMTCTConfig",
-    "fahari.prevention.apps.PreventionConfig",
-    "fahari.retention.apps.RetentionConfig",
-    "fahari.tb.apps.TBConfig",
-    "fahari.treatment.apps.TreatmentConfig",
+    "fahari.common.apps.CommonConfig",
     "fahari.ops.apps.OpsConfig",
+    "fahari.mle.apps.MLEConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

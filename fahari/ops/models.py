@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
+from django.urls import reverse_lazy
 from django.utils import timezone
 
 from fahari.common.models import AbstractBase, Facility, System
@@ -54,13 +55,28 @@ class FacilitySystem(AbstractBase):
     system = models.ForeignKey(System, on_delete=models.PROTECT)
     version = models.CharField(max_length=64)
 
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:version_update", kwargs={"pk": self.pk})
+        return update_url
+
+    @property
+    def facility_name(self):
+        return self.facility.name
+
+    @property
+    def system_name(self):
+        return self.system.name
+
+    def __str__(self):
+        return f"{self.facility_name} - {self.system_name}, version {self.version}"
+
     class Meta:
         ordering = (
             "facility__name",
             "system__name",
             "-version",
-            "-updated_by",
-            "-created_by",
+            "-updated",
+            "-created",
         )
         constraints = [
             models.UniqueConstraint(
@@ -86,13 +102,26 @@ class FacilitySystemTicket(AbstractBase):
     def is_open(self):
         return self.resolved is None
 
+    @property
+    def facility_system_name(self):
+        return (
+            f"Facility: {self.facility_system.facility.name}; "
+            + f"System: {self.facility_system.system.name}; "
+            + f"Version: {self.facility_system.version}"
+        )
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:ticket_update", kwargs={"pk": self.pk})
+        return update_url
+
+    def __str__(self):
+        return f"{self.facility_system_name} ({self.details})"
+
     def validate_resolved(self):
         error_msg = "resolved and resolved_by must both be set"
-        if self.resolved is not None and self.resolved_by is None:
-            raise ValidationError(error_msg)
-
-        if self.resolved_by is not None and self.resolved is None:
-            raise ValidationError(error_msg)
+        if self.resolved is not None:
+            if self.resolved_by is None or self.resolved_by == "":
+                raise ValidationError(error_msg)
 
     class Meta:
         ordering = (
