@@ -2,6 +2,8 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
+from fahari.ops.views import FacilitySystemsView, FacilitySystemTicketsView
+
 pytestmark = pytest.mark.django_db
 
 
@@ -52,3 +54,17 @@ def test_weekly_program_updates_view(user_with_all_permissions, client):
     url = reverse("ops:weekly_program_updates")
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK
+
+
+def test_version_context_data():
+    v = FacilitySystemsView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "program-nav"
+    assert ctx["selected"] == "versions"
+
+
+def test_tickets_context_data():
+    v = FacilitySystemTicketsView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "program-nav"
+    assert ctx["selected"] == "tickets"
