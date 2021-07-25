@@ -5,7 +5,10 @@ from .views import (
     FacilityDeleteView,
     FacilityUpdateView,
     FacilityView,
+    SystemCreateView,
+    SystemDeleteView,
     SystemsView,
+    SystemUpdateView,
 )
 
 app_name = "common"
@@ -27,4 +30,19 @@ urlpatterns = [
         name="facility_delete",
     ),
     path("systems", view=SystemsView.as_view(), name="systems"),
+    path(
+        "system_create",
+        view=SystemCreateView.as_view(),
+        name="system_create",
+    ),
+    path(
+        "system_update/<pk>",
+        view=SystemUpdateView.as_view(),
+        name="system_update",
+    ),
+    path(
+        "system_delete/<pk>",
+        view=SystemDeleteView.as_view(),
+        name="system_delete",
+    ),
 ]

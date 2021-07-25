@@ -12,12 +12,11 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from fahari.common.filters import FacilityFilter
-
 from .constants import WHITELIST_COUNTIES
-from .forms import FacilityForm
-from .models import Facility
-from .serializers import FacilitySerializer
+from .filters import FacilityFilter, SystemFilter
+from .forms import FacilityForm, SystemForm
+from .models import Facility, System
+from .serializers import FacilitySerializer, SystemSerializer
 
 User = get_user_model()
 
@@ -92,17 +91,6 @@ class AboutView(LoginRequiredMixin, ApprovedMixin, TemplateView):
         return context
 
 
-class SystemsView(LoginRequiredMixin, ApprovedMixin, TemplateView):
-    template_name = "pages/common/systems.html"
-    permission_required = "common.view_system"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["active"] = "facilities-nav"  # id of active nav element
-        context["selected"] = "systems"  # id of selected page
-        return context
-
-
 class FacilityContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
@@ -147,6 +135,7 @@ class FacilityViewSet(BaseView):
         is_fahari_facility=True,
         operation_status="Operational",
         county__in=WHITELIST_COUNTIES,
+        active=True,
     )
     serializer_class = FacilitySerializer
     filterset_class = FacilityFilter
@@ -156,3 +145,52 @@ class FacilityViewSet(BaseView):
         "mfl_code",
         "registration_number",
     )
+
+
+class SystemContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "facilities-nav"  # id of active nav element
+        context["selected"] = "systems"  # id of selected page
+        return context
+
+
+class SystemsView(SystemContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/common/systems.html"
+    permission_required = "common.view_system"
+
+
+class SystemCreateView(SystemContextMixin, BaseFormMixin, CreateView):
+    form_class = SystemForm
+    success_url = reverse_lazy("common:systems")
+    model = System
+
+
+class SystemUpdateView(SystemContextMixin, UpdateView, BaseFormMixin):
+    form_class = SystemForm
+    model = System
+    success_url = reverse_lazy("common:systems")
+
+
+class SystemDeleteView(SystemContextMixin, DeleteView, BaseFormMixin):
+    form_class = SystemForm
+    model = System
+    success_url = reverse_lazy("common:systems")
+
+
+class SystemViewSet(BaseView):
+    """System API view."""
+
+    permissions = {
+        "GET": ["common.view_system"],
+        "POST": ["common.add_system"],
+        "PATCH": ["common.change_system"],
+        "DELETE": ["common.delete_system"],
+    }
+    queryset = System.objects.filter(
+        active=True,
+    )
+    serializer_class = SystemSerializer
+    filterset_class = SystemFilter
+    ordering_fields = ("name",)
+    search_fields = ("name",)

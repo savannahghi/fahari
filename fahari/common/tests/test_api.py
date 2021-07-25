@@ -15,7 +15,7 @@ from model_bakery.recipe import Recipe
 from rest_framework.test import APITestCase
 
 from fahari.common.constants import WHITELIST_COUNTIES
-from fahari.common.models import Facility, Organisation
+from fahari.common.models import Facility, Organisation, System
 
 from .test_utils import patch_baker
 
@@ -337,6 +337,117 @@ class FacilityFormTest(LoggedInMixin, TestCase):
         )
         response = self.client.post(
             reverse("common:facility_delete", kwargs={"pk": facility.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class SystemViewsetTest(LoggedInMixin, APITestCase):
+    """Test suite for systems API."""
+
+    def setUp(self):
+        self.url_list = reverse("api:system-list")
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "name": fake.name()[:127],
+            "description": fake.text(),
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(self.url_list, data)
+        assert response.status_code == 201, response.json()
+        assert response.data["name"] == data["name"]
+
+    def test_retrieve_systems(self):
+        system = baker.make(
+            System,
+            name=fake.name()[:127],
+            organisation=self.global_organisation,
+        )
+
+        response = self.client.get(self.url_list)
+        assert response.status_code == 200, response.json()
+        assert response.data["count"] >= 1, response.json()
+
+        names = [a["name"] for a in response.data["results"]]
+        assert system.name in names
+
+    def test_patch_system(self):
+        system = baker.make(
+            System,
+            name=fake.name()[:127],
+            organisation=self.global_organisation,
+        )
+
+        edit_name = {"name": fake.name()[:127]}
+        url = reverse("api:system-detail", kwargs={"pk": system.pk})
+        response = self.client.patch(url, edit_name)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["name"] == edit_name["name"]
+
+    def test_put_system(self):
+        system = baker.make(
+            System,
+            name=fake.name()[:127],
+            organisation=self.global_organisation,
+        )
+        data = {
+            "name": fake.name()[:127],
+            "description": fake.text(),
+            "organisation": self.global_organisation.pk,
+        }
+        url = reverse("api:system-detail", kwargs={"pk": system.pk})
+        response = self.client.put(url, data)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["name"] == data["name"]
+
+
+class SystemFormTest(LoggedInMixin, TestCase):
+    def test_create(self):
+        data = {
+            "name": fake.name()[:127],
+            "description": fake.text(),
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(reverse("common:system_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        system = baker.make(
+            System,
+            name=fake.name()[:127],
+            organisation=self.global_organisation,
+        )
+        data = {
+            "pk": system.pk,
+            "name": fake.name()[:127],
+            "description": fake.text(),
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(
+            reverse("common:system_update", kwargs={"pk": system.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        system = baker.make(
+            System,
+            name=fake.name()[:127],
+            organisation=self.global_organisation,
+        )
+        response = self.client.post(
+            reverse("common:system_delete", kwargs={"pk": system.pk}),
         )
         self.assertEqual(
             response.status_code,
