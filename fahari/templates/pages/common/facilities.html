@@ -29,7 +29,7 @@
                 data-info="true"
                 data-page-length="10"
                 data-paging-type="full_numbers"
-                data-ajax="/api/facilities/?format=datatables">
+                data-ajax="{% url "api:facility-list" %}?format=datatables">
                 <thead>
                     <tr>
                         <th>Name</th>

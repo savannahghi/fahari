@@ -2,7 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.forms import ModelForm, TextInput
 
-from .models import Facility, FacilityAttachment, Organisation
+from .models import Facility, FacilityAttachment, Organisation, System
 
 
 class BaseModelForm(ModelForm):
@@ -10,6 +10,8 @@ class BaseModelForm(ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_method = "post"
+        self.helper.form_action = ""
+        self.helper.add_input(Submit("submit", "Save"))
         self.helper.html5_required = True
 
     class Meta:
@@ -41,10 +43,7 @@ class FacilityForm(BaseModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper.form_action = "common:facility_create_edit"
-        self.helper.add_input(Submit("submit", "Save"))
         self.helper.form_id = "facility_form"
-        self.helper.form_action = ""
 
     class Meta:
         model = Facility
@@ -74,6 +73,21 @@ class FacilityForm(BaseModelForm):
             "facility_owner",
             "regulatory_body",
         )
+
+
+class SystemForm(BaseModelForm):
+    field_order = (
+        "name",
+        "description",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "system_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = System
 
 
 class OrganisationForm(BaseModelForm):

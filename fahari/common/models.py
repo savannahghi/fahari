@@ -477,6 +477,10 @@ class System(AbstractBase):
     name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     description = models.TextField()
 
+    def get_absolute_url(self):
+        update_url = reverse("common:system_update", kwargs={"pk": self.pk})
+        return update_url
+
     class Meta(AbstractBase.Meta):
         ordering = (
             "name",

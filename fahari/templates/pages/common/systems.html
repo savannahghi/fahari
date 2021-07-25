@@ -3,9 +3,64 @@
     Systems
 {% endblock %}
 {% block content %}
-    <h1>Systems</h1>
-    <p class="text-gray-500 mb-0">
-        Placeholder page for systems.
-    </p>
-    <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
+<h1 class="h3 mb-4 text-gray-800">
+    Systems
+</h1>
+<div class="card shadow mb-1">
+    <div class="card-header py-3">
+        <div class="toolbar float-right">
+            {% if perms.common.add_system %}
+                <a href="{% url 'common:system_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Add System</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table
+                id="systems-list"
+                class="table table-striped table-sm"
+                style="width:100%"
+                data-server-side="true"
+                data-state-save="true"
+                data-defer-render="true"
+                data-info="true"
+                data-page-length="10"
+                data-paging-type="full_numbers"
+                data-ajax="{% url "api:system-list" %}?format=datatables">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock content %}
+{% block inline_javascript %}
+<script>
+window.addEventListener("load", function(){
+    $(document).ready(function() {
+        $('#systems-list').DataTable( {
+            columns: [
+                {data: 'name', name: "name"},
+                {data: "description", name: "description"},
+                {
+                    data: "url",
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
+            ]
+        } );
+    });
+});
+</script>
+{% endblock inline_javascript %}
