@@ -194,3 +194,16 @@ class SystemViewSet(BaseView):
     filterset_class = SystemFilter
     ordering_fields = ("name",)
     search_fields = ("name",)
+
+
+class FacilityUserContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "facilities-nav"  # id of active nav element
+        context["selected"] = "facility-users"  # id of selected page
+        return context
+
+
+class FacilityUserView(FacilityUserContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/common/facility_users.html"
+    permission_required = "common.view_facilityuser"

@@ -4,6 +4,7 @@ from .views import (
     FacilityCreateView,
     FacilityDeleteView,
     FacilityUpdateView,
+    FacilityUserView,
     FacilityView,
     SystemCreateView,
     SystemDeleteView,
@@ -14,6 +15,7 @@ from .views import (
 app_name = "common"
 urlpatterns = [
     path("facilities", view=FacilityView.as_view(), name="facilities"),
+    path("facility_users", view=FacilityUserView.as_view(), name="facility_users"),
     path(
         "facility_create",
         view=FacilityCreateView.as_view(),

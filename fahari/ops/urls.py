@@ -10,6 +10,7 @@ from .views import (
     FacilitySystemTicketUpdateView,
     FacilitySystemUpdateView,
     SiteMentorshipView,
+    StockReceiptVerificationView,
     TicketsView,
     TimeSheetsView,
     VersionsView,
@@ -63,4 +64,9 @@ urlpatterns = [
         name="weekly_program_updates",
     ),
     path("timesheets", view=TimeSheetsView.as_view(), name="timesheets"),
+    path(
+        "stock_receipt_verification",
+        view=StockReceiptVerificationView.as_view(),
+        name="stock_receipt_verification",
+    ),
 ]

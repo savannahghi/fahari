@@ -58,3 +58,10 @@ def test_systems_view(user_with_all_permissions, client):
     url = reverse("common:systems")
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK
+
+
+def test_facility_users_view(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    url = reverse("common:facility_users")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
