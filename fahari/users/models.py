@@ -6,6 +6,7 @@ from django.db.models import PROTECT, BooleanField, CharField, ForeignKey, UUIDF
 from django.db.utils import ProgrammingError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from phonenumber_field.modelfields import PhoneNumberField
 
 DEFAULT_ORG_ID = "4181df12-ca96-4f28-b78b-8e8ad88b25df"
 DEFAULT_ORG_CODE = 1
@@ -50,6 +51,7 @@ class User(AbstractUser):
         default=False,
         help_text="When true, the user has been notified that their account is approved",
     )
+    phone = PhoneNumberField(null=True, blank=True)
     organisation = ForeignKey(
         "common.Organisation",
         on_delete=PROTECT,

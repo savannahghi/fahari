@@ -238,3 +238,14 @@ class WeeklyProgramUpdate(AbstractBase):
     )
     activity = models.ForeignKey(Activity, on_delete=models.PROTECT)
     comments = models.TextField()
+
+
+class StockReceiptVerification(AbstractBase):
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    description = models.TextField()
+    pack_size = models.TextField()
+    delivery_note_number = models.CharField(max_length=64)
+    quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
+    batch_number = models.CharField(max_length=64)
+    expiry_date = models.DateField()
+    comments = models.TextField()

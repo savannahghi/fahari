@@ -203,3 +203,18 @@ class FacilitySystemTicketViewSet(BaseView):
         "facility_system__facility__name",
         "facility_system__system__name",
     )
+
+
+class StockReceiptVerificationContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "stock-receipt-verification"  # id of selected page
+        return context
+
+
+class StockReceiptVerificationView(
+    StockReceiptVerificationContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/stock_receipt_verification.html"
+    permission_required = "ops.view_stockreceiptverification"

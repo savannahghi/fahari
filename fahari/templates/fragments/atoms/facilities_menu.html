@@ -13,6 +13,12 @@
                 </a>
             {% endif %}
 
+            {% if perms.common.view_facilityuser %}
+                <a class="collapse-item {% if selected == "facility-users" %}active {% endif %}" id="facility-users" href="{% url 'common:facility_users' %}">
+                    Facility Users
+                </a>
+            {% endif %}
+
             {% if perms.common.view_system %}
             <a class="collapse-item {% if selected == "systems" %}active {% endif %}" id="systems" href="{% url 'common:systems' %}">
                 Systems

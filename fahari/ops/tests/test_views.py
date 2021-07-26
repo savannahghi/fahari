@@ -56,6 +56,13 @@ def test_weekly_program_updates_view(user_with_all_permissions, client):
     assert response.status_code == status.HTTP_200_OK
 
 
+def test_stock_receipt_verification_view(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    url = reverse("ops:stock_receipt_verification")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_version_context_data():
     v = FacilitySystemsView()
     ctx = v.get_context_data()
