@@ -15,7 +15,7 @@ from model_bakery.recipe import Recipe
 from rest_framework.test import APITestCase
 
 from fahari.common.constants import WHITELIST_COUNTIES
-from fahari.common.models import Facility, Organisation, System
+from fahari.common.models import Facility, FacilityUser, Organisation, System
 
 from .test_utils import patch_baker
 
@@ -448,6 +448,138 @@ class SystemFormTest(LoggedInMixin, TestCase):
         )
         response = self.client.post(
             reverse("common:system_delete", kwargs={"pk": system.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class FacilityUserViewsetTest(LoggedInMixin, APITestCase):
+    def setUp(self):
+        self.url_list = reverse("api:facilityuser-list")
+        self.detail_url_name = "api:facilityuser-detail"
+        self.facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            organisation=self.global_organisation,
+        )
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "user": self.user.pk,
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(self.url_list, data)
+        assert response.status_code == 201, response.json()
+        assert response.data["facility"] == data["facility"]
+
+    def test_retrieve(self):
+        instance = baker.make(
+            FacilityUser,
+            facility=self.facility,
+            user=self.user,
+            organisation=self.global_organisation,
+        )
+
+        response = self.client.get(self.url_list)
+        assert response.status_code == 200, response.json()
+        assert response.data["count"] >= 1, response.json()
+
+        facilities = [a["facility"] for a in response.data["results"]]
+        assert instance.facility.pk in facilities
+
+    def test_patch(self):
+        instance = baker.make(
+            FacilityUser,
+            facility=self.facility,
+            user=self.user,
+            organisation=self.global_organisation,
+        )
+
+        edit = {"active": False}
+        url = reverse(self.detail_url_name, kwargs={"pk": instance.pk})
+        response = self.client.patch(url, edit)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["active"] == edit["active"]
+
+    def test_put(self):
+        instance = baker.make(
+            FacilityUser,
+            facility=self.facility,
+            user=self.user,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "facility": self.facility.pk,
+            "user": self.user.pk,
+            "organisation": self.global_organisation.pk,
+            "active": False,
+        }
+        url = reverse(self.detail_url_name, kwargs={"pk": instance.pk})
+        response = self.client.put(url, data)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["active"] == data["active"]
+
+
+class FacilityUserFormTest(LoggedInMixin, TestCase):
+    def setUp(self):
+        self.facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            organisation=self.global_organisation,
+        )
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "user": self.user.pk,
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(reverse("common:facility_user_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance = baker.make(
+            FacilityUser,
+            facility=self.facility,
+            user=self.user,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "pk": instance.pk,
+            "facility": self.facility.pk,
+            "user": self.user.pk,
+            "organisation": self.global_organisation.pk,
+            "active": False,
+        }
+        response = self.client.post(
+            reverse("common:facility_user_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance = baker.make(
+            FacilityUser,
+            facility=self.facility,
+            user=self.user,
+            organisation=self.global_organisation,
+        )
+        response = self.client.post(
+            reverse("common:facility_user_delete", kwargs={"pk": instance.pk}),
         )
         self.assertEqual(
             response.status_code,

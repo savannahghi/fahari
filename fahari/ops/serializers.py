@@ -2,12 +2,20 @@ from rest_framework import serializers
 
 from fahari.common.serializers import BaseSerializer
 
-from .models import FacilitySystem, FacilitySystemTicket
+from .models import (
+    ActivityLog,
+    DailyUpdate,
+    FacilitySystem,
+    FacilitySystemTicket,
+    SiteMentorship,
+    StockReceiptVerification,
+    TimeSheet,
+    WeeklyProgramUpdate,
+)
 
 
 class FacilitySystemSerializer(BaseSerializer):
 
-    url = serializers.URLField(source="get_absolute_url", read_only=True)
     facility_name = serializers.ReadOnlyField()
     system_name = serializers.ReadOnlyField()
 
@@ -18,10 +26,58 @@ class FacilitySystemSerializer(BaseSerializer):
 
 class FacilitySystemTicketSerializer(BaseSerializer):
 
-    url = serializers.URLField(source="get_absolute_url", read_only=True)
     facility_system_name = serializers.ReadOnlyField()
     is_open = serializers.ReadOnlyField()
 
     class Meta(BaseSerializer.Meta):
         model = FacilitySystemTicket
+        fields = "__all__"
+
+
+class StockReceiptVerificationSerializer(BaseSerializer):
+
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = StockReceiptVerification
+        fields = "__all__"
+
+
+class ActivityLogSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = ActivityLog
+        fields = "__all__"
+
+
+class SiteMentorshipSerializer(BaseSerializer):
+    staff_member_name = serializers.ReadOnlyField(source="staff_member.name")
+    site_name = serializers.ReadOnlyField(source="site.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = SiteMentorship
+        fields = "__all__"
+
+
+class DailyUpdateSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = DailyUpdate
+        fields = "__all__"
+
+
+class TimeSheetSerializer(BaseSerializer):
+    is_full_day = serializers.ReadOnlyField()
+    is_approved = serializers.ReadOnlyField()
+    staff_name = serializers.ReadOnlyField(source="staff.name")
+    approver = serializers.ReadOnlyField(source="approved_by.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = TimeSheet
+        fields = "__all__"
+
+
+class WeeklyProgramUpdateSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = WeeklyProgramUpdate
         fields = "__all__"

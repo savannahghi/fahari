@@ -1,0 +1,33 @@
+
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+    Delete Activity Log
+{% endblock title %}
+{% block content %}
+<a href="{% url 'ops:activity_logs' %}">&larr; Back</a>
+<div class="row">
+    <div class="col-xl-10 col-lg-12 col-md-9 col-sm-10">
+        <div class="card o-hidden border-0 shadow my-1">
+            <div class="card-body p-0">
+                <div class="row">
+                    <div class="col-lg-2 d-none d-lg-block">
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="p-5">
+                            <div class="text-left">
+                                <h1 class="h4 text-gray-900 mb-4">Confirm Delete</h1>
+                            </div>
+                            <form method="post">
+                                {% csrf_token %}
+                                <p>Are you sure you want to delete "{{ object }}"?</p>
+                                <input class="btn btn-outline-primary btn-lg" type="submit" value="Confirm">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

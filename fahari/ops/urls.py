@@ -1,25 +1,43 @@
 from django.urls import path
 
 from .views import (
+    ActivityLogCreateView,
+    ActivityLogDeleteView,
+    ActivityLogUpdateView,
     ActivityLogView,
     DailySiteUpdatesView,
+    DailyUpdateCreateView,
+    DailyUpdateDeleteView,
+    DailyUpdateUpdateView,
     FacilitySystemCreateView,
     FacilitySystemDeleteView,
+    FacilitySystemsView,
     FacilitySystemTicketCreateView,
     FacilitySystemTicketDeleteView,
+    FacilitySystemTicketsView,
     FacilitySystemTicketUpdateView,
     FacilitySystemUpdateView,
+    SiteMentorshipCreateView,
+    SiteMentorshipDeleteView,
+    SiteMentorshipUpdateView,
     SiteMentorshipView,
+    StockReceiptVerificationCreateView,
+    StockReceiptVerificationDeleteView,
+    StockReceiptVerificationUpdateView,
     StockReceiptVerificationView,
-    TicketsView,
+    TimeSheetCreateView,
+    TimeSheetDeleteView,
     TimeSheetsView,
-    VersionsView,
+    TimeSheetUpdateView,
+    WeeklyProgramUpdatesCreateView,
+    WeeklyProgramUpdatesDeleteView,
+    WeeklyProgramUpdatesUpdateView,
     WeeklyProgramUpdatesView,
 )
 
 app_name = "ops"
 urlpatterns = [
-    path("versions", view=VersionsView.as_view(), name="versions"),
+    path("versions", view=FacilitySystemsView.as_view(), name="versions"),
     path(
         "version_create",
         view=FacilitySystemCreateView.as_view(),
@@ -35,7 +53,7 @@ urlpatterns = [
         view=FacilitySystemDeleteView.as_view(),
         name="version_delete",
     ),
-    path("tickets", view=TicketsView.as_view(), name="tickets"),
+    path("tickets", view=FacilitySystemTicketsView.as_view(), name="tickets"),
     path(
         "ticket_create",
         view=FacilitySystemTicketCreateView.as_view(),
@@ -51,22 +69,112 @@ urlpatterns = [
         view=FacilitySystemTicketDeleteView.as_view(),
         name="ticket_delete",
     ),
-    path("activity_log", view=ActivityLogView.as_view(), name="activity_log"),
-    path("site_mentorship", view=SiteMentorshipView.as_view(), name="site_mentorship"),
+    path("activity_logs", view=ActivityLogView.as_view(), name="activity_logs"),
+    path(
+        "activity_log_create",
+        view=ActivityLogCreateView.as_view(),
+        name="activity_log_create",
+    ),
+    path(
+        "activity_log_update/<pk>",
+        view=ActivityLogUpdateView.as_view(),
+        name="activity_log_update",
+    ),
+    path(
+        "activity_log_delete/<pk>",
+        view=ActivityLogDeleteView.as_view(),
+        name="activity_log_delete",
+    ),
+    path("site_mentorships", view=SiteMentorshipView.as_view(), name="site_mentorships"),
+    path(
+        "site_mentorship_create",
+        view=SiteMentorshipCreateView.as_view(),
+        name="site_mentorship_create",
+    ),
+    path(
+        "site_mentorship_update/<pk>",
+        view=SiteMentorshipUpdateView.as_view(),
+        name="site_mentorship_update",
+    ),
+    path(
+        "site_mentorship_delete/<pk>",
+        view=SiteMentorshipDeleteView.as_view(),
+        name="site_mentorship_delete",
+    ),
     path(
         "daily_site_updates",
         view=DailySiteUpdatesView.as_view(),
         name="daily_site_updates",
     ),
     path(
+        "daily_update_create",
+        view=DailyUpdateCreateView.as_view(),
+        name="daily_update_create",
+    ),
+    path(
+        "daily_update_update/<pk>",
+        view=DailyUpdateUpdateView.as_view(),
+        name="daily_update_update",
+    ),
+    path(
+        "daily_update_delete/<pk>",
+        view=DailyUpdateDeleteView.as_view(),
+        name="daily_update_delete",
+    ),
+    path(
         "weekly_program_updates",
         view=WeeklyProgramUpdatesView.as_view(),
         name="weekly_program_updates",
     ),
+    path(
+        "weekly_program_updates_create",
+        view=WeeklyProgramUpdatesCreateView.as_view(),
+        name="weekly_program_updates_create",
+    ),
+    path(
+        "weekly_program_updates_update/<pk>",
+        view=WeeklyProgramUpdatesUpdateView.as_view(),
+        name="weekly_program_updates_update",
+    ),
+    path(
+        "weekly_program_updates_delete/<pk>",
+        view=WeeklyProgramUpdatesDeleteView.as_view(),
+        name="weekly_program_updates_delete",
+    ),
     path("timesheets", view=TimeSheetsView.as_view(), name="timesheets"),
     path(
-        "stock_receipt_verification",
+        "timesheet_create",
+        view=TimeSheetCreateView.as_view(),
+        name="timesheet_create",
+    ),
+    path(
+        "timesheet_update/<pk>",
+        view=TimeSheetUpdateView.as_view(),
+        name="timesheet_update",
+    ),
+    path(
+        "timesheet_delete/<pk>",
+        view=TimeSheetDeleteView.as_view(),
+        name="timesheet_delete",
+    ),
+    path(
+        "stock_receipt_verifications",
         view=StockReceiptVerificationView.as_view(),
-        name="stock_receipt_verification",
+        name="stock_receipt_verifications",
+    ),
+    path(
+        "stock_receipt_verification_create",
+        view=StockReceiptVerificationCreateView.as_view(),
+        name="stock_receipt_verification_create",
+    ),
+    path(
+        "stock_receipt_verification_update/<pk>",
+        view=StockReceiptVerificationUpdateView.as_view(),
+        name="stock_receipt_verification_update",
+    ),
+    path(
+        "stock_receipt_verification_delete/<pk>",
+        view=StockReceiptVerificationDeleteView.as_view(),
+        name="stock_receipt_verification_delete",
     ),
 ]

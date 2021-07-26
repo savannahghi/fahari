@@ -1,3 +1,6 @@
+from datetime import date
+from random import randint
+
 import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -5,7 +8,20 @@ from faker import Faker
 from model_bakery import baker
 
 from fahari.common.models import Facility, Organisation, System
-from fahari.ops.models import DailyUpdate, FacilitySystem, FacilitySystemTicket, TimeSheet
+from fahari.ops.models import (
+    Activity,
+    ActivityLog,
+    DailyUpdate,
+    FacilitySystem,
+    FacilitySystemTicket,
+    OperationalArea,
+    SiteMentorship,
+    StockReceiptVerification,
+    TimeSheet,
+    WeeklyProgramUpdate,
+    default_end_time,
+    default_start_time,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -57,25 +73,52 @@ def test_facility_ticket_status(staff_user):
     assert closed_ticket.is_open is False
 
 
+def get_random_date():
+    year = randint(1900, 2100)
+    month = randint(1, 12)
+    day = randint(1, 28)
+    return date(year=year, month=month, day=day)
+
+
 def test_timesheet_is_full_day(user, staff_user):
     full_day_timesheet = baker.make(
-        TimeSheet, hours=9, staff=user, approved_at=timezone.now(), approved_by=staff_user
+        TimeSheet,
+        hours=9,
+        staff=user,
+        approved_at=timezone.now(),
+        approved_by=staff_user,
+        date=get_random_date(),
     )
     assert full_day_timesheet.is_full_day is True
 
     part_day_timesheet = baker.make(
-        TimeSheet, hours=7, staff=user, approved_at=timezone.now(), approved_by=staff_user
+        TimeSheet,
+        hours=7,
+        staff=staff_user,
+        approved_at=timezone.now(),
+        approved_by=staff_user,
+        date=get_random_date(),
     )
     assert part_day_timesheet.is_full_day is False
 
 
 def test_timesheet_is_approved(user, staff_user):
     approved_timesheet = baker.make(
-        TimeSheet, approved_at=timezone.now(), staff=user, approved_by=staff_user
+        TimeSheet,
+        approved_at=timezone.now(),
+        staff=user,
+        approved_by=staff_user,
+        date=get_random_date(),
     )
     assert approved_timesheet.is_approved is True
 
-    non_approved_timesheet = baker.make(TimeSheet, approved_at=None, staff=user, approved_by=None)
+    non_approved_timesheet = baker.make(
+        TimeSheet,
+        approved_at=None,
+        staff=user,
+        approved_by=None,
+        date=get_random_date(),
+    )
     assert non_approved_timesheet.is_approved is False
 
 
@@ -116,3 +159,28 @@ def test_daily_update_appointment_keeping_percentage():
 
     update_with_half_booking = baker.make(DailyUpdate, kept_appointment=2, clients_booked=4)
     assert update_with_half_booking.appointment_keeping == 50
+
+
+def test_default_start_time():
+    assert default_start_time().hour == 8
+
+
+def test_default_end_time():
+    assert default_end_time().hour == 18
+
+
+def test_string_reprs():
+    # cheat
+    models = [
+        TimeSheet,
+        ActivityLog,
+        SiteMentorship,
+        DailyUpdate,
+        StockReceiptVerification,
+        OperationalArea,
+        Activity,
+        WeeklyProgramUpdate,
+    ]
+    for model in models:
+        instance = baker.prepare(model)
+        assert str(instance) != ""

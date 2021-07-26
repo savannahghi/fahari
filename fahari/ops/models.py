@@ -1,3 +1,5 @@
+from datetime import time
+
 from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
@@ -10,10 +12,18 @@ from fahari.common.models import AbstractBase, Facility, System
 User = get_user_model()
 
 
+def default_start_time():
+    return time(hour=8, minute=0, second=0, microsecond=0, tzinfo=timezone.get_current_timezone())
+
+
+def default_end_time():
+    return time(hour=18, minute=0, second=0, microsecond=0, tzinfo=timezone.get_current_timezone())
+
+
 class TimeSheet(AbstractBase):
     """Staff daily time sheets."""
 
-    date = models.DateField()
+    date = models.DateField(default=timezone.datetime.today)
     activity = models.TextField()
     output = models.TextField()
     hours = models.IntegerField()
@@ -32,6 +42,13 @@ class TimeSheet(AbstractBase):
     def is_approved(self):
         return self.approved_at is not None
 
+    def __str__(self) -> str:
+        return f"Time sheet: {self.activity} ({self.date})"
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:timesheet_update", kwargs={"pk": self.pk})
+        return update_url
+
     def validate_approval(self):
         error_msg = "approved_at and approved_by must both be set"
         if self.approved_at is not None and self.approved_by is None:
@@ -45,6 +62,10 @@ class TimeSheet(AbstractBase):
             "-date",
             "-approved_at",
             "staff__name",
+        )
+        unique_together = (
+            "staff",
+            "date",
         )
 
 
@@ -134,40 +155,68 @@ class FacilitySystemTicket(AbstractBase):
 
 class ActivityLog(AbstractBase):
     activity = models.TextField(help_text="Activity as budgeted for")
-    planned_date = models.DateField(help_text="Planned date for the activity")
-    requested_date = models.DateField(help_text="Date requested")
-    procurement_date = models.DateField(help_text="Date received by procurement")
-    finance_approval_date = models.DateField(help_text="Date received by Finance for approvals")
-    final_approval_date = models.DateField(help_text="Date approved by COP/DCOP/FAD")
-    done_date = models.DateField(help_text="Date when activity/procurement done")
+    planned_date = models.DateField(
+        help_text="Planned date for the activity", default=timezone.datetime.today
+    )
+    requested_date = models.DateField(help_text="Date requested", default=timezone.datetime.today)
+    procurement_date = models.DateField(
+        help_text="Date received by procurement", default=timezone.datetime.today
+    )
+    finance_approval_date = models.DateField(
+        help_text="Date received by Finance for approvals", default=timezone.datetime.today
+    )
+    final_approval_date = models.DateField(
+        help_text="Date approved by COP/DCOP/FAD", default=timezone.datetime.today
+    )
+    done_date = models.DateField(
+        help_text="Date when activity/procurement done", default=timezone.datetime.today
+    )
     invoiced_date = models.DateField(
-        help_text="Date when payment invoice was submitted to Finance"
+        help_text="Date when payment invoice was submitted to Finance",
+        default=timezone.datetime.today,
     )
     remarks = models.TextField()
 
+    def __str__(self) -> str:
+        return self.activity
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:activity_log_update", kwargs={"pk": self.pk})
+        return update_url
+
     class Meta:
         ordering = (
-            "-requested_date",
             "-planned_date",
+            "-requested_date",
             "-procurement_date",
         )
 
 
 class SiteMentorship(AbstractBase):
     staff_member = models.ForeignKey(User, on_delete=models.PROTECT)
-    day = models.DateField()
-    start = models.TimeField()
-    end = models.TimeField()
+    day = models.DateField(default=timezone.datetime.today)
+    duration = models.DurationField(
+        help_text="HH:MM:SS e.g '08:00:00' for 8 hours",
+        default="08:00:00",
+    )
     site = models.ForeignKey(Facility, on_delete=models.PROTECT)
     objective = models.TextField()
     pick_up_point = models.TextField()
     drop_off_point = models.TextField()
 
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:site_mentorship_update", kwargs={"pk": self.pk})
+        return update_url
+
+    def __str__(self) -> str:
+        return (
+            f"Site Mentorship: {self.staff_member.name} "
+            + f"at {self.site.name} on {self.day} (for {self.duration})"
+        )
+
     class Meta:
         ordering = (
             "-day",
-            "-end",
-            "-start",
             "site__name",
         )
 
@@ -192,16 +241,23 @@ class DailyUpdate(AbstractBase):
     """
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    date = models.DateField()
-    total = models.IntegerField()
-    clients_booked = models.IntegerField()
-    kept_appointment = models.IntegerField()
-    missed_appointment = models.IntegerField()
-    came_early = models.IntegerField()
-    unscheduled = models.IntegerField()
-    new_ft = models.IntegerField()
-    ipt_new_adults = models.IntegerField()
-    ipt_new_paeds = models.IntegerField()
+    date = models.DateField(default=timezone.datetime.today)
+    total = models.IntegerField(default=0)
+    clients_booked = models.IntegerField(default=0)
+    kept_appointment = models.IntegerField(default=0)
+    missed_appointment = models.IntegerField(default=0)
+    came_early = models.IntegerField(default=0)
+    unscheduled = models.IntegerField(default=0)
+    new_ft = models.IntegerField(default=0)
+    ipt_new_adults = models.IntegerField(default=0)
+    ipt_new_paeds = models.IntegerField(default=0)
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:daily_update_update", kwargs={"pk": self.pk})
+        return update_url
+
+    def __str__(self) -> str:
+        return f"Daily Update: {self.facility.name} - {self.date}"
 
     @property
     def appointment_keeping(self):
@@ -210,12 +266,43 @@ class DailyUpdate(AbstractBase):
 
         return (self.kept_appointment / self.clients_booked) * 100
 
+    class Meta:
+        ordering = (
+            "-date",
+            "facility__name",
+        )
+        unique_together = (
+            "facility",
+            "date",
+        )
+
+
+class StockReceiptVerification(AbstractBase):
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    description = models.TextField()
+    pack_size = models.TextField()
+    delivery_note_number = models.CharField(max_length=64)
+    quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
+    batch_number = models.CharField(max_length=64)
+    expiry_date = models.DateField(default=timezone.datetime.today)
+    comments = models.TextField()
+
+    def __str__(self):
+        return f"{self.facility.name} (Delivery Note: {self.delivery_note_number})"
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:stock_receipt_verification_update", kwargs={"pk": self.pk})
+        return update_url
+
 
 class OperationalArea(AbstractBase):
     """List of program areas."""
 
     name = models.CharField(max_length=64)
     description = models.TextField()
+
+    def __str__(self):
+        return self.name
 
 
 class Activity(AbstractBase):
@@ -226,26 +313,31 @@ class Activity(AbstractBase):
     deadline = models.DateField()
     is_complete = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.name
+
 
 class WeeklyProgramUpdate(AbstractBase):
     """
     Record of updates made at the weekly "touch base" meetings.
     """
 
-    date = models.DateField()
+    date = models.DateField(default=timezone.datetime.today)
     attendees = ArrayField(
         models.TextField(),
+        help_text="Use commas to separate attendees names",
     )
+
+    def __str__(self) -> str:
+        return f"Weekly update: {self.date}, attended by {self.attendees}"
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:weekly_program_updates_update", kwargs={"pk": self.pk})
+        return update_url
+
+
+class WeeklyProgramUpdateDetail(AbstractBase):
+
+    parent = models.ForeignKey(WeeklyProgramUpdate, on_delete=models.PROTECT)
     activity = models.ForeignKey(Activity, on_delete=models.PROTECT)
-    comments = models.TextField()
-
-
-class StockReceiptVerification(AbstractBase):
-    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    description = models.TextField()
-    pack_size = models.TextField()
-    delivery_note_number = models.CharField(max_length=64)
-    quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
-    batch_number = models.CharField(max_length=64)
-    expiry_date = models.DateField()
     comments = models.TextField()

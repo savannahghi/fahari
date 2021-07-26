@@ -23,14 +23,14 @@ def test_tickets_view(user_with_all_permissions, client):
 
 def test_activity_log_view(user_with_all_permissions, client):
     client.force_login(user_with_all_permissions)
-    url = reverse("ops:activity_log")
+    url = reverse("ops:activity_logs")
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK
 
 
 def test_site_mentorship_view(user_with_all_permissions, client):
     client.force_login(user_with_all_permissions)
-    url = reverse("ops:site_mentorship")
+    url = reverse("ops:site_mentorships")
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK
 
@@ -58,7 +58,7 @@ def test_weekly_program_updates_view(user_with_all_permissions, client):
 
 def test_stock_receipt_verification_view(user_with_all_permissions, client):
     client.force_login(user_with_all_permissions)
-    url = reverse("ops:stock_receipt_verification")
+    url = reverse("ops:stock_receipt_verifications")
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK
 

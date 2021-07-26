@@ -7,20 +7,20 @@
     </a>
     <div id="program-menu" class="collapse {% if active == "program-nav" %}show{% endif %}"  data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
-            {% if perms.ops.view_stockreceiptverification %}
-                <a class="collapse-item {% if selected == "stock-receipt-verification" %}active {% endif %}" id="stock-receipt-verification" href="{% url 'ops:stock_receipt_verification' %}">
+            {% if perms.ops.view_stockreceiptsverification %}
+                <a class="collapse-item {% if selected == "stock-receipt-verification" %}active {% endif %}" id="stock-receipt-verification" href="{% url 'ops:stock_receipt_verifications' %}">
                     Stock Receipts
                 </a>
             {% endif %}
 
             {% if perms.ops.view_activitylog %}
-                <a class="collapse-item {% if selected == "activity-log" %}active {% endif %}" id="activity-log" href="{% url 'ops:activity_log' %}">
+                <a class="collapse-item {% if selected == "activity-log" %}active {% endif %}" id="activity-log" href="{% url 'ops:activity_logs' %}">
                     Activity Log
                 </a>
             {% endif %}
 
             {% if perms.ops.view_sitementorship %}
-                <a class="collapse-item {% if selected == "site-mentorship" %}active {% endif %}" id="site-mentorship" href="{% url 'ops:site_mentorship' %}">
+                <a class="collapse-item {% if selected == "site-mentorship" %}active {% endif %}" id="site-mentorship" href="{% url 'ops:site_mentorships' %}">
                     Site Mentorship
                 </a>
             {% endif %}

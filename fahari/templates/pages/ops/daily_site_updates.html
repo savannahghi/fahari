@@ -1,11 +1,82 @@
 {% extends "base.html" %}
-{% block title %}
-    Daily Site Updates
-{% endblock %}
+{% block title %}Daily Updates{% endblock %}
 {% block content %}
-    <h1>Daily Site Updates</h1>
-    <p class="text-gray-500 mb-0">
-        Placeholder page for daily site updates
-    </p>
-    <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
+<h1 class="h3 mb-4 text-gray-800">
+    Daily Updates
+</h1>
+<div class="card shadow mb-1">
+    <div class="card-header py-3">
+        <div class="toolbar float-right">
+            {% if perms.ops.add_dailyupdate %}
+                <a href="{% url 'ops:daily_update_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Add Daily Update</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table
+                id="daily-update-list"
+                class="table table-striped table-sm"
+                style="width:100%"
+                data-server-side="true"
+                data-state-save="true"
+                data-defer-render="true"
+                data-info="true"
+                data-page-length="10"
+                data-paging-type="full_numbers"
+                data-ajax="{% url "api:dailyupdate-list" %}?format=datatables">
+                <thead>
+                    <tr>
+                        <th>Facility</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Booked</th>
+                        <th>Kept Appointment</th>
+                        <th>Missed Appointment</th>
+                        <th>Early</th>
+                        <th>Unscheduled</th>
+                        <th>New FT</th>
+                        <th>IPT New Adults</th>
+                        <th>IPT New Paeds</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock content %}
+{% block inline_javascript %}
+<script>
+window.addEventListener("load", function(){
+    $(document).ready(function() {
+        $('#daily-update-list').DataTable( {
+            columns: [
+                {data: 'facility_name', name: "facility__name"},
+                {data: "date"},
+                {data: "total"},
+                {data: "clients_booked"},
+                {data: "kept_appointment"},
+                {data: "missed_appointment"},
+                {data: "came_early"},
+                {data: "unscheduled"},
+                {data: "new_ft"},
+                {data: "ipt_new_adults"},
+                {data: "ipt_new_paeds"},
+                {
+                    data: "url",
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
+            ]
+        } );
+    });
+});
+</script>
+{% endblock inline_javascript %}

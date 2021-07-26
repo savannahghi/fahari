@@ -1,11 +1,78 @@
 {% extends "base.html" %}
-{% block title %}
-    Activity Log
-{% endblock %}
+{% block title %}Activity Log{% endblock %}
 {% block content %}
-    <h1>Activity Log</h1>
-    <p class="text-gray-500 mb-0">
-        Placeholder page for activity log
-    </p>
-    <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
+<h1 class="h3 mb-4 text-gray-800">
+    Activity Logs
+</h1>
+<div class="card shadow mb-1">
+    <div class="card-header py-3">
+        <div class="toolbar float-right">
+            {% if perms.ops.add_activitylog %}
+                <a href="{% url 'ops:activity_log_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Add Activity Log</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table
+                id="activity-log-list"
+                class="table table-striped table-sm"
+                style="width:100%"
+                data-server-side="true"
+                data-state-save="true"
+                data-defer-render="true"
+                data-info="true"
+                data-page-length="10"
+                data-paging-type="full_numbers"
+                data-ajax="{% url "api:activitylog-list" %}?format=datatables">
+                <thead>
+                    <tr>
+                        <th>Activity</th>
+                        <th>Planned Date</th>
+                        <th>Requested Date</th>
+                        <th>Procurement Date</th>
+                        <th>Finance Approval Date</th>
+                        <th>Final Approval Date</th>
+                        <th>Done Date</th>
+                        <th>Invoiced Date</th>
+                        <th>Remarks</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock content %}
+{% block inline_javascript %}
+<script>
+window.addEventListener("load", function(){
+    $(document).ready(function() {
+        $('#activity-log-list').DataTable( {
+            columns: [
+                {data: 'activity', name: "activity"},
+                {data: "planned_date", name: "planned_date"},
+                {data: "requested_date", name: "requested_date"},
+                {data: "procurement_date", name: "procurement_date"},
+                {data: "finance_approval_date", name: "finance_approval_date"},
+                {data: "final_approval_date", name: "final_approval_date"},
+                {data: "done_date", name: "done_date"},
+                {data: "invoiced_date", name: "invoiced_date"},
+                {data: "remarks", name: "remarks"},
+                {
+                    data: "url",
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
+            ]
+        } );
+    });
+});
+</script>
+{% endblock inline_javascript %}

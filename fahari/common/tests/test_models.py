@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files import File
 from django.test import TestCase
@@ -17,6 +18,7 @@ from PIL import Image
 
 from fahari.common.models import (
     Facility,
+    FacilityUser,
     Organisation,
     OwnerlessAbstractBase,
     System,
@@ -236,6 +238,13 @@ def test_facility_error_saving():
 def test_organisation_string_representation():
     org = baker.make("common.Organisation", organisation_name="Test Organisation")
     assert str(org) == "Test Organisation"
+
+
+def test_facility_user_string_represenation():
+    user = baker.make(get_user_model(), name="Kalulu")
+    facility = baker.make(Facility, name="Hosi")
+    instance = baker.make(FacilityUser, user=user, facility=facility)
+    assert str(instance) == "User: Kalulu; Facility: Hosi"
 
 
 class DictError(OwnerlessAbstractBase):

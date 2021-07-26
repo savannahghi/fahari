@@ -1,11 +1,74 @@
 {% extends "base.html" %}
-{% block title %}
-    Site Mentorship
-{% endblock %}
+{% block title %}Site Mentorship{% endblock %}
 {% block content %}
-    <h1>Site Mentorship</h1>
-    <p class="text-gray-500 mb-0">
-        Placeholder page for site mentorship
-    </p>
-    <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
+<h1 class="h3 mb-4 text-gray-800">
+    Site Mentorship
+</h1>
+<div class="card shadow mb-1">
+    <div class="card-header py-3">
+        <div class="toolbar float-right">
+            {% if perms.ops.add_sitementorship %}
+                <a href="{% url 'ops:site_mentorship_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Add Site Mentorship</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table
+                id="site-mentorship-list"
+                class="table table-striped table-sm"
+                style="width:100%"
+                data-server-side="true"
+                data-state-save="true"
+                data-defer-render="true"
+                data-info="true"
+                data-page-length="10"
+                data-paging-type="full_numbers"
+                data-ajax="{% url "api:sitementorship-list" %}?format=datatables">
+                <thead>
+                    <tr>
+                        <th>Staff Member</th>
+                        <th>Day</th>
+                        <th>Duration</th>
+                        <th>Site</th>
+                        <th>Objective</th>
+                        <th>Pick Up Point</th>
+                        <th>Drop Off Point</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock content %}
+{% block inline_javascript %}
+<script>
+window.addEventListener("load", function(){
+    $(document).ready(function() {
+        $('#site-mentorship-list').DataTable( {
+            columns: [
+                {data: 'staff_member_name', name: "staff_member__name"},
+                {data: "day", name: "day"},
+                {data: "duration", name: "duration"},
+                {data: "site_name", name: "site__name"},
+                {data: "objective", name: "objective"},
+                {data: "pick_up_point", name: "pick_up_point"},
+                {data: "drop_off_point", name: "drop_off_point"},
+                {
+                    data: "url",
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
+            ]
+        } );
+    });
+});
+</script>
+{% endblock inline_javascript %}

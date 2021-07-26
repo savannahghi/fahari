@@ -4,7 +4,7 @@ import logging
 from rest_framework import serializers
 
 from .mixins import AuditFieldsMixin
-from .models import Facility, System
+from .models import Facility, FacilityUser, System
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,4 +30,14 @@ class FacilitySerializer(BaseSerializer):
 class SystemSerializer(BaseSerializer):
     class Meta(BaseSerializer.Meta):
         model = System
+        fields = "__all__"
+
+
+class FacilityUserSerializer(BaseSerializer):
+
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+    user_name = serializers.ReadOnlyField(source="user.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = FacilityUser
         fields = "__all__"

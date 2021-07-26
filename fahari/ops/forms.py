@@ -1,10 +1,18 @@
 from django.forms.widgets import DateTimeInput, TextInput
 
-from fahari.common.constants import WHITELIST_COUNTIES
 from fahari.common.forms import BaseModelForm
-from fahari.common.models import Facility
+from fahari.common.views import get_fahari_facilities_queryset
 
-from .models import FacilitySystem, FacilitySystemTicket
+from .models import (
+    ActivityLog,
+    DailyUpdate,
+    FacilitySystem,
+    FacilitySystemTicket,
+    SiteMentorship,
+    StockReceiptVerification,
+    TimeSheet,
+    WeeklyProgramUpdate,
+)
 
 
 class FacilitySystemForm(BaseModelForm):
@@ -18,12 +26,7 @@ class FacilitySystemForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "facility_system_form"
-        self.fields["facility"].queryset = Facility.objects.filter(
-            is_fahari_facility=True,
-            operation_status="Operational",
-            county__in=WHITELIST_COUNTIES,
-            active=True,
-        )
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
 
     class Meta(BaseModelForm.Meta):
         model = FacilitySystem
@@ -71,3 +74,135 @@ class FacilitySystemTicketForm(BaseModelForm):
                 }
             ),
         }
+
+
+class StockReceiptVerificationForm(BaseModelForm):
+    field_order = (
+        "facility",
+        "description",
+        "pack_size",
+        "delivery_note_number",
+        "quantity_received",
+        "batch_number",
+        "expiry_date",
+        "comments",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "stock_receipt_verification_form"
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+
+    class Meta(BaseModelForm.Meta):
+        model = StockReceiptVerification
+        widgets = {
+            "pack_size": TextInput(
+                attrs={
+                    "size": 128,
+                }
+            ),
+        }
+
+
+class ActivityLogForm(BaseModelForm):
+    field_order = (
+        "activity",
+        "planned_date",
+        "requested_date",
+        "procurement_date",
+        "finance_approval_date",
+        "final_approval_date",
+        "done_date",
+        "invoiced_date",
+        "remarks",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "activity_log_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = ActivityLog
+
+
+class SiteMentorshipForm(BaseModelForm):
+    field_order = (
+        "staff_member",
+        "site",
+        "day",
+        "duration",
+        "objective",
+        "pick_up_point",
+        "drop_off_point",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "site_mentorship_form"
+        self.fields["site"].queryset = get_fahari_facilities_queryset()
+
+    class Meta(BaseModelForm.Meta):
+        model = SiteMentorship
+
+
+class DailyUpdateForm(BaseModelForm):
+    field_order = (
+        "facility",
+        "date",
+        "total",
+        "clients_booked",
+        "kept_appointment",
+        "missed_appointment",
+        "came_early",
+        "unscheduled",
+        "new_ft",
+        "ipt_new_adults",
+        "ipt_new_paeds",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "daily_update_form"
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+
+    class Meta(BaseModelForm.Meta):
+        model = DailyUpdate
+
+
+class TimeSheetForm(BaseModelForm):
+    field_order = (
+        "date",
+        "activity",
+        "output",
+        "hours",
+        "location",
+        "staff",
+        "approved_by",
+        "approved_at",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "time_sheet_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = TimeSheet
+
+
+class WeeklyProgramUpdateForm(BaseModelForm):
+    field_order = (
+        "date",
+        "attendees",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "weekly_program_update_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = WeeklyProgramUpdate
