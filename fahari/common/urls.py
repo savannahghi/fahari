@@ -4,6 +4,9 @@ from .views import (
     FacilityCreateView,
     FacilityDeleteView,
     FacilityUpdateView,
+    FacilityUserCreateView,
+    FacilityUserDeleteView,
+    FacilityUserUpdateView,
     FacilityUserView,
     FacilityView,
     SystemCreateView,
@@ -15,7 +18,6 @@ from .views import (
 app_name = "common"
 urlpatterns = [
     path("facilities", view=FacilityView.as_view(), name="facilities"),
-    path("facility_users", view=FacilityUserView.as_view(), name="facility_users"),
     path(
         "facility_create",
         view=FacilityCreateView.as_view(),
@@ -46,5 +48,21 @@ urlpatterns = [
         "system_delete/<pk>",
         view=SystemDeleteView.as_view(),
         name="system_delete",
+    ),
+    path("facility_users", view=FacilityUserView.as_view(), name="facility_users"),
+    path(
+        "facility_user_create",
+        view=FacilityUserCreateView.as_view(),
+        name="facility_user_create",
+    ),
+    path(
+        "facility_user_update/<pk>",
+        view=FacilityUserUpdateView.as_view(),
+        name="facility_user_update",
+    ),
+    path(
+        "facility_user_delete/<pk>",
+        view=FacilityUserDeleteView.as_view(),
+        name="facility_user_delete",
     ),
 ]

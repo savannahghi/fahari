@@ -3,9 +3,76 @@
     Timesheets
 {% endblock %}
 {% block content %}
-    <h1>Timesheets</h1>
-    <p class="text-gray-500 mb-0">
-        Placeholder page for timesheets
-    </p>
-    <a href="{% url 'home' %}">&larr; Back to Dashboard</a>
+<h1 class="h3 mb-4 text-gray-800">
+    Timesheets
+</h1>
+<div class="card shadow mb-1">
+    <div class="card-header py-3">
+        <div class="toolbar float-right">
+            {% if perms.ops.add_timesheet %}
+                <a href="{% url 'ops:timesheet_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Add Timesheet</span>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table
+                id="timesheets-list"
+                class="table table-striped table-sm"
+                style="width:100%"
+                data-server-side="true"
+                data-state-save="true"
+                data-defer-render="true"
+                data-info="true"
+                data-page-length="10"
+                data-paging-type="full_numbers"
+                data-ajax="{% url "api:timesheet-list" %}?format=datatables">
+                <thead>
+                    <tr>
+                        <th>Staff</th>
+                        <th>Date</th>
+                        <th>Activity</th>
+                        <th>Output</th>
+                        <th>Hours</th>
+                        <th>Location</th>
+                        <th>Is Full Day</th>
+                        <th>Is Approved</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock content %}
+{% block inline_javascript %}
+<script>
+window.addEventListener("load", function(){
+    $(document).ready(function() {
+        $('#timesheets-list').DataTable( {
+            columns: [
+                {data: "staff_name", name: "staff__name"},
+                {data: "date", name: "date"},
+                {data: "activity", name: "activity"},
+                {data: "output", name: "output"},
+                {data: "hours", name: "hours"},
+                {data: "location", name: "location"},
+                {data: "is_full_day"},
+                {data: "is_approved"},
+                {
+                    data: "url",
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
+            ]
+        } );
+    });
+});
+</script>
+{% endblock inline_javascript %}

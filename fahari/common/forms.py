@@ -2,7 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.forms import ModelForm, TextInput
 
-from .models import Facility, FacilityAttachment, Organisation, System
+from .models import Facility, FacilityAttachment, FacilityUser, Organisation, System
 
 
 class BaseModelForm(ModelForm):
@@ -99,4 +99,17 @@ class OrganisationForm(BaseModelForm):
 class FacilityAttachmentForm(BaseModelForm):
     class Meta:
         model = FacilityAttachment
+        fields = "__all__"
+
+
+class FacilityUserForm(BaseModelForm):
+
+    field_order = (
+        "facility",
+        "user",
+        "active",
+    )
+
+    class Meta(BaseModelForm.Meta):
+        model = FacilityUser
         fields = "__all__"

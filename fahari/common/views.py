@@ -13,12 +13,21 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from .constants import WHITELIST_COUNTIES
-from .filters import FacilityFilter, SystemFilter
-from .forms import FacilityForm, SystemForm
-from .models import Facility, System
-from .serializers import FacilitySerializer, SystemSerializer
+from .filters import FacilityFilter, FacilityUserFilter, SystemFilter
+from .forms import FacilityForm, FacilityUserForm, SystemForm
+from .models import Facility, FacilityUser, System
+from .serializers import FacilitySerializer, FacilityUserSerializer, SystemSerializer
 
 User = get_user_model()
+
+
+def get_fahari_facilities_queryset():
+    return Facility.objects.filter(
+        is_fahari_facility=True,
+        operation_status="Operational",
+        county__in=WHITELIST_COUNTIES,
+        active=True,
+    )
 
 
 class BaseFormMixin(ModelFormMixin, View):
@@ -78,6 +87,7 @@ class HomeView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["active"] = "dashboard-nav"  # id of active nav element
+        context["selected"] = "dashboard"  # id of selected page
         return context
 
 
@@ -88,6 +98,7 @@ class AboutView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["active"] = "dashboard-nav"  # id of active nav element
+        context["selected"] = "dashboard"  # id of selected page
         return context
 
 
@@ -131,12 +142,7 @@ class FacilityViewSet(BaseView):
         "PATCH": ["common.change_facility"],
         "DELETE": ["common.delete_facility"],
     }
-    queryset = Facility.objects.filter(
-        is_fahari_facility=True,
-        operation_status="Operational",
-        county__in=WHITELIST_COUNTIES,
-        active=True,
-    )
+    queryset = get_fahari_facilities_queryset()
     serializer_class = FacilitySerializer
     filterset_class = FacilityFilter
     ordering_fields = ("name", "mfl_code", "county", "sub_county", "ward")
@@ -207,3 +213,44 @@ class FacilityUserContextMixin:
 class FacilityUserView(FacilityUserContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
     template_name = "pages/common/facility_users.html"
     permission_required = "common.view_facilityuser"
+
+
+class FacilityUserCreateView(SystemContextMixin, BaseFormMixin, CreateView):
+    form_class = FacilityUserForm
+    model = FacilityUser
+    success_url = reverse_lazy("common:facility_users")
+
+
+class FacilityUserUpdateView(SystemContextMixin, UpdateView, BaseFormMixin):
+    form_class = FacilityUserForm
+    model = FacilityUser
+    success_url = reverse_lazy("common:facility_users")
+
+
+class FacilityUserDeleteView(SystemContextMixin, DeleteView, BaseFormMixin):
+    form_class = FacilityUserForm
+    model = FacilityUser
+    success_url = reverse_lazy("common:facility_users")
+
+
+class FacilityUserViewSet(BaseView):
+
+    permissions = {
+        "GET": ["common.view_facilityuser"],
+        "POST": ["common.add_facilityuser"],
+        "PATCH": ["common.change_facilityuser"],
+        "DELETE": ["common.delete_facilityuser"],
+    }
+    queryset = FacilityUser.objects.filter(
+        active=True,
+    )
+    serializer_class = FacilityUserSerializer
+    filterset_class = FacilityUserFilter
+    ordering_fields = (
+        "facility__name",
+        "user__name",
+    )
+    search_fields = (
+        "facility__name",
+        "user__name",
+    )

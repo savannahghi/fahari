@@ -457,13 +457,18 @@ class FacilityAttachment(Attachment):
         ordering = ("-updated", "-created")
 
 
-class FacilityUser(Attachment):
+class FacilityUser(AbstractBase):
     """A user assigned to a facility."""
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     user = models.ForeignKey(User, on_delete=models.PROTECT)
 
-    organisation_verify = ["facility"]
+    def get_absolute_url(self):
+        update_url = reverse("common:facility_user_update", kwargs={"pk": self.pk})
+        return update_url
+
+    def __str__(self) -> str:
+        return f"User: {self.user.name}; Facility: {self.facility.name}"
 
     class Meta(AbstractBase.Meta):
         """Define ordering and other attributes for attachments."""
