@@ -55,6 +55,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#activity-log-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: 'activity', name: "activity"},
                 {data: "planned_date", name: "planned_date"},

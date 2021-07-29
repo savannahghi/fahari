@@ -54,6 +54,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#stock-receipts-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: 'facility_name', name: "facility__name"},
                 {data: "description", name: "description"},

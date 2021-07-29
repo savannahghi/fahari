@@ -55,6 +55,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#tickets-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: 'facility_system_name', name: 'facility_system__facility__name'},
                 {data: "details", name: "details"},

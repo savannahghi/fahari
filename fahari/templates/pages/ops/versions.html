@@ -51,6 +51,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#versions-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: "facility_name", name: "facility__name"},
                 {data: "system_name", name: "system__name"},

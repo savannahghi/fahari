@@ -56,6 +56,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#timesheets-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: "staff_name", name: "staff__name"},
                 {data: "date", name: "date"},

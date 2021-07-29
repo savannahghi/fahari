@@ -102,6 +102,11 @@ class StockReceiptVerificationForm(BaseModelForm):
                     "size": 128,
                 }
             ),
+            "expiry_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
         }
 
 
@@ -125,6 +130,43 @@ class ActivityLogForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = ActivityLog
+        widgets = {
+            "planned_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "requested_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "procurement_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "finance_approval_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "final_approval_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "done_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "invoiced_date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+        }
 
 
 class SiteMentorshipForm(BaseModelForm):
@@ -146,6 +188,13 @@ class SiteMentorshipForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = SiteMentorship
+        widgets = {
+            "day": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+        }
 
 
 class DailyUpdateForm(BaseModelForm):
@@ -170,6 +219,13 @@ class DailyUpdateForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = DailyUpdate
+        widgets = {
+            "date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+        }
 
 
 class TimeSheetForm(BaseModelForm):
@@ -191,6 +247,18 @@ class TimeSheetForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = TimeSheet
+        widgets = {
+            "date": TextInput(
+                attrs={
+                    "type": "date",
+                }
+            ),
+            "approved_at": TextInput(
+                attrs={
+                    "type": "datetime-local",
+                }
+            ),
+        }
 
 
 class WeeklyProgramUpdateForm(BaseModelForm):

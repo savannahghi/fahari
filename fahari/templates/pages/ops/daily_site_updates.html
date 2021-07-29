@@ -57,6 +57,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#daily-update-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: 'facility_name', name: "facility__name"},
                 {data: "date"},
