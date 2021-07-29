@@ -330,3 +330,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 MJML_BACKEND_MODE = "cmd"
 MJML_EXEC_CMD = "mjml"
 MJML_CHECK_CMD_ON_STARTUP = True
+WHITELISTED_DOMAINS = env.list(
+    "WHITELISTED_DOMAINS",
+    default=[
+        "savannahghi.org",
+    ],
+)

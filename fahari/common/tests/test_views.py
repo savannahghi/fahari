@@ -20,8 +20,8 @@ def test_approved_mixin_approved_user(rf, user_with_all_permissions):
 
 
 def test_approved_mixin_non_approved_authenticated_user(rf, django_user_model):
-    non_approved_user = baker.make(django_user_model, is_approved=False)
-    url = "/"
+    non_approved_user = baker.make(django_user_model, email="juha@kalulu.com", is_approved=False)
+    url = reverse("common:facilities")
     request = rf.get(url)
     request.user = non_approved_user
     view = HomeView()
