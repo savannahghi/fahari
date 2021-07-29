@@ -58,13 +58,14 @@ window.addEventListener("load", function(){
             columns: [
                 {data: 'facility_system_name', name: 'facility_system__facility__name'},
                 {data: "details", name: "details"},
-                {data: "is_open", name: "version"},
+                {data: "is_open", name: "resolved"},
                 {data: "raised", name: "raised"},
                 {data: "raised_by", name: "raised_by"},
                 {data: "resolved", name: "resolved"},
                 {data: "resolved_by", name: "resolved_by"},
                 {
                     data: "url",
+                    name: "id",
                     render: function ( data, type, row ) {
                         return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
                     }
