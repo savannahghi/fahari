@@ -134,14 +134,6 @@ class FacilityDeleteView(FacilityContextMixin, DeleteView, BaseFormMixin):
 
 
 class FacilityViewSet(BaseView):
-    """Facility API view."""
-
-    permissions = {
-        "GET": ["common.view_facility"],
-        "POST": ["common.add_facility"],
-        "PATCH": ["common.change_facility"],
-        "DELETE": ["common.delete_facility"],
-    }
     queryset = get_fahari_facilities_queryset()
     serializer_class = FacilitySerializer
     filterset_class = FacilityFilter
@@ -185,14 +177,6 @@ class SystemDeleteView(SystemContextMixin, DeleteView, BaseFormMixin):
 
 
 class SystemViewSet(BaseView):
-    """System API view."""
-
-    permissions = {
-        "GET": ["common.view_system"],
-        "POST": ["common.add_system"],
-        "PATCH": ["common.change_system"],
-        "DELETE": ["common.delete_system"],
-    }
     queryset = System.objects.filter(
         active=True,
     )
@@ -234,13 +218,6 @@ class FacilityUserDeleteView(SystemContextMixin, DeleteView, BaseFormMixin):
 
 
 class FacilityUserViewSet(BaseView):
-
-    permissions = {
-        "GET": ["common.view_facilityuser"],
-        "POST": ["common.add_facilityuser"],
-        "PATCH": ["common.change_facilityuser"],
-        "DELETE": ["common.delete_facilityuser"],
-    }
     queryset = FacilityUser.objects.filter(
         active=True,
     )
