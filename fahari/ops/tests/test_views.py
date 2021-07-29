@@ -66,12 +66,12 @@ def test_stock_receipt_verification_view(user_with_all_permissions, client):
 def test_version_context_data():
     v = FacilitySystemsView()
     ctx = v.get_context_data()
-    assert ctx["active"] == "program-nav"
+    assert ctx["active"] == "facilities-nav"
     assert ctx["selected"] == "versions"
 
 
 def test_tickets_context_data():
     v = FacilitySystemTicketsView()
     ctx = v.get_context_data()
-    assert ctx["active"] == "program-nav"
+    assert ctx["active"] == "facilities-nav"
     assert ctx["selected"] == "tickets"
