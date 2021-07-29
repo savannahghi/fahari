@@ -27,7 +27,7 @@
                 data-state-save="true"
                 data-defer-render="true"
                 data-info="true"
-                data-page-length="10"
+                data-page-length="100"
                 data-paging-type="full_numbers"
                 data-ajax="{% url "api:dailyupdate-list" %}?format=datatables">
                 <thead>
@@ -56,6 +56,7 @@
 window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#daily-update-list').DataTable( {
+            iDisplayLength: 100,
             columns: [
                 {data: 'facility_name', name: "facility__name"},
                 {data: "date"},

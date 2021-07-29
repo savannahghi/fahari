@@ -49,7 +49,7 @@ from .serializers import (
 class FacilitySystemContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
-        context["active"] = "program-nav"  # id of active nav element
+        context["active"] = "facilities-nav"  # id of active nav element
         context["selected"] = "versions"  # id of selected page
         return context
 
@@ -100,7 +100,7 @@ class FacilitySystemViewSet(BaseView):
 class FacilitySystemTicketContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
-        context["active"] = "program-nav"  # id of active nav element
+        context["active"] = "facilities-nav"  # id of active nav element
         context["selected"] = "tickets"  # id of selected page
         return context
 

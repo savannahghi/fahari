@@ -27,7 +27,7 @@
                 data-state-save="true"
                 data-defer-render="true"
                 data-info="true"
-                data-page-length="10"
+                data-page-length="100"
                 data-paging-type="full_numbers"
                 data-ajax="{% url "api:activitylog-list" %}?format=datatables">
                 <thead>
@@ -54,6 +54,7 @@
 window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#activity-log-list').DataTable( {
+            iDisplayLength: 100,
             columns: [
                 {data: 'activity', name: "activity"},
                 {data: "planned_date", name: "planned_date"},

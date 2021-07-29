@@ -27,8 +27,8 @@
                 data-state-save="true"
                 data-defer-render="true"
                 data-info="true"
-                data-page-length="10"
                 data-paging-type="full_numbers"
+                data-page-length="100"
                 data-ajax="{% url "api:facility-list" %}?format=datatables">
                 <thead>
                     <tr>
@@ -52,6 +52,7 @@
 window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#facilities-list').DataTable( {
+            iDisplayLength: 100,
             columns: [
                 {data: 'name', name: "name"},
                 {data: "mfl_code", name: "mfl_code"},
