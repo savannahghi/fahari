@@ -85,6 +85,10 @@ class HomeView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     permission_required = "users.can_view_dashboard"
 
     def get_context_data(self, **kwargs):
+        # TODO open_ticket_count
+        # TODO active_facility_count
+        # TODO appointments_mtd
+        # TODO active_user_count
         context = super().get_context_data(**kwargs)
         context["active"] = "dashboard-nav"  # id of active nav element
         context["selected"] = "dashboard"  # id of selected page
