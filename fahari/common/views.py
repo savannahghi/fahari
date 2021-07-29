@@ -12,22 +12,19 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from .constants import WHITELIST_COUNTIES
+from .dashboard import (
+    get_active_facility_count,
+    get_active_user_count,
+    get_appointments_mtd,
+    get_fahari_facilities_queryset,
+    get_open_ticket_count,
+)
 from .filters import FacilityFilter, FacilityUserFilter, SystemFilter
 from .forms import FacilityForm, FacilityUserForm, SystemForm
 from .models import Facility, FacilityUser, System
 from .serializers import FacilitySerializer, FacilityUserSerializer, SystemSerializer
 
 User = get_user_model()
-
-
-def get_fahari_facilities_queryset():
-    return Facility.objects.filter(
-        is_fahari_facility=True,
-        operation_status="Operational",
-        county__in=WHITELIST_COUNTIES,
-        active=True,
-    )
 
 
 class BaseFormMixin(ModelFormMixin, View):
@@ -85,13 +82,16 @@ class HomeView(LoginRequiredMixin, ApprovedMixin, TemplateView):
     permission_required = "users.can_view_dashboard"
 
     def get_context_data(self, **kwargs):
-        # TODO open_ticket_count
-        # TODO active_facility_count
-        # TODO appointments_mtd
-        # TODO active_user_count
         context = super().get_context_data(**kwargs)
         context["active"] = "dashboard-nav"  # id of active nav element
         context["selected"] = "dashboard"  # id of selected page
+
+        # dashboard summaries
+        user = self.request.user
+        context["active_facility_count"] = get_active_facility_count(user)
+        context["open_ticket_count"] = get_open_ticket_count(user)
+        context["user_count"] = get_active_user_count(user)
+        context["appointments_mtd"] = get_appointments_mtd(user)
         return context
 
 

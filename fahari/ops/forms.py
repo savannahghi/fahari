@@ -1,7 +1,7 @@
 from django.forms.widgets import DateTimeInput, TextInput
 
+from fahari.common.dashboard import get_fahari_facilities_queryset
 from fahari.common.forms import BaseModelForm
-from fahari.common.views import get_fahari_facilities_queryset
 
 from .models import (
     ActivityLog,
