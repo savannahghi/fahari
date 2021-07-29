@@ -29,7 +29,7 @@
                 data-state-save="true"
                 data-defer-render="true"
                 data-info="true"
-                data-page-length="10"
+                data-page-length="100"
                 data-paging-type="full_numbers"
                 data-ajax="{% url "api:timesheet-list" %}?format=datatables">
                 <thead>
@@ -55,6 +55,7 @@
 window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#timesheets-list').DataTable( {
+            iDisplayLength: 100,
             columns: [
                 {data: "staff_name", name: "staff__name"},
                 {data: "date", name: "date"},

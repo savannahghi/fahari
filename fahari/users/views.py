@@ -39,6 +39,7 @@ user_update_view = UserUpdateView.as_view()
 class UserRedirectView(LoginRequiredMixin, ApprovedMixin, RedirectView):
 
     permanent = False
+    permission_required = "users.can_view_dashboard"
 
     def get_redirect_url(self):
         return reverse("users:detail", kwargs={"username": self.request.user.username})
