@@ -34,7 +34,7 @@ def email_confirmed_hander(request, email_address, **kwargs):
     LOGGER.debug("handling email confirmed signal for email %s", email_address)
     try:
         user = User.objects.get(email=email_address)
-        if user.is_approved:
+        if user.is_approved or user.approval_notified:
             return False  # do nothing
 
         send_admin_awaiting_approval_email(user)
