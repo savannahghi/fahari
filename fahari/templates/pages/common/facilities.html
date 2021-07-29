@@ -53,6 +53,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#facilities-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: 'name', name: "name"},
                 {data: "mfl_code", name: "mfl_code"},

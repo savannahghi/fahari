@@ -36,7 +36,7 @@ class SystemSerializer(BaseSerializer):
 class FacilityUserSerializer(BaseSerializer):
 
     facility_name = serializers.ReadOnlyField(source="facility.name")
-    user_name = serializers.ReadOnlyField(source="user.name")
+    user_name = serializers.ReadOnlyField(source="user.username")
 
     class Meta(BaseSerializer.Meta):
         model = FacilityUser

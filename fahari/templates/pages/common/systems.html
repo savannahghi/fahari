@@ -50,6 +50,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#systems-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: 'name', name: "name"},
                 {data: "description", name: "description"},

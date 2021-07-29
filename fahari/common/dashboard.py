@@ -16,6 +16,10 @@ def get_fahari_facilities_queryset():
         operation_status="Operational",
         county__in=WHITELIST_COUNTIES,
         active=True,
+    ).order_by(
+        "name",
+        "county",
+        "mfl_code",
     )
 
 

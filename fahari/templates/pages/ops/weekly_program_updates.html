@@ -50,6 +50,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#updates-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: "date", name: "date"},
                 {data: "attendees", name: "attendees"},

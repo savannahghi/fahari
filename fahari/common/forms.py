@@ -2,6 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django.forms import ModelForm, TextInput
 
+from .dashboard import get_fahari_facilities_queryset
 from .models import Facility, FacilityAttachment, FacilityUser, Organisation, System
 
 
@@ -103,6 +104,10 @@ class FacilityAttachmentForm(BaseModelForm):
 
 
 class FacilityUserForm(BaseModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "facility_user_form"
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
 
     field_order = (
         "facility",
