@@ -80,12 +80,6 @@ class FacilitySystemDeleteView(FacilitySystemContextMixin, DeleteView, BaseFormM
 
 
 class FacilitySystemViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_facilitysystem"],
-        "POST": ["ops.add_facilitysystem"],
-        "PATCH": ["ops.change_facilitysystem"],
-        "DELETE": ["ops.delete_facilitysystem"],
-    }
     queryset = FacilitySystem.objects.filter(
         active=True,
     )
@@ -137,12 +131,6 @@ class FacilitySystemTicketDeleteView(FacilitySystemTicketContextMixin, DeleteVie
 
 
 class FacilitySystemTicketViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_facilitysystemticket"],
-        "POST": ["ops.add_facilitysystemticket"],
-        "PATCH": ["ops.change_facilitysystemticket"],
-        "DELETE": ["ops.delete_facilitysystemticket"],
-    }
     queryset = FacilitySystemTicket.objects.filter(
         active=True,
     )
@@ -200,12 +188,6 @@ class StockReceiptVerificationDeleteView(
 
 
 class StockReceiptVerificationViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_stockreceiptverification"],
-        "POST": ["ops.add_stockreceiptverification"],
-        "PATCH": ["ops.change_stockreceiptverification"],
-        "DELETE": ["ops.delete_stockreceiptverification"],
-    }
     queryset = StockReceiptVerification.objects.filter(
         active=True,
     )
@@ -254,12 +236,6 @@ class ActivityLogDeleteView(ActivityLogContextMixin, DeleteView, BaseFormMixin):
 
 
 class ActivityLogViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_activitylog"],
-        "POST": ["ops.add_activitylog"],
-        "PATCH": ["ops.change_activitylog"],
-        "DELETE": ["ops.delete_activitylog"],
-    }
     queryset = ActivityLog.objects.filter(
         active=True,
     )
@@ -310,12 +286,6 @@ class SiteMentorshipDeleteView(SiteMentorshipContextMixin, DeleteView, BaseFormM
 
 
 class SiteMentorshipViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_sitementorship"],
-        "POST": ["ops.add_sitementorship"],
-        "PATCH": ["ops.change_sitementorship"],
-        "DELETE": ["ops.delete_sitementorship"],
-    }
     queryset = SiteMentorship.objects.filter(
         active=True,
     )
@@ -368,12 +338,6 @@ class DailyUpdateDeleteView(DailySiteUpdatesContextMixin, DeleteView, BaseFormMi
 
 
 class DailyUpdateViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_dailyupdate"],
-        "POST": ["ops.add_dailyupdate"],
-        "PATCH": ["ops.change_dailyupdate"],
-        "DELETE": ["ops.delete_dailyupdate"],
-    }
     queryset = DailyUpdate.objects.filter(
         active=True,
     )
@@ -418,12 +382,6 @@ class TimeSheetDeleteView(TimeSheetContextMixin, DeleteView, BaseFormMixin):
 
 
 class TimeSheetViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_timesheet"],
-        "POST": ["ops.add_timesheet"],
-        "PATCH": ["ops.change_timesheet"],
-        "DELETE": ["ops.delete_timesheet"],
-    }
     queryset = TimeSheet.objects.filter(
         active=True,
     )
@@ -480,12 +438,6 @@ class WeeklyProgramUpdatesDeleteView(WeeklyProgramUpdateContextMixin, DeleteView
 
 
 class WeeklyProgramUpdateViewSet(BaseView):
-    permissions = {
-        "GET": ["ops.view_weeklyprogramupdate"],
-        "POST": ["ops.add_weeklyprogramupdate"],
-        "PATCH": ["ops.change_weeklyprogramupdate"],
-        "DELETE": ["ops.delete_weeklyprogramupdate"],
-    }
     queryset = WeeklyProgramUpdate.objects.filter(
         active=True,
     )
