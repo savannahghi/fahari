@@ -11,6 +11,7 @@ from fahari.users.signals import (
     account_confirmed_handler,
     assign_basic_permissions,
     email_confirmed_hander,
+    is_from_whitelist_domain,
     send_admin_awaiting_approval_email,
     send_user_account_approved_email,
     send_user_awaiting_approval_email,
@@ -137,3 +138,16 @@ def test_assign_basic_permission():
     assert len(perms) == len(BASIC_PERMISSIONS)
     for perm in BASIC_PERMISSIONS:
         assert user.has_perm(perm)
+
+
+def test_is_from_whitelist_domain():
+    assert is_from_whitelist_domain("ngure@savannahghi.org") is True
+    assert is_from_whitelist_domain("kalulu@juha.com") is False
+
+
+def test_account_confirmed_handler_newly_created_whitelist_user():
+    user = baker.make(
+        User,
+        email="noreply@savannahghi.org",
+    )
+    assert account_confirmed_handler(User, user, created=True) is None
