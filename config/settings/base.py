@@ -219,8 +219,12 @@ EMAIL_TIMEOUT = 5
 ADMIN_URL = "admin/"
 ADMINS = [
     (
-        """Savannah Informatics Global Health Institute""",
+        "Savannah Informatics Global Health Institute",
         "info@savannahghi.org",
+    ),
+    (
+        "Savannah Informatics Support Team",
+        "feedback@healthcloud.co.ke",
     )
 ]
 MANAGERS = ADMINS
