@@ -67,6 +67,9 @@ class TimeSheet(AbstractBase):
             "staff",
             "date",
         )
+        permissions = [
+            ("can_approve_timesheet", "Can Approve Timesheet"),
+        ]
 
 
 class FacilitySystem(AbstractBase):
@@ -151,6 +154,9 @@ class FacilitySystemTicket(AbstractBase):
             "-raised",
             "-resolved",
         )
+        permissions = [
+            ("can_resolve_ticket", "Can Resolve Ticket"),
+        ]
 
 
 class ActivityLog(AbstractBase):
