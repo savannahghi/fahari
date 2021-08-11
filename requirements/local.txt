@@ -1,6 +1,6 @@
 -r base.txt
 
-Werkzeug~=1.0.1 # https://github.com/pallets/werkzeug
+Werkzeug~=2.0.1 # https://github.com/pallets/werkzeug
 ipdb~=0.13.9  # https://github.com/gotcha/ipdb
 psycopg2~=2.9.1  # https://github.com/psycopg/psycopg2
 watchgod~=0.7  # https://github.com/samuelcolvin/watchgod
@@ -17,7 +17,7 @@ model_bakery~=1.3.2
 
 # Documentation
 # ------------------------------------------------------------------------------
-sphinx~=4.1.1  # https://github.com/sphinx-doc/sphinx
+sphinx~=4.1.2  # https://github.com/sphinx-doc/sphinx
 sphinx-autobuild~=2021.3.14 # https://github.com/GaretJax/sphinx-autobuild
 
 # Code quality
@@ -27,9 +27,9 @@ flake8-isort~=4.0.0  # https://github.com/gforcada/flake8-isort
 coverage~=5.5  # https://github.com/nedbat/coveragepy
 black~=21.6b0  # https://github.com/psf/black
 pylint-django~=2.4.4  # https://github.com/PyCQA/pylint-django
-pre-commit~=2.13.0  # https://github.com/pre-commit/pre-commit
-Faker~=8.10.1
-pylint>=2.9.5
+pre-commit~=2.14.0  # https://github.com/pre-commit/pre-commit
+Faker~=8.11.0
+pylint>=2.9.6
 
 # Django
 # ------------------------------------------------------------------------------
@@ -40,13 +40,13 @@ django-coverage-plugin~=2.0.0  # https://github.com/nedbat/django_coverage_plugi
 pytest-django~=4.4.0  # https://github.com/pytest-dev/pytest-django
 
 # mypy type definitions
-types-pytz>=2021.1.0
-types-python-dateutil>=0.1.4
+types-pytz>=2021.1.2
+types-python-dateutil>=0.1.6
 types-ujson>=0.1.1
-types-six>=0.1.7
+types-six>=1.16.0
 types-certifi>=0.1.4
 types-futures>=0.1.6
-types-protobuf>=3.17.3
-types-setuptools>=57.0.0
-types-toml>=0.1.3
-types_requests>=2.25.0
+types-protobuf>=3.17.4
+types-setuptools>=57.0.2
+types-toml>=0.1.5
+types_requests>=2.25.6
