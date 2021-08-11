@@ -1,4 +1,4 @@
-from django.forms.widgets import DateTimeInput, TextInput
+from django.forms.widgets import DateTimeInput, Select, TextInput
 
 from fahari.common.dashboard import get_fahari_facilities_queryset
 from fahari.common.forms import BaseModelForm
@@ -70,6 +70,7 @@ class FacilitySystemTicketForm(BaseModelForm):
             ),
             "resolved": DateTimeInput(
                 attrs={
+                    "readonly": "readonly",
                     "disabled": True,
                 }
             ),
@@ -256,6 +257,14 @@ class TimeSheetForm(BaseModelForm):
             "approved_at": TextInput(
                 attrs={
                     "type": "datetime-local",
+                    "readonly": "readonly",
+                    "disabled": "disabled",
+                }
+            ),
+            "approved_by": Select(
+                attrs={
+                    "readonly": "readonly",
+                    "disabled": "disabled",
                 }
             ),
         }
