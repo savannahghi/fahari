@@ -134,6 +134,10 @@ class FacilitySystemTicket(AbstractBase):
             + f"Version: {self.facility_system.version}"
         )
 
+    @property
+    def is_resolved(self):
+        return self.resolved is not None
+
     def get_absolute_url(self):
         update_url = reverse_lazy("ops:ticket_update", kwargs={"pk": self.pk})
         return update_url

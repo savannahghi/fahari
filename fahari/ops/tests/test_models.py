@@ -63,6 +63,27 @@ def test_facility_system_ticket_str():
     )
 
 
+def test_facility_system_ticket_is_resolved():
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name="Test")
+    system = baker.make(System, organisation=org, name="System")
+    vrs = "0.0.1"
+    facility_system = baker.make(
+        FacilitySystem,
+        facility=facility,
+        system=system,
+        version=vrs,
+    )
+    facility_system_details = baker.make(
+        FacilitySystemTicket,
+        facility_system=facility_system,
+        details="Details",
+        resolved=timezone.now(),
+        resolved_by="User",
+    )
+    assert facility_system_details.is_resolved is True
+
+
 def test_facility_ticket_status(staff_user):
     open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
     assert open_ticket.is_open is True

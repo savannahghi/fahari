@@ -1,8 +1,17 @@
+import uuid
+
 import pytest
 from django.urls import reverse
+from model_bakery import baker
 from rest_framework import status
 
-from fahari.ops.views import FacilitySystemsView, FacilitySystemTicketsView
+from fahari.ops.models import FacilitySystemTicket, TimeSheet
+from fahari.ops.views import (
+    FacilitySystemsView,
+    FacilitySystemTicketResolveView,
+    FacilitySystemTicketsView,
+    TimeSheetApproveView,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -75,3 +84,41 @@ def test_tickets_context_data():
     ctx = v.get_context_data()
     assert ctx["active"] == "facilities-nav"
     assert ctx["selected"] == "tickets"
+
+
+def test_timesheet_approve_view_happy_case(request_with_user):
+    assert request_with_user.user is not None
+    timesheet = baker.make(TimeSheet, approved_by=None, approved_at=None)
+    view = TimeSheetApproveView()
+    resp = view.post(request_with_user, pk=timesheet.pk)
+    assert resp.status_code == 302
+
+    timesheet.refresh_from_db()
+    assert timesheet.approved_by is not None
+    assert timesheet.approved_at is not None
+
+
+def test_timesheet_approve_view_error_case(request_with_user):
+    fake_pk = uuid.uuid4()
+    view = TimeSheetApproveView()
+    resp = view.post(request_with_user, pk=fake_pk)
+    assert resp.status_code == 200  # page re-rendered with an error
+
+
+def test_ticket_resolve_view_happy_case(request_with_user):
+    assert request_with_user.user is not None
+    open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
+    view = FacilitySystemTicketResolveView()
+    resp = view.post(request_with_user, pk=open_ticket.pk)
+    assert resp.status_code == 302
+
+    open_ticket.refresh_from_db()
+    assert open_ticket.resolved is not None
+    assert open_ticket.resolved_by is not None
+
+
+def test_ticket_resolve_view_error_case(request_with_user):
+    fake_pk = uuid.uuid4()
+    view = FacilitySystemTicketResolveView()
+    resp = view.post(request_with_user, pk=fake_pk)
+    assert resp.status_code == 200  # page re-rendered with an error
