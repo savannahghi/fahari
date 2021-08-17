@@ -1,0 +1,42 @@
+
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+    Resolve Ticket
+{% endblock title %}
+{% block content %}
+<a href="{% url 'ops:tickets' %}">&larr; Back</a>
+{% if errors %}
+<div class="alert alert-error">
+    <ul>
+        {% for error in errors %}
+            <li>{{error}}</li>
+        {% endfor %}
+    </ul>
+ </div>
+{% endif %}
+<div class="row">
+    <div class="col-xl-10 col-lg-12 col-md-9 col-sm-10">
+        <div class="card o-hidden border-0 shadow my-1">
+            <div class="card-body p-0">
+                <div class="row">
+                    <div class="col-lg-2 d-none d-lg-block">
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="p-5">
+                            <div class="text-left">
+                                <h1 class="h4 text-gray-900 mb-4">Confirm Resolve</h1>
+                            </div>
+                            <form method="post">
+                                {% csrf_token %}
+                                <p>Are you sure you want to resolve this ticket?</p>
+                                <input class="btn btn-outline-primary btn-lg" type="submit" value="Resolve">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

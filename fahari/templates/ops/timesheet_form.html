@@ -21,6 +21,15 @@
                                     <span class="text">Delete Time Sheet</span>
                                 </a>
                             {% endif %}
+
+                            {% if perms.ops.can_approve_timesheet and not object.is_approved %}
+                                <a href="{% url 'ops:timesheet_approve' object.pk %}" class="btn btn-secondary btn-icon-split">
+                                    <span class="icon text-white-50">
+                                        <i class="fas fa-thumbs-up"></i>
+                                    </span>
+                                    <span class="text">Approve Time Sheet</span>
+                                </a>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

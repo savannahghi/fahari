@@ -1,4 +1,5 @@
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import Group, Permission
 from model_bakery import baker
 
@@ -53,3 +54,12 @@ def user_with_group(user, group_with_all_permissions) -> User:
     user.groups.add(group_with_all_permissions)
     user.save()
     return user
+
+
+@pytest.fixture
+def request_with_user(rf, django_user_model):
+    url = settings.ADMIN_URL + "/common/organisation/add/"
+    request = rf.get(url)
+    user = baker.make(django_user_model)
+    request.user = user
+    return request

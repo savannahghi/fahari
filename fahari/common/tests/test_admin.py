@@ -1,5 +1,4 @@
 import pytest
-from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from model_bakery import baker
 
@@ -8,15 +7,6 @@ from fahari.common.forms import OrganisationForm
 from fahari.common.models import Organisation
 
 pytestmark = pytest.mark.django_db
-
-
-@pytest.fixture
-def request_with_user(rf, django_user_model):
-    url = settings.ADMIN_URL + "/common/organisation/add/"
-    request = rf.get(url)
-    user = baker.make(django_user_model)
-    request.user = user
-    return request
 
 
 @pytest.fixture

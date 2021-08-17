@@ -1,5 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 
 from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView
@@ -128,6 +132,25 @@ class FacilitySystemTicketDeleteView(FacilitySystemTicketContextMixin, DeleteVie
     form_class = FacilitySystemTicketForm
     model = FacilitySystemTicket
     success_url = reverse_lazy("ops:tickets")
+
+
+class FacilitySystemTicketResolveView(
+    FacilitySystemTicketContextMixin,
+    TemplateView,
+):
+    template_name = "ops/ticket_resolve.html"
+    success_url = reverse_lazy("ops:tickets")
+
+    def post(self, request, *args, **kwargs):
+        try:
+            pk = kwargs["pk"]
+            ticket = FacilitySystemTicket.objects.get(pk=pk)
+            ticket.resolved_by = str(request.user)
+            ticket.resolved = timezone.now()
+            ticket.save()
+            return HttpResponseRedirect(self.success_url)
+        except (FacilitySystemTicket.DoesNotExist, ValidationError, KeyError) as e:
+            return render(request, self.template_name, {"errors": [e]})
 
 
 class FacilitySystemTicketViewSet(BaseView):
@@ -379,6 +402,22 @@ class TimeSheetDeleteView(TimeSheetContextMixin, DeleteView, BaseFormMixin):
     form_class = TimeSheetForm
     model = TimeSheet
     success_url = reverse_lazy("ops:timesheets")
+
+
+class TimeSheetApproveView(TimeSheetContextMixin, TemplateView):
+    template_name = "ops/timesheet_approve.html"
+    success_url = reverse_lazy("ops:timesheets")
+
+    def post(self, request, *args, **kwargs):
+        try:
+            pk = kwargs["pk"]
+            timesheet = TimeSheet.objects.get(pk=pk)
+            timesheet.approved_by = request.user
+            timesheet.approved_at = timezone.now()
+            timesheet.save()
+            return HttpResponseRedirect(self.success_url)
+        except (TimeSheet.DoesNotExist, ValidationError, KeyError) as e:
+            return render(request, self.template_name, {"errors": [e]})
 
 
 class TimeSheetViewSet(BaseView):

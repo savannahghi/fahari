@@ -14,6 +14,7 @@ from .views import (
     FacilitySystemsView,
     FacilitySystemTicketCreateView,
     FacilitySystemTicketDeleteView,
+    FacilitySystemTicketResolveView,
     FacilitySystemTicketsView,
     FacilitySystemTicketUpdateView,
     FacilitySystemUpdateView,
@@ -25,6 +26,7 @@ from .views import (
     StockReceiptVerificationDeleteView,
     StockReceiptVerificationUpdateView,
     StockReceiptVerificationView,
+    TimeSheetApproveView,
     TimeSheetCreateView,
     TimeSheetDeleteView,
     TimeSheetsView,
@@ -68,6 +70,11 @@ urlpatterns = [
         "ticket_delete/<pk>",
         view=FacilitySystemTicketDeleteView.as_view(),
         name="ticket_delete",
+    ),
+    path(
+        "ticket_resolve/<pk>",
+        view=FacilitySystemTicketResolveView.as_view(),
+        name="ticket_resolve",
     ),
     path("activity_logs", view=ActivityLogView.as_view(), name="activity_logs"),
     path(
@@ -156,6 +163,11 @@ urlpatterns = [
         "timesheet_delete/<pk>",
         view=TimeSheetDeleteView.as_view(),
         name="timesheet_delete",
+    ),
+    path(
+        "timesheet_approve/<pk>",
+        view=TimeSheetApproveView.as_view(),
+        name="timesheet_approve",
     ),
     path(
         "stock_receipt_verifications",
