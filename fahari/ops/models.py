@@ -7,9 +7,13 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse_lazy
 from django.utils import timezone
 
-from fahari.common.models import AbstractBase, Facility, System
+from fahari.common.models import AbstractBase, Facility, Organisation, System
+from fahari.users.models import default_organisation
 
 User = get_user_model()
+
+DEFAULT_COMMODITY_CODE = "DEFAULT_CODE"
+DEFAULT_COMMODITY_NAME = "Default Commodity"
 
 
 def default_start_time():
@@ -18,6 +22,31 @@ def default_start_time():
 
 def default_end_time():
     return time(hour=18, minute=0, second=0, microsecond=0, tzinfo=timezone.get_current_timezone())
+
+
+def default_commodity():
+    """The commodity FK in the stock receipt model was introduced late.
+
+    In order for migrations on the existing database to work, this function
+    (used as a default callable on the field) initializes a sensible default
+    for existing rows.
+    """
+
+    org_pk = default_organisation()
+    org = Organisation.objects.get(pk=org_pk)
+
+    try:
+        com = Commodity.objects.get(code=DEFAULT_COMMODITY_CODE)
+        return com.pk
+    except Commodity.DoesNotExist:
+        com, _ = Commodity.objects.get_or_create(
+            code=DEFAULT_COMMODITY_CODE,
+            name=DEFAULT_COMMODITY_NAME,
+            defaults={
+                "organisation": org,
+            },
+        )
+        return com.pk
 
 
 class TimeSheet(AbstractBase):
@@ -287,9 +316,21 @@ class DailyUpdate(AbstractBase):
         )
 
 
+class Commodity(AbstractBase):
+    """Model to record lab and pharmacy commodity names and codes."""
+
+    name = models.CharField(max_length=128, null=False, blank=False, unique=True)
+    code = models.CharField(max_length=64, null=False, blank=False, unique=True)
+    description = models.TextField(default="-", null=False, blank=False)
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.code})"
+
+
 class StockReceiptVerification(AbstractBase):
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    description = models.TextField()
+    commodity = models.ForeignKey(Commodity, on_delete=models.PROTECT, default=default_commodity)
+    description = models.TextField(default="-")
     pack_size = models.TextField()
     delivery_note_number = models.CharField(max_length=64)
     quantity_received = models.DecimalField(max_digits=10, decimal_places=4)

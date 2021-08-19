@@ -11,6 +11,7 @@ from fahari.common.models import Facility, Organisation, System
 from fahari.ops.models import (
     Activity,
     ActivityLog,
+    Commodity,
     DailyUpdate,
     FacilitySystem,
     FacilitySystemTicket,
@@ -19,6 +20,7 @@ from fahari.ops.models import (
     StockReceiptVerification,
     TimeSheet,
     WeeklyProgramUpdate,
+    default_commodity,
     default_end_time,
     default_start_time,
 )
@@ -205,3 +207,15 @@ def test_string_reprs():
     for model in models:
         instance = baker.prepare(model)
         assert str(instance) != ""
+
+
+def test_default_commodity():
+    first = default_commodity()
+    subsequent = default_commodity()
+
+    assert first == subsequent
+
+
+def test_commodity_str():
+    commodity = baker.make(Commodity, name="Test", code="001")
+    assert str(commodity) == "Test (001)"
