@@ -80,6 +80,7 @@ class FacilitySystemTicketForm(BaseModelForm):
 class StockReceiptVerificationForm(BaseModelForm):
     field_order = (
         "facility",
+        "commodity",
         "description",
         "pack_size",
         "delivery_note_number",

@@ -21,6 +21,7 @@ from fahari.ops.models import (
     StockReceiptVerification,
     TimeSheet,
     WeeklyProgramUpdate,
+    default_commodity,
 )
 
 fake = Faker()
@@ -381,6 +382,7 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
             county=random.choice(WHITELIST_COUNTIES),
             organisation=self.global_organisation,
         )
+        self.default_commodity = default_commodity()
         super().setUp()
 
     def test_create(self):
@@ -394,9 +396,11 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
             "expiry_date": date.today().isoformat(),
             "comments": fake.text(),
             "organisation": self.global_organisation.pk,
+            "commodity": self.default_commodity,
             "active": False,
         }
         response = self.client.post(reverse("ops:stock_receipt_verification_create"), data=data)
+        print(response.content)
         self.assertEqual(
             response.status_code,
             302,
@@ -419,6 +423,7 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
             "expiry_date": date.today().isoformat(),
             "comments": fake.text(),
             "organisation": self.global_organisation.pk,
+            "commodity": self.default_commodity,
             "active": False,
         }
         response = self.client.post(
