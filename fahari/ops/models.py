@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.utils import IntegrityError, InternalError, ProgrammingError
 from django.urls import reverse_lazy
 from django.utils import timezone
 
@@ -12,8 +14,9 @@ from fahari.users.models import default_organisation
 
 User = get_user_model()
 
-DEFAULT_COMMODITY_CODE = "DEFAULT_CODE"
-DEFAULT_COMMODITY_NAME = "Default Commodity"
+DEFAULT_COMMODITY_CODE = "OTHER"
+DEFAULT_COMMODITY_NAME = "Other (please specify)"
+DEFAULT_COMMODITY_PK = "bb5043a6-2a3d-4dea-95d1-72e7e0d274cf"
 
 
 def default_start_time():
@@ -31,22 +34,23 @@ def default_commodity():
     (used as a default callable on the field) initializes a sensible default
     for existing rows.
     """
-
-    org_pk = default_organisation()
-    org = Organisation.objects.get(pk=org_pk)
-
     try:
-        com = Commodity.objects.get(code=DEFAULT_COMMODITY_CODE)
-        return com.pk
-    except Commodity.DoesNotExist:
-        com, _ = Commodity.objects.get_or_create(
-            code=DEFAULT_COMMODITY_CODE,
-            name=DEFAULT_COMMODITY_NAME,
-            defaults={
-                "organisation": org,
-            },
-        )
-        return com.pk
+        org_pk = default_organisation()
+        org = Organisation.objects.get(pk=org_pk)
+        with transaction.atomic():
+            com, _ = Commodity.objects.get_or_create(
+                code=DEFAULT_COMMODITY_CODE,
+                defaults={
+                    "organisation": org,
+                    "pk": DEFAULT_COMMODITY_PK,
+                    "name": DEFAULT_COMMODITY_NAME,
+                },
+            )
+            return com.pk
+    except (ProgrammingError, InternalError, IntegrityError):  # pragma: nocover  # pragma: noqa
+        # this allows migrations against empty databases to work
+        # it also allows migrations against existing databases to work
+        return DEFAULT_COMMODITY_PK
 
 
 class TimeSheet(AbstractBase):
@@ -322,9 +326,14 @@ class Commodity(AbstractBase):
     name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     code = models.CharField(max_length=64, null=False, blank=False, unique=True)
     description = models.TextField(default="-", null=False, blank=False)
+    is_lab_commodity = models.BooleanField(default=False)
+    is_pharmacy_commodity = models.BooleanField(default=False)
 
     def __str__(self) -> str:
         return f"{self.name} ({self.code})"
+
+    class Meta(AbstractBase.Meta):
+        verbose_name_plural = "commodities"
 
 
 class StockReceiptVerification(AbstractBase):
@@ -335,6 +344,7 @@ class StockReceiptVerification(AbstractBase):
     delivery_note_number = models.CharField(max_length=64)
     quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
     batch_number = models.CharField(max_length=64)
+    delivery_date = models.DateField(default=timezone.datetime.today)
     expiry_date = models.DateField(default=timezone.datetime.today)
     comments = models.TextField()
 
