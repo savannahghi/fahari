@@ -10,7 +10,6 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 
 from fahari.common.models import AbstractBase, Facility, Organisation, System
-from fahari.users.models import default_organisation
 
 User = get_user_model()
 
@@ -39,7 +38,7 @@ def default_commodity():
             com, _ = Commodity.objects.get_or_create(
                 code=DEFAULT_COMMODITY_CODE,
                 defaults={
-                    "organisation": Organisation.objects.get(pk=default_organisation()),
+                    "organisation": Organisation.objects.first(),
                     "pk": DEFAULT_COMMODITY_PK,
                     "name": DEFAULT_COMMODITY_NAME,
                 },
