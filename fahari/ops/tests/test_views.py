@@ -7,6 +7,7 @@ from rest_framework import status
 
 from fahari.ops.models import FacilitySystemTicket, TimeSheet
 from fahari.ops.views import (
+    CommoditiesListView,
     FacilitySystemsView,
     FacilitySystemTicketResolveView,
     FacilitySystemTicketsView,
@@ -122,3 +123,10 @@ def test_ticket_resolve_view_error_case(request_with_user):
     view = FacilitySystemTicketResolveView()
     resp = view.post(request_with_user, pk=fake_pk)
     assert resp.status_code == 200  # page re-rendered with an error
+
+
+def test_commodities_context_data():
+    v = CommoditiesListView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "program-nav"
+    assert ctx["selected"] == "commodities"

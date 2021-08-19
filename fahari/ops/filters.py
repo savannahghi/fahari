@@ -4,6 +4,7 @@ from fahari.common.filters import CommonFieldsFilterset
 
 from .models import (
     ActivityLog,
+    Commodity,
     DailyUpdate,
     FacilitySystem,
     FacilitySystemTicket,
@@ -92,3 +93,17 @@ class WeeklyProgramUpdateFilter(CommonFieldsFilterset):
 
         model = WeeklyProgramUpdate
         fields = ("date",)
+
+
+class CommodityFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = Commodity
+        fields = (
+            "name",
+            "code",
+            "description",
+        )

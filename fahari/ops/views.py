@@ -10,6 +10,7 @@ from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView
 
 from .filters import (
     ActivityLogFilter,
+    CommodityFilter,
     DailyUpdateFilter,
     FacilitySystemFilter,
     FacilitySystemTicketFilter,
@@ -20,6 +21,7 @@ from .filters import (
 )
 from .forms import (
     ActivityLogForm,
+    CommodityForm,
     DailyUpdateForm,
     FacilitySystemForm,
     FacilitySystemTicketForm,
@@ -30,6 +32,7 @@ from .forms import (
 )
 from .models import (
     ActivityLog,
+    Commodity,
     DailyUpdate,
     FacilitySystem,
     FacilitySystemTicket,
@@ -40,6 +43,7 @@ from .models import (
 )
 from .serializers import (
     ActivityLogSerializer,
+    CommoditySerializer,
     DailyUpdateSerializer,
     FacilitySystemSerializer,
     FacilitySystemTicketSerializer,
@@ -486,4 +490,52 @@ class WeeklyProgramUpdateViewSet(BaseView):
     search_fields = (
         "activity__name",
         "comments",
+    )
+
+
+class CommodityContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "commodities"  # id of selected page
+        return context
+
+
+class CommoditiesListView(CommodityContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/ops/commodities.html"
+    permission_required = ("ops.view_commodity",)
+
+
+class CommodityCreateView(CommodityContextMixin, BaseFormMixin, CreateView):
+    form_class = CommodityForm
+    model = Commodity
+    success_url = reverse_lazy("ops:commodities")
+
+
+class CommodityUpdateView(CommodityContextMixin, UpdateView, BaseFormMixin):
+    form_class = CommodityForm
+    model = Commodity
+    success_url = reverse_lazy("ops:commodities")
+
+
+class CommodityDeleteView(CommodityContextMixin, DeleteView, BaseFormMixin):
+    form_class = CommodityForm
+    model = Commodity
+    success_url = reverse_lazy("ops:commodities")
+
+
+class CommodityViewSet(BaseView):
+    queryset = Commodity.objects.filter(
+        active=True,
+    )
+    serializer_class = CommoditySerializer
+    filterset_class = CommodityFilter
+    ordering_fields = (
+        "name",
+        "code",
+    )
+    search_fields = (
+        "name",
+        "code",
+        "description",
     )

@@ -35,13 +35,11 @@ def default_commodity():
     for existing rows.
     """
     try:
-        org_pk = default_organisation()
-        org = Organisation.objects.get(pk=org_pk)
         with transaction.atomic():
             com, _ = Commodity.objects.get_or_create(
                 code=DEFAULT_COMMODITY_CODE,
                 defaults={
-                    "organisation": org,
+                    "organisation": Organisation.objects.get(pk=default_organisation()),
                     "pk": DEFAULT_COMMODITY_PK,
                     "name": DEFAULT_COMMODITY_NAME,
                 },
@@ -331,6 +329,10 @@ class Commodity(AbstractBase):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.code})"
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:commodity_update", kwargs={"pk": self.pk})
+        return update_url
 
     class Meta(AbstractBase.Meta):
         verbose_name_plural = "commodities"
