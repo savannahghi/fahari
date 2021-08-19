@@ -18,7 +18,19 @@ class TimeSheetAdmin(BaseAdmin):
 
 
 class CommodityAdmin(BaseAdmin):
-    pass
+
+    list_display = (
+        "name",
+        "code",
+        "description",
+        "is_lab_commodity",
+        "is_pharmacy_commodity",
+    )
+    list_filter = (
+        "is_lab_commodity",
+        "is_pharmacy_commodity",
+        "active",
+    )
 
 
 admin.site.register(FacilitySystem, FacilitySystemAdmin)

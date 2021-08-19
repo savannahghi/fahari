@@ -46,7 +46,7 @@ DATABASES = {
         "PORT": env.str("POSTGRES_PORT", None),
         "ENGINE": "django.contrib.gis.db.backends.postgis",
         "ATOMIC_REQUESTS": True,
-    }
+    },
 }
 
 # URLS

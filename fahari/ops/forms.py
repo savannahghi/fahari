@@ -86,6 +86,7 @@ class StockReceiptVerificationForm(BaseModelForm):
         "delivery_note_number",
         "quantity_received",
         "batch_number",
+        "delivery_date",
         "expiry_date",
         "comments",
         "active",

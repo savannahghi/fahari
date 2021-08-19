@@ -9,6 +9,7 @@ from model_bakery import baker
 
 from fahari.common.models import Facility, Organisation, System
 from fahari.ops.models import (
+    DEFAULT_COMMODITY_PK,
     Activity,
     ActivityLog,
     Commodity,
@@ -163,7 +164,7 @@ def test_timesheet_validate_approval(user, staff_user):
     assert "approved_at and approved_by must both be set" in str(e)
 
 
-def test_facility_ticket_validate_resolved(staff_user):
+def test_facility_ticket_validate_resolved():
     with pytest.raises(ValidationError) as e:
         bad_ticket_resolve = baker.prepare(
             FacilitySystemTicket, resolved=timezone.now(), resolved_by=None
@@ -214,6 +215,7 @@ def test_default_commodity():
     subsequent = default_commodity()
 
     assert first == subsequent
+    assert str(first) == DEFAULT_COMMODITY_PK
 
 
 def test_commodity_str():

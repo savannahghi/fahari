@@ -13,12 +13,9 @@ DEFAULT_ORG_CODE = 1
 
 
 def default_organisation():
-    from fahari.common.models import Organisation  # noqa
-
     try:
-        org = Organisation.objects.get(code=DEFAULT_ORG_CODE)
-        return org.pk
-    except Organisation.DoesNotExist:
+        from fahari.common.models import Organisation  # intentional late imoort
+
         org, _ = Organisation.objects.get_or_create(
             code=DEFAULT_ORG_CODE,
             id=DEFAULT_ORG_ID,
@@ -29,7 +26,7 @@ def default_organisation():
             },
         )
         return org.pk
-    except ProgrammingError:  # pragma: nocover
+    except (ProgrammingError, Exception):  # pragma: nocover
         # this will occur during initial migrations on a clean db
         return DEFAULT_ORG_ID
 
