@@ -5,6 +5,10 @@ from .views import (
     ActivityLogDeleteView,
     ActivityLogUpdateView,
     ActivityLogView,
+    CommoditiesListView,
+    CommodityCreateView,
+    CommodityDeleteView,
+    CommodityUpdateView,
     DailySiteUpdatesView,
     DailyUpdateCreateView,
     DailyUpdateDeleteView,
@@ -188,5 +192,21 @@ urlpatterns = [
         "stock_receipt_verification_delete/<pk>",
         view=StockReceiptVerificationDeleteView.as_view(),
         name="stock_receipt_verification_delete",
+    ),
+    path("commodities", view=CommoditiesListView.as_view(), name="commodities"),
+    path(
+        "commodity_create",
+        view=CommodityCreateView.as_view(),
+        name="commodity_create",
+    ),
+    path(
+        "commodity_update/<pk>",
+        view=CommodityUpdateView.as_view(),
+        name="commodity_update",
+    ),
+    path(
+        "commodity_delete/<pk>",
+        view=CommodityDeleteView.as_view(),
+        name="commodity_delete",
     ),
 ]

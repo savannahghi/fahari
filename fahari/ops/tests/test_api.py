@@ -14,6 +14,7 @@ from fahari.common.models import Facility, System
 from fahari.common.tests.test_api import LoggedInMixin
 from fahari.ops.models import (
     ActivityLog,
+    Commodity,
     DailyUpdate,
     FacilitySystem,
     FacilitySystemTicket,
@@ -1116,6 +1117,122 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
         )
         response = self.client.post(
             reverse("ops:weekly_program_updates_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class CommodityViewsetTest(LoggedInMixin, APITestCase):
+    def setUp(self):
+        self.url_list = reverse("api:commodity-list")
+        self.detail_url_name = "api:commodity-detail"
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "name": fake.name()[:127],
+            "code": fake.name()[:64],
+            "description": fake.text(),
+            "is_lab_commodity": random.choice([True, False]),
+            "is_pharmacy_commodity": random.choice([True, False]),
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(self.url_list, data)
+        assert response.status_code == 201, response.json()
+        assert response.data["code"] == data["code"]
+
+    def test_retrieve(self):
+        instance = baker.make(
+            Commodity,
+            organisation=self.global_organisation,
+        )
+        response = self.client.get(self.url_list)
+        assert response.status_code == 200, response.json()
+        assert response.data["count"] >= 1, response.json()
+
+        ids = [a["id"] for a in response.data["results"]]
+        assert str(instance.pk) in ids
+
+    def test_patch(self):
+        instance = baker.make(
+            Commodity,
+            organisation=self.global_organisation,
+        )
+        edit = {"active": False}
+        url = reverse(self.detail_url_name, kwargs={"pk": instance.pk})
+        response = self.client.patch(url, edit)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["active"] == edit["active"]
+
+    def test_put(self):
+        instance = baker.make(
+            Commodity,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "name": fake.name()[:127],
+            "code": fake.name()[:64],
+            "description": fake.text(),
+            "is_lab_commodity": random.choice([True, False]),
+            "is_pharmacy_commodity": random.choice([True, False]),
+            "organisation": self.global_organisation.pk,
+            "active": False,
+        }
+        url = reverse(self.detail_url_name, kwargs={"pk": instance.pk})
+        response = self.client.put(url, data)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["active"] == data["active"]
+
+
+class CommodityFormTest(LoggedInMixin, TestCase):
+    def test_create(self):
+        data = {
+            "name": fake.name()[:127],
+            "code": fake.name()[:64],
+            "description": fake.text(),
+            "is_lab_commodity": random.choice([True, False]),
+            "is_pharmacy_commodity": random.choice([True, False]),
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(reverse("ops:commodity_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance = baker.make(
+            Commodity,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "name": fake.name()[:127],
+            "code": fake.name()[:64],
+            "description": fake.text(),
+            "is_lab_commodity": random.choice([True, False]),
+            "is_pharmacy_commodity": random.choice([True, False]),
+            "organisation": self.global_organisation.pk,
+            "active": False,
+        }
+        response = self.client.post(
+            reverse("ops:commodity_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance = baker.make(
+            Commodity,
+            organisation=self.global_organisation,
+        )
+        response = self.client.post(
+            reverse("ops:commodity_delete", kwargs={"pk": instance.pk}),
         )
         self.assertEqual(
             response.status_code,

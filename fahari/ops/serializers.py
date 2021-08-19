@@ -4,6 +4,7 @@ from fahari.common.serializers import BaseSerializer
 
 from .models import (
     ActivityLog,
+    Commodity,
     DailyUpdate,
     FacilitySystem,
     FacilitySystemTicket,
@@ -80,4 +81,10 @@ class TimeSheetSerializer(BaseSerializer):
 class WeeklyProgramUpdateSerializer(BaseSerializer):
     class Meta(BaseSerializer.Meta):
         model = WeeklyProgramUpdate
+        fields = "__all__"
+
+
+class CommoditySerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = Commodity
         fields = "__all__"

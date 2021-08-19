@@ -5,6 +5,7 @@ from fahari.common.forms import BaseModelForm
 
 from .models import (
     ActivityLog,
+    Commodity,
     DailyUpdate,
     FacilitySystem,
     FacilitySystemTicket,
@@ -285,3 +286,22 @@ class WeeklyProgramUpdateForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = WeeklyProgramUpdate
+
+
+class CommodityForm(BaseModelForm):
+
+    field_order = [
+        "name",
+        "code",
+        "description",
+        "is_lab_commodity",
+        "is_pharmacy_commodity",
+        "active",
+    ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "commodity_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = Commodity

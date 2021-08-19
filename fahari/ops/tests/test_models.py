@@ -221,3 +221,13 @@ def test_default_commodity():
 def test_commodity_str():
     commodity = baker.make(Commodity, name="Test", code="001")
     assert str(commodity) == "Test (001)"
+
+
+def test_commodity_url():
+    commodity = baker.make(
+        Commodity,
+        name="Test",
+        code="001",
+    )
+    url = commodity.get_absolute_url()
+    assert f"/ops/commodity_update/{commodity.pk}" in url
