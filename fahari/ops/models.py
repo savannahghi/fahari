@@ -389,6 +389,7 @@ class WeeklyProgramUpdate(AbstractBase):
         models.TextField(),
         help_text="Use commas to separate attendees names",
     )
+    notes = models.TextField(default="-")
 
     def __str__(self) -> str:
         return f"Weekly update: {self.date}, attended by {self.attendees}"

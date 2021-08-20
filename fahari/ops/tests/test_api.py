@@ -1027,6 +1027,7 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
             "date": date.today().isoformat(),
             "attendees": json.dumps([fake.name(), fake.name()]),
             "organisation": self.global_organisation.pk,
+            "description": "-",
         }
         response = self.client.post(self.url_list, data)
         assert response.status_code == 201, response.json()
@@ -1083,6 +1084,7 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
             "date": date.today().isoformat(),
             "attendees": json.dumps([fake.name(), fake.name()]),
             "organisation": self.global_organisation.pk,
+            "notes": "-",
         }
         response = self.client.post(reverse("ops:weekly_program_updates_create"), data=data)
         self.assertEqual(
@@ -1100,6 +1102,7 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
             "date": date.today().isoformat(),
             "attendees": f"{fake.name()},{fake.name()}",
             "organisation": self.global_organisation.pk,
+            "notes": "-",
         }
         response = self.client.post(
             reverse("ops:weekly_program_updates_update", kwargs={"pk": instance.pk}), data=data
