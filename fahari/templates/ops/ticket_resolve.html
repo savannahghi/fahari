@@ -27,11 +27,7 @@
                             <div class="text-left">
                                 <h1 class="h4 text-gray-900 mb-4">Confirm Resolve</h1>
                             </div>
-                            <form method="post">
-                                {% csrf_token %}
-                                <p>Are you sure you want to resolve this ticket?</p>
-                                <input class="btn btn-outline-primary btn-lg" type="submit" value="Resolve">
-                            </form>
+                            {% crispy form %}
                         </div>
                     </div>
                 </div>

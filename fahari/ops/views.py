@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
@@ -5,6 +7,8 @@ from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
+from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
+from django.views.generic.edit import FormMixin, ProcessFormView
 
 from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView
 
@@ -25,6 +29,7 @@ from .forms import (
     DailyUpdateForm,
     FacilitySystemForm,
     FacilitySystemTicketForm,
+    FacilitySystemTicketResolveForm,
     SiteMentorshipForm,
     StockReceiptVerificationForm,
     TimeSheetForm,
@@ -140,21 +145,35 @@ class FacilitySystemTicketDeleteView(FacilitySystemTicketContextMixin, DeleteVie
 
 class FacilitySystemTicketResolveView(
     FacilitySystemTicketContextMixin,
-    TemplateView,
+    ProcessFormView,
+    FormMixin,
+    SingleObjectMixin,
+    SingleObjectTemplateResponseMixin,
 ):
+    form_class = FacilitySystemTicketResolveForm
+    model = FacilitySystemTicket
     template_name = "ops/ticket_resolve.html"
     success_url = reverse_lazy("ops:tickets")
 
-    def post(self, request, *args, **kwargs):
-        try:
-            pk = kwargs["pk"]
-            ticket = FacilitySystemTicket.objects.get(pk=pk)
-            ticket.resolved_by = str(request.user)
-            ticket.resolved = timezone.now()
-            ticket.save()
-            return HttpResponseRedirect(self.success_url)
-        except (FacilitySystemTicket.DoesNotExist, ValidationError, KeyError) as e:
-            return render(request, self.template_name, {"errors": [e]})
+    def form_valid(self, form):
+        ticket: FacilitySystemTicket = cast(FacilitySystemTicket, self.get_object())
+        ticket.resolved_by = str(self.request.user)
+        ticket.resolved = timezone.now()
+        ticket.resolve_note = form.cleaned_data["resolve_note"]
+        ticket.save()
+        return super().form_valid(form)
+
+    def get(self, request, *args, **kwargs):
+        # noinspection PyAttributeOutsideInit
+        self.object = self.get_object()
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        ticket: FacilitySystemTicket = cast(FacilitySystemTicket, self.get_object())
+        initial.update({"resolve_note": ticket.resolve_note})
+        return initial
 
 
 class FacilitySystemTicketViewSet(BaseView):

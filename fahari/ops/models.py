@@ -149,6 +149,7 @@ class FacilitySystemTicket(AbstractBase):
     raised_by = models.TextField()
     resolved = models.DateTimeField(null=True, blank=True)
     resolved_by = models.TextField(null=True, blank=True)
+    resolve_note = models.TextField(null=True, blank=True)
 
     model_validators = ["validate_resolved"]
 
