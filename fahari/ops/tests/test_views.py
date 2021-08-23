@@ -9,7 +9,6 @@ from fahari.ops.models import FacilitySystemTicket, TimeSheet
 from fahari.ops.views import (
     CommoditiesListView,
     FacilitySystemsView,
-    FacilitySystemTicketResolveView,
     FacilitySystemTicketsView,
     TimeSheetApproveView,
 )
@@ -106,23 +105,39 @@ def test_timesheet_approve_view_error_case(request_with_user):
     assert resp.status_code == 200  # page re-rendered with an error
 
 
-def test_ticket_resolve_view_happy_case(request_with_user):
-    assert request_with_user.user is not None
+def test_ticket_resolve_view_get(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
     open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
-    view = FacilitySystemTicketResolveView()
-    resp = view.post(request_with_user, pk=open_ticket.pk)
-    assert resp.status_code == 302
+    url = reverse("ops:ticket_resolve", args=[open_ticket.pk])
+    response = client.get(url, format="json")
+    assert response.status_code == 200
+
+
+def test_ticket_resolve_view_post(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
+    url = reverse("ops:ticket_resolve", args=[open_ticket.pk])
+    response = client.post(url, None, format="json")
+    assert response.status_code == 302
 
     open_ticket.refresh_from_db()
     assert open_ticket.resolved is not None
     assert open_ticket.resolved_by is not None
+    assert open_ticket.resolve_note == ""
 
 
-def test_ticket_resolve_view_error_case(request_with_user):
-    fake_pk = uuid.uuid4()
-    view = FacilitySystemTicketResolveView()
-    resp = view.post(request_with_user, pk=fake_pk)
-    assert resp.status_code == 200  # page re-rendered with an error
+def test_ticket_resolve_view_post_with_note(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
+    url = reverse("ops:ticket_resolve", args=[open_ticket.pk])
+    data = {"resolve_note": "All issues solved ..."}
+    response = client.post(url, data, format="json")
+    assert response.status_code == 302
+
+    open_ticket.refresh_from_db()
+    assert open_ticket.resolved is not None
+    assert open_ticket.resolved_by is not None
+    assert open_ticket.resolve_note == data["resolve_note"]
 
 
 def test_commodities_context_data():

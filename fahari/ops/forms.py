@@ -1,4 +1,7 @@
-from django.forms.widgets import DateTimeInput, Select, TextInput
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Submit
+from django import forms
+from django.forms.widgets import DateTimeInput, Select, Textarea, TextInput
 
 from fahari.common.dashboard import get_fahari_facilities_queryset
 from fahari.common.forms import BaseModelForm
@@ -75,7 +78,27 @@ class FacilitySystemTicketForm(BaseModelForm):
                     "disabled": True,
                 }
             ),
+            "resolve_note": Textarea(
+                attrs={
+                    "disabled": True,
+                }
+            ),
         }
+
+
+class FacilitySystemTicketResolveForm(forms.Form):
+    resolve_note = forms.CharField(
+        label="Resolve Comments/Notes", required=False, widget=forms.Textarea
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = "post"
+        self.helper.form_action = ""
+        self.helper.add_input(Submit("submit", "Resolve"))
+        self.helper.html5_required = True
+        self.helper.form_id = "facility_system_ticket_resolve_form"
 
 
 class StockReceiptVerificationForm(BaseModelForm):
