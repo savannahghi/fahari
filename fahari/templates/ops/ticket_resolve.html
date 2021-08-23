@@ -5,7 +5,7 @@
     Resolve Ticket
 {% endblock title %}
 {% block content %}
-<a href="{% url 'ops:tickets' %}">&larr; Back</a>
+<a href="{% url 'ops:ticket_update' object.pk %}">&larr; Back</a>
 {% if errors %}
 <div class="alert alert-error">
     <ul>
