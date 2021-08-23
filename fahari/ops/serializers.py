@@ -29,6 +29,7 @@ class FacilitySystemTicketSerializer(BaseSerializer):
 
     facility_system_name = serializers.ReadOnlyField()
     is_open = serializers.ReadOnlyField()
+    raised = serializers.DateTimeField(format="%d-%b-%Y")
 
     class Meta(BaseSerializer.Meta):
         model = FacilitySystemTicket

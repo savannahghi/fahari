@@ -16,6 +16,7 @@
                     </span>
                     <span class="text">Add Ticket</span>
                 </a>
+
             {% endif %}
         </div>
     </div>
@@ -48,6 +49,7 @@
         </div>
     </div>
 </div>
+
 {% endblock content %}
 {% block inline_javascript %}
 <script>
@@ -57,7 +59,9 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: 'facility_system_name', name: 'facility_system__facility__name'},
+                {data: 'facility_system_name',
+                searchable:true,
+                name: 'facility_system__facility__name'},
                 {data: "details", name: "details"},
                 {data: "is_open", name: "resolved"},
                 {data: "raised", name: "raised"},
