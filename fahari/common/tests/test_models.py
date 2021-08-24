@@ -56,7 +56,7 @@ def test_facility_string_representation():
     """Test common behavior of the abstract base model."""
     facility_name = fake.name()
     mfl_code = randint(1, 999_999)
-    county = "47_NAIROBI_CITY"
+    county = "Nairobi"
     created_by = uuid.uuid4()
     updated_by = created_by
     organisation = baker.make("common.Organisation")
@@ -70,7 +70,7 @@ def test_facility_string_representation():
         updated_by=updated_by,
     )
     facility.save()
-    assert str(facility) == f"{facility_name} - {mfl_code} (47_NAIROBI_CITY)"
+    assert str(facility) == f"{facility_name} - {mfl_code} (Nairobi)"
 
 
 def test_google_application_credentials():
@@ -216,7 +216,7 @@ def test_facility_error_saving():
     """Test common behavior of the abstract base model."""
     facility_name = "a"  # too short, will trigger validator
     mfl_code = randint(1, 999_999)
-    county = "47_NAIROBI_CITY"
+    county = "Nairobi"
     created_by = uuid.uuid4()
     updated_by = created_by
     organisation = baker.make("common.Organisation")
@@ -232,7 +232,64 @@ def test_facility_error_saving():
     with pytest.raises(ValidationError) as e:
         facility.save()
 
-    assert ("the facility name should exceed 3 characters") in e.value.messages
+    assert "the facility name should exceed 3 characters" in e.value.messages
+
+
+def test_facility_invalid_constituency_selection():
+    facility = Facility(
+        name="ABC Hospital",
+        mfl_code=123456,
+        county="Kajiado",
+        organisation=baker.make("common.Organisation"),
+        constituency="Westlands",  # doesn't belong in Kajiado county
+    )
+    with pytest.raises(ValidationError) as e:
+        facility.save()
+
+    assert '"Westlands" constituency does not belong to "Kajiado" county' in e.value.messages
+
+
+def test_facility_invalid_sub_county_selection():
+    facility = Facility(
+        name="XYZ Medical Center",
+        mfl_code=123456,
+        county="Nairobi",
+        organisation=baker.make("common.Organisation"),
+        sub_county="Kajiado East",  # doesn't belong in Nairobi county
+    )
+    with pytest.raises(ValidationError) as e:
+        facility.save()
+
+    assert '"Kajiado East" sub county does not belong to "Nairobi" county' in e.value.messages
+
+
+def test_facility_invalid_ward_selection():
+    facility = Facility(
+        name="ABC Hospital",
+        mfl_code=123456,
+        county="Kajiado",
+        organisation=baker.make("common.Organisation"),
+        sub_county="Kajiado Central",
+        ward="Ngando",
+    )
+    with pytest.raises(ValidationError) as e:
+        facility.save()
+
+    assert '"Ngando" ward does not belong to "Kajiado Central" sub county' in e.value.messages
+
+
+def test_facility_ward_selection_without_sub_county_selection():
+    facility = Facility(
+        name="XYZ VCT Clinic",
+        mfl_code=123456,
+        county="Nairobi",
+        organisation=baker.make("common.Organisation"),
+        ward="Ngara",  # missing sub county selection
+    )
+    with pytest.raises(ValidationError) as e:
+        facility.save()
+
+    assert 'the sub county in which "Ngara" ward belongs to must be provided' in e.value.messages
 
 
 def test_organisation_string_representation():
