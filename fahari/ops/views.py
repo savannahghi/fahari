@@ -96,6 +96,7 @@ class FacilitySystemViewSet(BaseView):
     queryset = FacilitySystem.objects.filter(
         active=True,
     )
+
     serializer_class = FacilitySystemSerializer
     filterset_class = FacilitySystemFilter
     ordering_fields = (
@@ -126,6 +127,7 @@ class FacilitySystemTicketsView(
 
 
 class FacilitySystemTicketCreateView(FacilitySystemTicketContextMixin, BaseFormMixin, CreateView):
+
     form_class = FacilitySystemTicketForm
     success_url = reverse_lazy("ops:tickets")
     model = FacilitySystemTicket
