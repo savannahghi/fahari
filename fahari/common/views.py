@@ -43,8 +43,14 @@ class BaseFormMixin(ModelFormMixin, View):
             and getattr(user, "organisation", None) is not None
         ):
             instance.organisation = user.organisation
-
         return super().form_valid(form)
+
+
+class FacilitySystemFormMixin(ModelFormMixin, LoginRequiredMixin, View):
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request"] = self.request
+        return kwargs
 
 
 class BaseView(ModelViewSet):

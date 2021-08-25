@@ -5,6 +5,7 @@ from django.forms.widgets import DateTimeInput, Select, Textarea, TextInput
 
 from fahari.common.dashboard import get_fahari_facilities_queryset
 from fahari.common.forms import BaseModelForm
+from fahari.common.models import FacilityUser
 
 from .models import (
     ActivityLog,
@@ -49,7 +50,18 @@ class FacilitySystemTicketForm(BaseModelForm):
     )
 
     def __init__(self, *args, **kwargs):
+        request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
+        if request is not None and hasattr(request, "user"):
+            user_facility_ids = FacilityUser.objects.filter(user_id=request.user.id).values_list(
+                "facility_id", flat=True
+            )
+            user_systemfacilities = FacilitySystem.objects.filter(
+                facility_id__in=user_facility_ids
+            )
+            self.fields["facility_system"].queryset = user_systemfacilities
+        else:
+            self.fields["facility_system"].queryset = FacilitySystem.objects.none()
 
         self.helper.form_id = "facility_system_ticket_form"
 
