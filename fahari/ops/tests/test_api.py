@@ -2,6 +2,7 @@ import json
 import random
 from datetime import date
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -12,6 +13,7 @@ from rest_framework.test import APITestCase
 from fahari.common.constants import WHITELIST_COUNTIES
 from fahari.common.models import Facility, System
 from fahari.common.tests.test_api import LoggedInMixin
+from fahari.ops.forms import FacilitySystemTicketForm
 from fahari.ops.models import (
     ActivityLog,
     Commodity,
@@ -90,6 +92,7 @@ class FacilitySystemViewsetTest(LoggedInMixin, APITestCase):
 
 class FacilitySystemFormTest(LoggedInMixin, TestCase):
     def setUp(self):
+        self.user = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
         self.facility = baker.make(
             Facility,
             is_fahari_facility=True,
@@ -99,6 +102,13 @@ class FacilitySystemFormTest(LoggedInMixin, TestCase):
         )
         self.system = baker.make(System, organisation=self.global_organisation)
         super().setUp()
+
+    def test_facilitysystem_form_init(self):
+        baker.make(FacilitySystem, organisation=self.global_organisation)
+        form = FacilitySystemTicketForm()
+        queryset = form.fields["facility_system"].queryset
+        assert FacilitySystem.objects.count() > 0
+        assert queryset.count() == 0
 
     def test_create(self):
         data = {
@@ -251,7 +261,7 @@ class FacilitySystemTicketFormTest(LoggedInMixin, TestCase):
         response = self.client.post(reverse("ops:ticket_create"), data=data)
         self.assertEqual(
             response.status_code,
-            302,
+            200,
         )
 
     def test_update(self):
@@ -273,10 +283,10 @@ class FacilitySystemTicketFormTest(LoggedInMixin, TestCase):
         response = self.client.post(
             reverse("ops:ticket_update", kwargs={"pk": instance.pk}), data=data
         )
-        print(response.content)
+
         self.assertEqual(
             response.status_code,
-            302,
+            200,
         )
 
     def test_delete(self):

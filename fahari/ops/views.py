@@ -10,7 +10,7 @@ from django.views.generic import CreateView, DeleteView, TemplateView, UpdateVie
 from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
 from django.views.generic.edit import FormMixin, ProcessFormView
 
-from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView
+from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, FacilitySystemFormMixin
 
 from .filters import (
     ActivityLogFilter,
@@ -75,6 +75,7 @@ class FacilitySystemsView(
 
 
 class FacilitySystemCreateView(FacilitySystemContextMixin, BaseFormMixin, CreateView):
+
     form_class = FacilitySystemForm
     success_url = reverse_lazy("ops:versions")
     model = FacilitySystem
@@ -126,14 +127,17 @@ class FacilitySystemTicketsView(
     permission_required = "ops.view_facilitysystemticket"
 
 
-class FacilitySystemTicketCreateView(FacilitySystemTicketContextMixin, BaseFormMixin, CreateView):
-
+class FacilitySystemTicketCreateView(
+    FacilitySystemTicketContextMixin, BaseFormMixin, FacilitySystemFormMixin, CreateView
+):
     form_class = FacilitySystemTicketForm
     success_url = reverse_lazy("ops:tickets")
     model = FacilitySystemTicket
 
 
-class FacilitySystemTicketUpdateView(FacilitySystemTicketContextMixin, UpdateView, BaseFormMixin):
+class FacilitySystemTicketUpdateView(
+    FacilitySystemTicketContextMixin, BaseFormMixin, FacilitySystemFormMixin, UpdateView
+):
     form_class = FacilitySystemTicketForm
     model = FacilitySystemTicket
     success_url = reverse_lazy("ops:tickets")
