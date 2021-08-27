@@ -56,10 +56,10 @@ class FacilitySystemTicketForm(BaseModelForm):
             user_facility_ids = FacilityUser.objects.filter(user_id=request.user.id).values_list(
                 "facility_id", flat=True
             )
-            user_systemfacilities = FacilitySystem.objects.filter(
+            user_system_facilities = FacilitySystem.objects.filter(
                 facility_id__in=user_facility_ids
             )
-            self.fields["facility_system"].queryset = user_systemfacilities
+            self.fields["facility_system"].queryset = user_system_facilities
         else:
             self.fields["facility_system"].queryset = FacilitySystem.objects.none()
 
