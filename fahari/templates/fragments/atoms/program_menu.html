@@ -1,7 +1,7 @@
 {% load static i18n compress%}
 
 <li class="nav-item {% if active == "program-nav" %}active {% endif %}" id="program-nav">
-    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#program-menu" aria-expanded="true" aria-controls="program-menu">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" id="program-menu-link" data-target="#program-menu" aria-expanded="true" aria-controls="program-menu">
         <i class="fas fa-fw fa-tasks"></i>
         <span>Program Reports</span>
     </a>
@@ -51,3 +51,27 @@
         </div>
     </div>
 </li>
+
+
+<script>
+
+
+
+
+function collapseMenu(){
+const program_menu_link = document.getElementById("program-menu-link");
+program_menu_link.className = "nav-link collapsed";
+const program_menu = document.getElementById("program-menu");
+program_menu.className = "collapse";
+}
+
+const program_items = document.querySelectorAll('.collapse-item');
+program_items.forEach(input => input.addEventListener('click', collapseMenu()));
+
+
+document.addEventListener("DOMContentLoaded", () => {
+collapseMenu()
+});
+
+
+</script>
