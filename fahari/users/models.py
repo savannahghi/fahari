@@ -8,17 +8,16 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 
-DEFAULT_ORG_ID = "4181df12-ca96-4f28-b78b-8e8ad88b25df"
 DEFAULT_ORG_CODE = 1
 
 
 def default_organisation():
     try:
-        from fahari.common.models import Organisation  # intentional late imoort
+        from fahari.common.models import Organisation  # intentional late import
 
         org, _ = Organisation.objects.get_or_create(
             code=DEFAULT_ORG_CODE,
-            id=DEFAULT_ORG_ID,
+            id=settings.DEFAULT_ORG_ID,
             defaults={
                 "organisation_name": settings.ORGANISATION_NAME,
                 "email_address": settings.ORGANISATION_EMAIL,
@@ -28,7 +27,7 @@ def default_organisation():
         return org.pk
     except (ProgrammingError, Exception):  # pragma: nocover
         # this will occur during initial migrations on a clean db
-        return DEFAULT_ORG_ID
+        return settings.DEFAULT_ORG_ID
 
 
 class User(AbstractUser):
