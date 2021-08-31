@@ -11436,3 +11436,14 @@ h3 {
   background-position: center;
   background-size: cover;
 }
+
+.center-form {
+  display: -webkit-box !important;
+  display: -ms-flexbox !important;
+  display: flex !important;
+  margin: auto !important;
+}
+
+.row.align-header {
+  display: grid !important;
+}

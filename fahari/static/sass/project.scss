@@ -45,3 +45,12 @@ $red: #b94a48;
     background-position: center;
     background-size: cover;
 }
+
+.center-form {
+    display: flex !important;
+    margin: auto !important;
+}
+
+.row.align-header {
+    display: grid !important;
+}
