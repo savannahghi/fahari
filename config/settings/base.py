@@ -326,6 +326,9 @@ ORGANISATION_NAME = env(
 ORGANISATION_EMAIL = env("ORGANISATION_EMAIL", default="info@savannahghi.org")
 ORGANISATION_PHONE = env("ORGANISATION_PHONE", default="+254790360360")
 
+# used by the user model to assign a default organisation to a user during creation
+DEFAULT_ORG_ID = env("DEFAULT_ORG_ID", default="4181df12-ca96-4f28-b78b-8e8ad88b25df")
+
 # BigAutoField needs migration of existing data and either changes to
 # dependencies or overriding dependencies
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
