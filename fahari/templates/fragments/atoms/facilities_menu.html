@@ -1,14 +1,14 @@
 {% load static i18n compress%}
 
 <li class="nav-item {% if active == "facilities-nav" %}active{% endif %}" id="facilities-nav">
-    <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#facilities-menu" aria-expanded="true" aria-controls="facilities-menu">
+    <a class="nav-link collapsed" id="facilities-nav-link" href="#" data-toggle="collapse" data-target="#facilities-menu" aria-expanded="true" aria-controls="facilities-menu">
         <i class="fas fa-fw fa-hospital"></i>
         <span>Facilities</span>
     </a>
     <div id="facilities-menu" class="collapse {% if active == "facilities-nav" %}show{% endif %}"  data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
             {% if perms.common.view_facility %}
-                <a class="collapse-item {% if selected == "facilities" %}active {% endif %}" id="facilities" href="{% url 'common:facilities' %}">
+                <a class="collapse-item  {% if selected == "facilities" %}active {% endif %}" id="facilities" href="{% url 'common:facilities' %}">
                     Facilities
                 </a>
             {% endif %}
@@ -39,3 +39,24 @@
         </div>
     </div>
 </li>
+
+<script>
+
+function collapseMenu(){
+const facilities_nav_link = document.getElementById("facilities-nav-link");
+facilities_nav_link.className = "nav-link collapsed";
+const facilities_menu = document.getElementById("facilities-menu");
+facilities_menu.className = "collapse";
+}
+
+const items = document.querySelectorAll('.collapse-item');
+items.forEach(input => input.addEventListener('click', collapseMenu()));
+
+
+document.addEventListener("DOMContentLoaded", () => {
+collapseMenu()
+});
+
+
+
+</script>
