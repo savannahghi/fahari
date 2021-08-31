@@ -36,6 +36,7 @@ function pathsConfig(appName) {
             `${vendorsRoot}/jquery/dist/jquery.js`,
             `${vendorsRoot}/popper.js/dist/umd/popper.js`,
             `${vendorsRoot}/bootstrap/dist/js/bootstrap.js`,
+            `${vendorsRoot}/bootstrap-select/dist/js/bootstrap-select.js`,
             `${vendorsRoot}/chart.js/dist/*.js`,
             `${vendorsRoot}/jszip/dist/jszip.min.js`,
             `${vendorsRoot}/pdfmake/dist/*.min.js`,

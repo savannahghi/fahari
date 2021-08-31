@@ -12,4 +12,7 @@
     $(".navbar-collapse a").click(function() {
         $(".navbar-collapse").collapse("hide");
     });
+
+    // Initialize the bootstrap select plugin
+    $("select").selectpicker();
 })(jQuery);
