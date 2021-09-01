@@ -3,21 +3,10 @@
 <li class="nav-item {% if active == "program-nav" %}active {% endif %}" id="program-nav">
     <a class="nav-link collapsed" href="#" data-toggle="collapse" id="program-menu-link" data-target="#program-menu" aria-expanded="true" aria-controls="program-menu">
         <i class="fas fa-fw fa-tasks"></i>
-        <span>Program Reports</span>
+        <span>Program Activities</span>
     </a>
     <div id="program-menu" class="collapse {% if active == "program-nav" %}show{% endif %}"  data-parent="#accordionSidebar">
         <div class="bg-white py-2 collapse-inner rounded">
-            {% if perms.ops.view_commodity %}
-                <a class="collapse-item {% if selected == "commodities" %}active {% endif %}" id="commodities" href="{% url 'ops:commodities' %}">
-                    Commodities
-                </a>
-            {% endif %}
-
-            {% if perms.ops.view_stockreceiptverification %}
-                <a class="collapse-item {% if selected == "stock-receipt-verification" %}active {% endif %}" id="stock-receipt-verification" href="{% url 'ops:stock_receipt_verifications' %}">
-                    Stock Receipts
-                </a>
-            {% endif %}
 
             {% if perms.ops.view_activitylog %}
                 <a class="collapse-item {% if selected == "activity-log" %}active {% endif %}" id="activity-log" href="{% url 'ops:activity_logs' %}">
