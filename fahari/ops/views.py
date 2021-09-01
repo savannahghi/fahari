@@ -203,7 +203,7 @@ class FacilitySystemTicketViewSet(BaseView):
 class StockReceiptVerificationContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
-        context["active"] = "program-nav"  # id of active nav element
+        context["active"] = "inventory-nav"  # id of active nav element
         context["selected"] = "stock-receipt-verification"  # id of selected page
         return context
 
@@ -521,7 +521,7 @@ class WeeklyProgramUpdateViewSet(BaseView):
 class CommodityContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
-        context["active"] = "program-nav"  # id of active nav element
+        context["active"] = "inventory-nav"  # id of active nav element
         context["selected"] = "commodities"  # id of selected page
         return context
 

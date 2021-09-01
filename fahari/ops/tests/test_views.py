@@ -143,5 +143,5 @@ def test_ticket_resolve_view_post_with_note(user_with_all_permissions, client):
 def test_commodities_context_data():
     v = CommoditiesListView()
     ctx = v.get_context_data()
-    assert ctx["active"] == "program-nav"
+    assert ctx["active"] == "inventory-nav"
     assert ctx["selected"] == "commodities"

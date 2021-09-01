@@ -1,0 +1,48 @@
+{% load static i18n compress%}
+
+<li class="nav-item {% if active == "inventory-nav" %}active {% endif %}" id="inventory-nav">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" id="inventory-menu-link" data-target="#inventory-menu" aria-expanded="true" aria-controls="inventory-menu">
+        <i class="fas fa-fw fa-tasks"></i>
+        <span>Inventory</span>
+    </a>
+    <div id="inventory-menu" class="collapse {% if active == "inventory-nav" %}show{% endif %}"  data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            {% if perms.ops.view_commodity %}
+                <a class="collapse-item {% if selected == "commodities" %}active {% endif %}" id="commodities" href="{% url 'ops:commodities' %}">
+                    Commodities
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_stockreceiptverification %}
+                <a class="collapse-item {% if selected == "stock-receipt-verification" %}active {% endif %}" id="stock-receipt-verification" href="{% url 'ops:stock_receipt_verifications' %}">
+                    Stock Receipts
+                </a>
+            {% endif %}
+
+        </div>
+    </div>
+</li>
+
+
+<script>
+
+
+
+
+function collapseMenu(){
+const inventory_menu_link = document.getElementById("inventory-menu-link");
+inventory_menu_link.className = "nav-link collapsed";
+const inventory_menu = document.getElementById("inventory-menu");
+inventory_menu.className = "collapse";
+}
+
+const inventory_items = document.querySelectorAll('.collapse-item');
+inventory_items.forEach(input => input.addEventListener('click', collapseMenu()));
+
+
+document.addEventListener("DOMContentLoaded", () => {
+collapseMenu()
+});
+
+
+</script>
