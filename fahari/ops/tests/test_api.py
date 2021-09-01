@@ -1,6 +1,7 @@
 import json
 import random
 from datetime import date
+from os.path import join
 
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -398,26 +399,31 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
         super().setUp()
 
     def test_create(self):
-        data = {
-            "facility": self.facility.pk,
-            "description": fake.text(),
-            "pack_size": fake.text(),
-            "delivery_note_number": fake.name()[:63],
-            "quantity_received": "10.0",
-            "batch_number": fake.name()[:63],
-            "expiry_date": date.today().isoformat(),
-            "delivery_date": date.today().isoformat(),
-            "comments": fake.text(),
-            "organisation": self.global_organisation.pk,
-            "commodity": self.default_commodity,
-            "active": False,
-        }
-        response = self.client.post(reverse("ops:stock_receipt_verification_create"), data=data)
-        print(response.content)
-        self.assertEqual(
-            response.status_code,
-            302,
-        )
+        with open(
+            join(settings.STATIC_ROOT, "images", "favicons", "android-icon-192x192.png"), "rb"
+        ) as image_file:
+            data = {
+                "facility": self.facility.pk,
+                "description": fake.text(),
+                "pack_size": fake.text(),
+                "delivery_note_number": fake.name()[:63],
+                "quantity_received": "10.0",
+                "batch_number": fake.name()[:63],
+                "expiry_date": date.today().isoformat(),
+                "delivery_date": date.today().isoformat(),
+                "comments": fake.text(),
+                "organisation": self.global_organisation.pk,
+                "delivery_note_image": image_file,
+                "commodity": self.default_commodity,
+                "active": False,
+            }
+            response = self.client.post(
+                reverse("ops:stock_receipt_verification_create"), data=data
+            )
+            self.assertEqual(
+                response.status_code,
+                302,
+            )
 
     def test_update(self):
         instance = baker.make(
@@ -425,28 +431,33 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
             facility=self.facility,
             organisation=self.global_organisation,
         )
-        data = {
-            "pk": instance.pk,
-            "facility": self.facility.pk,
-            "description": fake.text(),
-            "pack_size": fake.text(),
-            "delivery_note_number": fake.name()[:63],
-            "quantity_received": "10.0",
-            "batch_number": fake.name()[:63],
-            "expiry_date": date.today().isoformat(),
-            "delivery_date": date.today().isoformat(),
-            "comments": fake.text(),
-            "organisation": self.global_organisation.pk,
-            "commodity": self.default_commodity,
-            "active": False,
-        }
-        response = self.client.post(
-            reverse("ops:stock_receipt_verification_update", kwargs={"pk": instance.pk}), data=data
-        )
-        self.assertEqual(
-            response.status_code,
-            302,
-        )
+        with open(
+            join(settings.STATIC_ROOT, "images", "favicons", "android-icon-192x192.png"), "rb"
+        ) as image_file:
+            data = {
+                "pk": instance.pk,
+                "facility": self.facility.pk,
+                "description": fake.text(),
+                "pack_size": fake.text(),
+                "delivery_note_number": fake.name()[:63],
+                "quantity_received": "10.0",
+                "batch_number": fake.name()[:63],
+                "expiry_date": date.today().isoformat(),
+                "delivery_date": date.today().isoformat(),
+                "comments": fake.text(),
+                "organisation": self.global_organisation.pk,
+                "delivery_note_image": image_file,
+                "commodity": self.default_commodity,
+                "active": False,
+            }
+            response = self.client.post(
+                reverse("ops:stock_receipt_verification_update", kwargs={"pk": instance.pk}),
+                data=data,
+            )
+            self.assertEqual(
+                response.status_code,
+                302,
+            )
 
     def test_delete(self):
         instance = baker.make(

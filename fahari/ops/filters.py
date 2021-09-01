@@ -42,7 +42,7 @@ class StockReceiptVerificationFilter(CommonFieldsFilterset):
     class Meta:
 
         model = StockReceiptVerification
-        fields = "__all__"
+        exclude = ("delivery_note_image",)
 
 
 class ActivityLogFilter(CommonFieldsFilterset):
