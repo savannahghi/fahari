@@ -80,6 +80,7 @@ class FacilityForm(BaseModelForm):
 class SystemForm(BaseModelForm):
     field_order = (
         "name",
+        "pattern",
         "description",
         "active",
     )

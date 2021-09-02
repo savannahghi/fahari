@@ -411,6 +411,7 @@ class SystemFormTest(LoggedInMixin, TestCase):
     def test_create(self):
         data = {
             "name": fake.name()[:127],
+            "pattern": "NONE",
             "description": fake.text(),
             "organisation": self.global_organisation.pk,
         }
@@ -429,6 +430,7 @@ class SystemFormTest(LoggedInMixin, TestCase):
         data = {
             "pk": system.pk,
             "name": fake.name()[:127],
+            "pattern": "NONE",
             "description": fake.text(),
             "organisation": self.global_organisation.pk,
         }
