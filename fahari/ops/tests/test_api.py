@@ -3,6 +3,7 @@ import random
 from datetime import date
 
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -1037,7 +1038,7 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
             "date": date.today().isoformat(),
             "attendees": json.dumps([fake.name(), fake.name()]),
             "organisation": self.global_organisation.pk,
-            "description": "-",
+            "notes": "-",
         }
         response = self.client.post(self.url_list, data)
         assert response.status_code == 201, response.json()
@@ -1092,9 +1093,13 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
     def test_create(self):
         data = {
             "date": date.today().isoformat(),
+            "title": fake.text(),
+            "attachment": SimpleUploadedFile(
+                "some_file.txt", "some file contents go here...".encode()
+            ),
             "attendees": json.dumps([fake.name(), fake.name()]),
             "organisation": self.global_organisation.pk,
-            "notes": "-",
+            "description": "-",
         }
         response = self.client.post(reverse("ops:weekly_program_updates_create"), data=data)
         self.assertEqual(
@@ -1110,9 +1115,13 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
         )
         data = {
             "date": date.today().isoformat(),
+            "title": fake.text(),
+            "attachment": SimpleUploadedFile(
+                "some_file.txt", "some file contents go here...".encode()
+            ),
             "attendees": f"{fake.name()},{fake.name()}",
             "organisation": self.global_organisation.pk,
-            "notes": "-",
+            "description": "-",
         }
         response = self.client.post(
             reverse("ops:weekly_program_updates_update", kwargs={"pk": instance.pk}), data=data

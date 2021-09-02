@@ -313,7 +313,9 @@ class WeeklyProgramUpdateForm(BaseModelForm):
     field_order = (
         "date",
         "attendees",
-        "notes",
+        "title",
+        "description",
+        "attachment",
         "active",
     )
 

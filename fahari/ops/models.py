@@ -9,7 +9,7 @@ from django.db.utils import IntegrityError, InternalError, ProgrammingError
 from django.urls import reverse_lazy
 from django.utils import timezone
 
-from fahari.common.models import AbstractBase, Facility, Organisation, System
+from fahari.common.models import AbstractBase, Facility, Organisation, System, get_directory
 
 User = get_user_model()
 
@@ -385,12 +385,15 @@ class WeeklyProgramUpdate(AbstractBase):
     Record of updates made at the weekly "touch base" meetings.
     """
 
-    date = models.DateField(default=timezone.datetime.today)
+    title = models.CharField(max_length=255, default="-")
     attendees = ArrayField(
         models.TextField(),
         help_text="Use commas to separate attendees names",
     )
-    notes = models.TextField(default="-")
+
+    description = models.TextField(default="-")
+    attachment = models.FileField(upload_to=get_directory, null=True, blank=True)
+    date = models.DateField(default=timezone.datetime.today)
 
     def __str__(self) -> str:
         return f"Weekly update: {self.date}, attended by {self.attendees}"
