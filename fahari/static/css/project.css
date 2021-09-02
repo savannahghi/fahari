@@ -11438,9 +11438,6 @@ h3 {
 }
 
 .center-form {
-  display: -webkit-box !important;
-  display: -ms-flexbox !important;
-  display: flex !important;
   margin: auto !important;
 }
 
