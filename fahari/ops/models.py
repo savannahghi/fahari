@@ -348,6 +348,12 @@ class StockReceiptVerification(AbstractBase):
     batch_number = models.CharField(max_length=64)
     delivery_date = models.DateField(default=timezone.datetime.today)
     expiry_date = models.DateField(default=timezone.datetime.today)
+    delivery_note_image = models.ImageField(
+        upload_to="ops/stock_receipts/delivery_notes/",
+        null=True,
+        blank=True,
+        verbose_name="Delivery note photograph",
+    )
     comments = models.TextField()
 
     def __str__(self):

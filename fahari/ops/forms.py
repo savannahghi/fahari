@@ -125,6 +125,7 @@ class StockReceiptVerificationForm(BaseModelForm):
         "batch_number",
         "delivery_date",
         "expiry_date",
+        "delivery_note_image",
         "comments",
         "active",
     )
@@ -133,6 +134,7 @@ class StockReceiptVerificationForm(BaseModelForm):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "stock_receipt_verification_form"
         self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["delivery_note_image"].required = True
 
     class Meta(BaseModelForm.Meta):
         model = StockReceiptVerification
