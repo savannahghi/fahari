@@ -6,6 +6,7 @@ from django.forms.widgets import DateTimeInput, Select, Textarea, TextInput
 from fahari.common.dashboard import get_fahari_facilities_queryset
 from fahari.common.forms import BaseModelForm
 from fahari.common.models import FacilityUser
+from fahari.common.widgets import SearchableComboBox
 
 from .models import (
     ActivityLog,
@@ -35,6 +36,9 @@ class FacilitySystemForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = FacilitySystem
+        widgets = {
+            "facility": SearchableComboBox(),
+        }
 
 
 class FacilitySystemTicketForm(BaseModelForm):
@@ -68,6 +72,7 @@ class FacilitySystemTicketForm(BaseModelForm):
     class Meta(BaseModelForm.Meta):
         model = FacilitySystemTicket
         widgets = {
+            "facility_system": SearchableComboBox(),
             "raised": DateTimeInput(
                 attrs={
                     "readonly": "readonly",
@@ -139,6 +144,7 @@ class StockReceiptVerificationForm(BaseModelForm):
     class Meta(BaseModelForm.Meta):
         model = StockReceiptVerification
         widgets = {
+            "facility": SearchableComboBox(),
             "pack_size": TextInput(
                 attrs={
                     "size": 128,
@@ -236,6 +242,7 @@ class SiteMentorshipForm(BaseModelForm):
                     "type": "date",
                 }
             ),
+            "site": SearchableComboBox(),
         }
 
 
@@ -262,6 +269,7 @@ class DailyUpdateForm(BaseModelForm):
     class Meta(BaseModelForm.Meta):
         model = DailyUpdate
         widgets = {
+            "facility": SearchableComboBox(),
             "date": TextInput(
                 attrs={
                     "type": "date",

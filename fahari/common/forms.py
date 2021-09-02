@@ -4,6 +4,7 @@ from django.forms import ModelForm, TextInput
 
 from .dashboard import get_fahari_facilities_queryset
 from .models import Facility, FacilityAttachment, FacilityUser, Organisation, System
+from .widgets import SearchableComboBox
 
 
 class BaseModelForm(ModelForm):
@@ -101,6 +102,7 @@ class FacilityAttachmentForm(BaseModelForm):
     class Meta:
         model = FacilityAttachment
         fields = "__all__"
+        widgets = {"facility": SearchableComboBox()}
 
 
 class FacilityUserForm(BaseModelForm):
@@ -118,3 +120,4 @@ class FacilityUserForm(BaseModelForm):
     class Meta(BaseModelForm.Meta):
         model = FacilityUser
         fields = "__all__"
+        widgets = {"facility": SearchableComboBox()}
