@@ -613,6 +613,21 @@ class System(AbstractBase):
     """List of systems used in the public sector e.g Kenya EMR."""
 
     name = models.CharField(max_length=128, null=False, blank=False, unique=True)
+
+    NONE = "NONE"
+    RESTROSPECTIVE_DATA_ENTRY = "RESTROSPECTIVE_DATA_ENTRY"
+    POINT_OF_CARE = "POINT_OF_CARE"
+    HYBRID = "HYBRID"
+
+    PATTERN_IDS = [
+        (NONE, "None"),
+        (RESTROSPECTIVE_DATA_ENTRY, "Retrospective data entry"),
+        (POINT_OF_CARE, "Point of care"),
+        (HYBRID, "Hybrid"),
+    ]
+
+    pattern = models.CharField(max_length=150, choices=PATTERN_IDS, default=NONE)
+
     description = models.TextField()
 
     def get_absolute_url(self):
