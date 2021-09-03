@@ -80,6 +80,10 @@ function pathsConfig(appName) {
         fonts: `${this.app}/static/fonts`,
         images: `${this.app}/static/images`,
         js: `${this.app}/static/js`,
+//        js: [
+//            `${this.app}/static/js/project.js`,
+//            `${paths.js}/user_facility_allotment_form.js`,
+//        ],
     };
 }
 
@@ -112,7 +116,10 @@ function styles() {
 
 // Javascript minification
 function scripts() {
-    return src(`${paths.js}/project.js`)
+    return src([
+            `${paths.js}/project.js`,
+            `${paths.js}/common/forms/user_facility_allotment_form.js`,
+        ])
         .pipe(sourcemaps.init())
         .pipe(plumber()) // Checks for errors
         .pipe(uglify()) // Minifies the js
@@ -153,7 +160,7 @@ function asyncRunServer() {
 // Browser sync server for live reload
 function initBrowserSync() {
     browserSync.init(
-        [`${paths.css}/*.css`, `${paths.js}/*.js`, `${paths.templates}/*.html`], {
+        [`${paths.css}/**/*.css`, `${paths.js}/**/*.js`, `${paths.templates}/**/*.html`], {
             // https://www.browsersync.io/docs/options/#option-proxy
             proxy: {
                 target: "django:8000",
@@ -180,7 +187,7 @@ function watchPaths() {
         reload
     );
     watch(
-        [`${paths.js}/*.js`, `!${paths.js}/*.min.js`], { usePolling: true },
+        [`${paths.js}/**/*.js`, `!${paths.js}/**/*.min.js`], { usePolling: true },
         scripts
     ).on("change", reload);
 }

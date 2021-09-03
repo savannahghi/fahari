@@ -450,6 +450,11 @@ class UoM(AbstractBase):
     def __str__(self):
         return self.name
 
+    class Meta(AbstractBase.Meta):
+        """Define ordering and other attributes for units of measure."""
+
+        ordering = ("name", "-updated", "-created")
+
 
 class UoMCategory(AbstractBase):
     """Inventory units of measure category."""

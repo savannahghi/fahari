@@ -1,7 +1,12 @@
 from django.conf import settings
 from rest_framework.routers import DefaultRouter, SimpleRouter
 
-from fahari.common.views import FacilityUserViewSet, FacilityViewSet, SystemViewSet
+from fahari.common.views import (
+    FacilityUserViewSet,
+    FacilityViewSet,
+    SystemViewSet,
+    UserFacilityViewSet,
+)
 from fahari.ops.views import (
     ActivityLogViewSet,
     CommodityViewSet,
@@ -41,6 +46,7 @@ router.register("weekly_updates", WeeklyProgramUpdateViewSet)
 router.register("commodities", CommodityViewSet)
 router.register("uoms", UoMViewSet)
 router.register("uom_categories", UoMCategoryViewSet)
+router.register("user_facility_allotments", UserFacilityViewSet)
 router.register("network_status", FacilityNetworkStatusViewSet)
 router.register("facility_devices", FacilityDeviceViewSet)
 router.register("facility_device_requests", FacilityDeviceRequestViewSet)

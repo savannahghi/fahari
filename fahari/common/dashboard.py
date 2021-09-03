@@ -4,19 +4,13 @@ from django.utils import timezone
 
 from fahari.ops.models import DailyUpdate
 
-from .constants import WHITELIST_COUNTIES
 from .models import Facility
 
 User = get_user_model()
 
 
 def get_fahari_facilities_queryset():
-    return Facility.objects.filter(
-        is_fahari_facility=True,
-        operation_status="Operational",
-        county__in=WHITELIST_COUNTIES,
-        active=True,
-    ).order_by(
+    return Facility.objects.fahari_facilities().order_by(
         "name",
         "county",
         "mfl_code",
@@ -25,7 +19,7 @@ def get_fahari_facilities_queryset():
 
 def get_active_facility_count(user):
     return (
-        get_fahari_facilities_queryset()
+        Facility.objects.fahari_facilities()
         .filter(
             organisation=user.organisation,
         )
