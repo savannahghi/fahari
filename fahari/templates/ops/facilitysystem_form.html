@@ -2,7 +2,6 @@
 Register/Amend Facility System {% endblock title %} {% block content %}
 <a href="{% url 'ops:versions' %}">&larr; Back</a>
 {% if perms.ops.change_facilitysystem %}
-
 <div class="row">
   <div class="col-xl-10 col-lg-10 col-md-10 col-sm-12">
     <div class="row align-page-content">
@@ -39,7 +38,6 @@ Register/Amend Facility System {% endblock title %} {% block content %}
     </div>
   </div>
 </div>
-
 {% else %}
 <p>You do not have permission to edit system versions.</p>
 {% endif %} {% endblock content %}

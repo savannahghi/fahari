@@ -53,6 +53,7 @@ window.addEventListener("load", function(){
     $(document).ready(function() {
         $('#site-mentorship-list').DataTable( {
             iDisplayLength: 100,
+            responsive: true,
             columns: [
                 {data: 'staff_member_name', name: "staff_member__name"},
                 {data: "day", name: "day"},
