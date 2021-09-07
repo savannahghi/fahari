@@ -17,6 +17,8 @@ from .models import (
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
+    UoM,
+    UoMCategory,
     WeeklyProgramUpdate,
 )
 
@@ -124,7 +126,7 @@ class StockReceiptVerificationForm(BaseModelForm):
         "facility",
         "commodity",
         "description",
-        "pack_size",
+        "unit_of_measure",
         "delivery_note_number",
         "quantity_received",
         "batch_number",
@@ -342,6 +344,7 @@ class CommodityForm(BaseModelForm):
     field_order = [
         "name",
         "code",
+        "unit_of_measure",
         "description",
         "is_lab_commodity",
         "is_pharmacy_commodity",
@@ -354,3 +357,27 @@ class CommodityForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = Commodity
+
+
+class UoMForm(BaseModelForm):
+
+    field_order = ("name", "category", "active")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "uom_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = UoM
+
+
+class UoMCategoryForm(BaseModelForm):
+
+    field_order = ("name", "measure_type", "active")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "uom_category_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = UoMCategory

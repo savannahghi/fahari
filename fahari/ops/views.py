@@ -21,6 +21,8 @@ from .filters import (
     SiteMentorshipFilter,
     StockReceiptVerificationFilter,
     TimeSheetFilter,
+    UoMCategoryFilter,
+    UoMFilter,
     WeeklyProgramUpdateFilter,
 )
 from .forms import (
@@ -33,6 +35,8 @@ from .forms import (
     SiteMentorshipForm,
     StockReceiptVerificationForm,
     TimeSheetForm,
+    UoMCategoryForm,
+    UoMForm,
     WeeklyProgramUpdateForm,
 )
 from .models import (
@@ -44,6 +48,8 @@ from .models import (
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
+    UoM,
+    UoMCategory,
     WeeklyProgramUpdate,
 )
 from .serializers import (
@@ -55,6 +61,8 @@ from .serializers import (
     SiteMentorshipSerializer,
     StockReceiptVerificationSerializer,
     TimeSheetSerializer,
+    UoMCategorySerializer,
+    UoMSerializer,
     WeeklyProgramUpdateSerializer,
 )
 
@@ -204,7 +212,7 @@ class StockReceiptVerificationContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
         context["active"] = "inventory-nav"  # id of active nav element
-        context["selected"] = "stock-receipt-verification"  # id of selected page
+        context["selected"] = "stock-receipt-verifications"  # id of selected page
         return context
 
 
@@ -564,3 +572,83 @@ class CommodityViewSet(BaseView):
         "code",
         "description",
     )
+
+
+class UoMContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "inventory-nav"  # id of active nav element
+        context["selected"] = "uoms"  # id of selected page
+        return context
+
+
+class UoMListView(UoMContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/ops/uoms.html"
+    permission_required = ("ops.view_uom",)
+
+
+class UoMCreateView(UoMContextMixin, BaseFormMixin, CreateView):
+    form_class = UoMForm
+    model = UoM
+    success_url = reverse_lazy("ops:uoms")
+
+
+class UoMUpdateView(UoMContextMixin, BaseFormMixin, UpdateView):
+    form_class = UoMForm
+    model = UoM
+    success_url = reverse_lazy("ops:uoms")
+
+
+class UoMDeleteView(UoMContextMixin, BaseFormMixin, DeleteView):
+    form_class = UoMForm
+    model = UoM
+    success_url = reverse_lazy("ops:uoms")
+
+
+class UoMViewSet(BaseView):
+    queryset = UoM.objects.filter(active=True)
+    serializer_class = UoMSerializer
+    filterset_class = UoMFilter
+    ordering_fields = ("name",)
+    serializer_fields = ("name",)
+
+
+class UoMCategoryContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "inventory-nav"  # id of active nav element
+        context["selected"] = "uom_categories"  # id of selected page
+        return context
+
+
+class UoMCategoryListView(
+    UoMCategoryContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/uom_categories.html"
+    permission_required = ("ops.view_uomcategory",)
+
+
+class UoMCategoryCreateView(UoMCategoryContextMixin, BaseFormMixin, CreateView):
+    form_class = UoMCategoryForm
+    model = UoMCategory
+    success_url = reverse_lazy("ops:uom_categories")
+
+
+class UoMCategoryUpdateView(UoMCategoryContextMixin, BaseFormMixin, UpdateView):
+    form_class = UoMCategoryForm
+    model = UoMCategory
+    success_url = reverse_lazy("ops:uom_categories")
+
+
+class UoMCategoryDeleteView(UoMCategoryContextMixin, BaseFormMixin, DeleteView):
+    form_class = UoMCategoryForm
+    model = UoMCategory
+    success_url = reverse_lazy("ops:uom_categories")
+
+
+class UoMCategoryViewSet(BaseView):
+    queryset = UoMCategory.objects.filter(active=True)
+    serializer_class = UoMCategorySerializer
+    filterset_class = UoMCategoryFilter
+    ordering_fields = ("name", "measure_type")
+    serializer_fields = ("name", "measure_type")

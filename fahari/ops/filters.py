@@ -11,6 +11,8 @@ from .models import (
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
+    UoM,
+    UoMCategory,
     WeeklyProgramUpdate,
 )
 
@@ -107,3 +109,23 @@ class CommodityFilter(CommonFieldsFilterset):
             "code",
             "description",
         )
+
+
+class UoMFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = UoM
+        fields = "__all__"
+
+
+class UoMCategoryFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = UoMCategory
+        fields = "__all__"

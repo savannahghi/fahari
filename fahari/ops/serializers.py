@@ -11,6 +11,8 @@ from .models import (
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
+    UoM,
+    UoMCategory,
     WeeklyProgramUpdate,
 )
 
@@ -88,4 +90,19 @@ class WeeklyProgramUpdateSerializer(BaseSerializer):
 class CommoditySerializer(BaseSerializer):
     class Meta(BaseSerializer.Meta):
         model = Commodity
+        fields = "__all__"
+
+
+class UoMSerializer(BaseSerializer):
+
+    category_name = serializers.ReadOnlyField(source="category.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = UoM
+        fields = "__all__"
+
+
+class UoMCategorySerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = UoMCategory
         fields = "__all__"

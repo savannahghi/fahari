@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}
+  Units of Measure
+{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">
+  Units of Measure
+</h1>
+<div class="card shadow mb-1">
+  <div class="card-header py-3">
+    <div class="toolbar float-right">
+      {% if perms.ops.add_uom %}
+      <a href="{% url 'ops:uom_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+        <span class="text">Add Unit of Measure</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table
+        id="uoms-list"
+        class="table table-striped table-sm"
+        style="width:100%"
+        data-server-side="true"
+        data-state-save="true"
+        data-defer-render="true"
+        data-info="true"
+        data-page-length="100"
+        data-paging-type="full_numbers"
+        data-ajax="{% url "api:uom-list" %}?format=datatables">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th></th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+{% block inline_javascript %}
+<script>
+window.addEventListener("load", function(){
+    $(document).ready(function() {
+        $('#uoms-list').DataTable( {
+            iDisplayLength: 100,
+            responsive: true,
+            columns: [
+                {data: "name", name: "name"},
+                {data: "category_name", name: "category"},
+                {
+                    data: "url",
+                    name: "id",
+                    orderable: false,
+                    searchable: false,
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
+            ]
+        } );
+    });
+});
+</script>
+{% endblock inline_javascript %}

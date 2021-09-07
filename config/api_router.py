@@ -11,6 +11,8 @@ from fahari.ops.views import (
     SiteMentorshipViewSet,
     StockReceiptVerificationViewSet,
     TimeSheetViewSet,
+    UoMCategoryViewSet,
+    UoMViewSet,
     WeeklyProgramUpdateViewSet,
 )
 from fahari.users.api.views import UserViewSet
@@ -33,6 +35,8 @@ router.register("daily_updates", DailyUpdateViewSet)
 router.register("timesheets", TimeSheetViewSet)
 router.register("weekly_updates", WeeklyProgramUpdateViewSet)
 router.register("commodities", CommodityViewSet)
+router.register("uoms", UoMViewSet)
+router.register("uom_categories", UoMCategoryViewSet)
 
 app_name = "api"
 urlpatterns = router.urls

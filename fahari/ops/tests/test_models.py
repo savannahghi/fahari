@@ -20,6 +20,8 @@ from fahari.ops.models import (
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
+    UoM,
+    UoMCategory,
     WeeklyProgramUpdate,
     default_commodity,
     default_end_time,
@@ -231,3 +233,25 @@ def test_commodity_url():
     )
     url = commodity.get_absolute_url()
     assert f"/ops/commodity_update/{commodity.pk}" in url
+
+
+def test_uom_str():
+    uom = baker.make(UoM, name="300 Units")
+    assert str(uom) == "300 Units"
+
+
+def test_uom_url():
+    uom = baker.make(UoM, name="Meter")
+    url = uom.get_absolute_url()
+    assert f"/ops/uom_update/{uom.pk}" in url
+
+
+def test_uom_category_str():
+    uom_category = baker.make(UoMCategory, name="Pack size")
+    assert str(uom_category) == "Pack size"
+
+
+def test_uom_category_url():
+    uom_category = baker.make(UoMCategory, name="Pack size")
+    url = uom_category.get_absolute_url()
+    assert f"/ops/uom_category_update/{uom_category.pk}" in url
