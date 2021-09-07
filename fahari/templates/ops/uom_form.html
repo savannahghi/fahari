@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+  Add/Edit Unit of Measure
+{% endblock title %}
+{% block content %}
+<a href="{% url 'ops:uoms' %}">&larr; Back</a>
+{% if perms.common.change_uom %}
+
+<div class="row">
+  <div class="col-xl-10 col-lg-10 col-md-10 col-sm-12">
+    <div class="row align-page-content">
+      <div class="card-header">
+        <div class="toolbar float-right">
+          {% if object.pk %}
+          {% if perms.common.delete_uom %}
+          <a href="{% url 'ops:uom_delete' object.pk %}" class="btn btn-danger btn-icon-split">
+            <span class="icon text-white-50">
+              <i class="fas fa-trash"></i>
+            </span>
+            <span class="text">Delete Unit of Measure</span>
+          </a>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row d-block">
+        <div class="col-lg-2"></div>
+        <div class="col-lg-8 center-form">
+          <div class="p-lg-5 p-xs-1 p-sm-1">
+            <div class="text-left">
+              <h1 class="h4 text-gray-900 mb-4">
+                {% if object.pk %}
+                  Edit Unit of Measure
+                {% else %}
+                  Create Unit of Measure
+                {% endif %}
+              </h1>
+            </div>
+            {% crispy form %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+  <p>You do not have permission to edit unit of measures.</p>
+{% endif %}
+{% endblock content %}

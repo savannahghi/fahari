@@ -326,6 +326,7 @@ class Commodity(AbstractBase):
     description = models.TextField(default="-", null=False, blank=False)
     is_lab_commodity = models.BooleanField(default=False)
     is_pharmacy_commodity = models.BooleanField(default=False)
+    unit_of_measure = models.ForeignKey("UoM", on_delete=models.PROTECT, null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.name} ({self.code})"
@@ -342,7 +343,9 @@ class StockReceiptVerification(AbstractBase):
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     commodity = models.ForeignKey(Commodity, on_delete=models.PROTECT, default=default_commodity)
     description = models.TextField(default="-")
-    pack_size = models.TextField()
+    unit_of_measure = models.ForeignKey(
+        "UoM", on_delete=models.PROTECT, null=True, blank=True, verbose_name="Pack size"
+    )
     delivery_note_number = models.CharField(max_length=64)
     quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
     batch_number = models.CharField(max_length=64)
@@ -414,3 +417,49 @@ class WeeklyProgramUpdateDetail(AbstractBase):
     parent = models.ForeignKey(WeeklyProgramUpdate, on_delete=models.PROTECT)
     activity = models.ForeignKey(Activity, on_delete=models.PROTECT)
     comments = models.TextField()
+
+
+class UoM(AbstractBase):
+    """Measure by which items are maintained in inventory."""
+
+    name = models.CharField("Unit of Measure", max_length=200)
+    category = models.ForeignKey(
+        "UoMCategory",
+        on_delete=models.PROTECT,
+        help_text="Conversion between Units of Measure can only "
+        "occur if they belong to the same category.",
+    )
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:uom_update", kwargs={"pk": self.pk})
+        return update_url
+
+    def __str__(self):
+        return self.name
+
+
+class UoMCategory(AbstractBase):
+    """Inventory units of measure category."""
+
+    class MeasureTypes(models.TextChoices):
+        """The different types of measurements available."""
+
+        LENGTH = "length", "Length"
+        TIME = "time", "Time"
+        UNIT = "unit", "Unit"
+        VOLUME = "volume", "Volume"
+        WEIGHT = "weight", "Weight"
+
+    name = models.CharField(max_length=255)
+    measure_type = models.CharField(
+        max_length=50,
+        choices=MeasureTypes.choices,
+        help_text="Type of Measure",
+    )
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:uom_category_update", kwargs={"pk": self.pk})
+        return update_url
+
+    def __str__(self):
+        return self.name

@@ -25,6 +25,8 @@ from fahari.ops.models import (
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
+    UoM,
+    UoMCategory,
     WeeklyProgramUpdate,
     default_commodity,
 )
@@ -1266,6 +1268,78 @@ class CommodityFormTest(LoggedInMixin, TestCase):
         )
         response = self.client.post(
             reverse("ops:commodity_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class UoMFormTest(LoggedInMixin, TestCase):
+    def test_create(self):
+        uom_category = baker.make(UoMCategory, organisation=self.global_organisation)
+        data = {"name": fake.name()[:127], "category": uom_category.pk}
+        response = self.client.post(reverse("ops:uom_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance = baker.make(UoM, organisation=self.global_organisation)
+        uom_category = baker.make(UoMCategory, organisation=self.global_organisation)
+        data = {"name": fake.name()[:127], "category": uom_category.pk}
+        response = self.client.post(
+            reverse("ops:uom_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance = baker.make(UoM, organisation=self.global_organisation)
+        response = self.client.post(
+            reverse("ops:uom_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class UoMCategoryFormTest(LoggedInMixin, TestCase):
+    def test_create(self):
+        data = {
+            "name": fake.name()[:120],
+            "measure_type": UoMCategory.MeasureTypes.UNIT.value,
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(reverse("ops:uom_category_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance = baker.make(UoMCategory, organisation=self.global_organisation)
+        data = {
+            "name": fake.name()[:120],
+            "measure_type": UoMCategory.MeasureTypes.UNIT.value,
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(
+            reverse("ops:uom_category_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance = baker.make(UoMCategory, organisation=self.global_organisation)
+        response = self.client.post(
+            reverse("ops:uom_category_delete", kwargs={"pk": instance.pk}),
         )
         self.assertEqual(
             response.status_code,

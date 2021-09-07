@@ -2,21 +2,25 @@ from django.contrib import admin
 
 from fahari.common.admin import BaseAdmin
 
-from .models import Commodity, FacilitySystem, FacilitySystemTicket, TimeSheet
+from .models import Commodity, FacilitySystem, FacilitySystemTicket, TimeSheet, UoM, UoMCategory
 
 
+@admin.register(FacilitySystem)
 class FacilitySystemAdmin(BaseAdmin):
     pass
 
 
+@admin.register(FacilitySystemTicket)
 class FacilitySystemTicketAdmin(BaseAdmin):
     pass
 
 
+@admin.register(TimeSheet)
 class TimeSheetAdmin(BaseAdmin):
     pass
 
 
+@admin.register(Commodity)
 class CommodityAdmin(BaseAdmin):
 
     list_display = (
@@ -33,7 +37,11 @@ class CommodityAdmin(BaseAdmin):
     )
 
 
-admin.site.register(FacilitySystem, FacilitySystemAdmin)
-admin.site.register(FacilitySystemTicket, FacilitySystemTicketAdmin)
-admin.site.register(TimeSheet, TimeSheetAdmin)
-admin.site.register(Commodity, CommodityAdmin)
+@admin.register(UoM)
+class UoMAdmin(BaseAdmin):
+    pass
+
+
+@admin.register(UoMCategory)
+class UoMCategoryAdmin(BaseAdmin):
+    pass

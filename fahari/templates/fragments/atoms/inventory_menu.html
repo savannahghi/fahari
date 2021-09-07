@@ -14,21 +14,29 @@
             {% endif %}
 
             {% if perms.ops.view_stockreceiptverification %}
-                <a class="collapse-item {% if selected == "stock-receipt-verification" %}active {% endif %}" id="stock-receipt-verification" href="{% url 'ops:stock_receipt_verifications' %}">
+                <a class="collapse-item {% if selected == "stock-receipt-verifications" %}active {% endif %}" id="stock-receipt-verifications" href="{% url 'ops:stock_receipt_verifications' %}">
                     Stock Receipts
                 </a>
             {% endif %}
 
+            {% if perms.ops.view_uoms %}
+                <a class="collapse-item {% if selected == "uoms" %}active {% endif %}" id="uoms" href="{% url 'ops:uoms' %}">
+                    Units of Measure
+                </a>
+            {% endif %}
+
+
+            {% if perms.ops.view_uoms %}
+                <a class="collapse-item {% if selected == "uom_categories" %}active {% endif %}" id="uom_categories" href="{% url 'ops:uom_categories' %}">
+                    UoM Categories
+                </a>
+            {% endif %}
         </div>
     </div>
 </li>
 
 
 <script>
-
-
-
-
 function collapseMenu(){
 const inventory_menu_link = document.getElementById("inventory-menu-link");
 inventory_menu_link.className = "nav-link collapsed";
@@ -43,6 +51,4 @@ inventory_items.forEach(input => input.addEventListener('click', collapseMenu())
 document.addEventListener("DOMContentLoaded", () => {
 collapseMenu()
 });
-
-
 </script>

@@ -11,6 +11,8 @@ from fahari.ops.views import (
     FacilitySystemsView,
     FacilitySystemTicketsView,
     TimeSheetApproveView,
+    UoMCategoryListView,
+    UoMListView,
 )
 
 pytestmark = pytest.mark.django_db
@@ -145,3 +147,17 @@ def test_commodities_context_data():
     ctx = v.get_context_data()
     assert ctx["active"] == "inventory-nav"
     assert ctx["selected"] == "commodities"
+
+
+def test_uoms_context_data():
+    v = UoMListView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "inventory-nav"
+    assert ctx["selected"] == "uoms"
+
+
+def test_uom_categories_context_data():
+    v = UoMCategoryListView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "inventory-nav"
+    assert ctx["selected"] == "uom_categories"
