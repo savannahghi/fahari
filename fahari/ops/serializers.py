@@ -41,6 +41,7 @@ class FacilitySystemTicketSerializer(BaseSerializer):
 class StockReceiptVerificationSerializer(BaseSerializer):
 
     facility_name = serializers.ReadOnlyField(source="facility.name")
+    unit_of_measure_name = serializers.ReadOnlyField(source="unit_of_measure.name")
 
     class Meta(BaseSerializer.Meta):
         model = StockReceiptVerification

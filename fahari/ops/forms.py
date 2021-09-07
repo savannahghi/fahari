@@ -147,11 +147,7 @@ class StockReceiptVerificationForm(BaseModelForm):
         model = StockReceiptVerification
         widgets = {
             "facility": SearchableComboBox(),
-            "pack_size": TextInput(
-                attrs={
-                    "size": 128,
-                }
-            ),
+            "commodity": SearchableComboBox(),
             "expiry_date": TextInput(
                 attrs={
                     "type": "date",
