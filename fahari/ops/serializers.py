@@ -41,7 +41,11 @@ class FacilitySystemTicketSerializer(BaseSerializer):
 class StockReceiptVerificationSerializer(BaseSerializer):
 
     facility_name = serializers.ReadOnlyField(source="facility.name")
-    unit_of_measure_name = serializers.ReadOnlyField(source="unit_of_measure.name")
+    commodity_name = serializers.ReadOnlyField(source="commodity.name")
+    pack_size_name = serializers.SerializerMethodField()
+
+    def get_pack_size_name(self, obj: StockReceiptVerification) -> str:  # noqa
+        return obj.pack_size.name if obj.pack_size else "-"
 
     class Meta(BaseSerializer.Meta):
         model = StockReceiptVerification

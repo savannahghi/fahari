@@ -126,7 +126,7 @@ class StockReceiptVerificationForm(BaseModelForm):
         "facility",
         "commodity",
         "description",
-        "unit_of_measure",
+        "pack_size",
         "delivery_note_number",
         "quantity_received",
         "batch_number",
@@ -340,7 +340,7 @@ class CommodityForm(BaseModelForm):
     field_order = [
         "name",
         "code",
-        "unit_of_measure",
+        "pack_sizes",
         "description",
         "is_lab_commodity",
         "is_pharmacy_commodity",
