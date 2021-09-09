@@ -75539,6 +75539,1266 @@ $jscomp.propertyToPolyfillSymbol[d],$jscomp.defineProperty(e,d,{configurable:!0,
 (function(a){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-responsive"],function(b){return a(b,window,document)}):"object"===typeof exports?module.exports=function(b,c){b||(b=window);c&&c.fn.dataTable||(c=require("datatables.net-bs4")(b,c).$);c.fn.dataTable.Responsive||require("datatables.net-responsive")(b,c);return a(c,b,b.document)}:a(jQuery,window,document)})(function(a,b,c,e){b=a.fn.dataTable;c=b.Responsive.display;var d=c.modal,f=a('<div class="modal fade dtr-bs-modal" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body"/></div></div></div>');
 c.modal=function(g){return function(k,h,l){if(!a.fn.modal)d(k,h,l);else if(!h){if(g&&g.header){h=f.find("div.modal-header");var m=h.find("button").detach();h.empty().append('<h4 class="modal-title">'+g.header(k)+"</h4>").append(m)}f.find("div.modal-body").empty().append(l());f.appendTo("body").modal()}}};return b.Responsive});
 
+/*! AutoFill 2.3.9
+ * ©2008-2021 SpryMedia Ltd - datatables.net/license
+ */
+
+/**
+ * @summary     AutoFill
+ * @description Add Excel like click and drag auto-fill options to DataTables
+ * @version     2.3.9
+ * @file        dataTables.autoFill.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     www.sprymedia.co.uk/contact
+ * @copyright   Copyright 2010-2021 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+var _instance = 0;
+
+/**
+ * AutoFill provides Excel like auto-fill features for a DataTable
+ *
+ * @class AutoFill
+ * @constructor
+ * @param {object} oTD DataTables settings object
+ * @param {object} oConfig Configuration object for AutoFill
+ */
+var AutoFill = function( dt, opts )
+{
+	if ( ! DataTable.versionCheck || ! DataTable.versionCheck( '1.10.8' ) ) {
+		throw( "Warning: AutoFill requires DataTables 1.10.8 or greater");
+	}
+
+	// User and defaults configuration object
+	this.c = $.extend( true, {},
+		DataTable.defaults.autoFill,
+		AutoFill.defaults,
+		opts
+	);
+
+	/**
+	 * @namespace Settings object which contains customisable information for AutoFill instance
+	 */
+	this.s = {
+		/** @type {DataTable.Api} DataTables' API instance */
+		dt: new DataTable.Api( dt ),
+
+		/** @type {String} Unique namespace for events attached to the document */
+		namespace: '.autoFill'+(_instance++),
+
+		/** @type {Object} Cached dimension information for use in the mouse move event handler */
+		scroll: {},
+
+		/** @type {integer} Interval object used for smooth scrolling */
+		scrollInterval: null,
+
+		handle: {
+			height: 0,
+			width: 0
+		},
+
+		/**
+		 * Enabled setting
+		 * @type {Boolean}
+		 */
+		enabled: false
+	};
+
+
+	/**
+	 * @namespace Common and useful DOM elements for the class instance
+	 */
+	this.dom = {
+		/** @type {jQuery} AutoFill handle */
+		handle: $('<div class="dt-autofill-handle"/>'),
+
+		/**
+		 * @type {Object} Selected cells outline - Need to use 4 elements,
+		 *   otherwise the mouse over if you back into the selected rectangle
+		 *   will be over that element, rather than the cells!
+		 */
+		select: {
+			top:    $('<div class="dt-autofill-select top"/>'),
+			right:  $('<div class="dt-autofill-select right"/>'),
+			bottom: $('<div class="dt-autofill-select bottom"/>'),
+			left:   $('<div class="dt-autofill-select left"/>')
+		},
+
+		/** @type {jQuery} Fill type chooser background */
+		background: $('<div class="dt-autofill-background"/>'),
+
+		/** @type {jQuery} Fill type chooser */
+		list: $('<div class="dt-autofill-list">'+this.s.dt.i18n('autoFill.info', '')+'<ul/></div>'),
+
+		/** @type {jQuery} DataTables scrolling container */
+		dtScroll: null,
+
+		/** @type {jQuery} Offset parent element */
+		offsetParent: null
+	};
+
+
+	/* Constructor logic */
+	this._constructor();
+};
+
+
+
+$.extend( AutoFill.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Public methods (exposed via the DataTables API below)
+	 */
+	enabled: function ()
+	{
+		return this.s.enabled;
+	},
+
+
+	enable: function ( flag )
+	{
+		var that = this;
+
+		if ( flag === false ) {
+			return this.disable();
+		}
+
+		this.s.enabled = true;
+
+		this._focusListener();
+
+		this.dom.handle.on( 'mousedown', function (e) {
+			that._mousedown( e );
+			return false;
+		} );
+
+		return this;
+	},
+
+	disable: function ()
+	{
+		this.s.enabled = false;
+
+		this._focusListenerRemove();
+
+		return this;
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * Initialise the RowReorder instance
+	 *
+	 * @private
+	 */
+	_constructor: function ()
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var dtScroll = $('div.dataTables_scrollBody', this.s.dt.table().container());
+
+		// Make the instance accessible to the API
+		dt.settings()[0].autoFill = this;
+
+		if ( dtScroll.length ) {
+			this.dom.dtScroll = dtScroll;
+
+			// Need to scroll container to be the offset parent
+			if ( dtScroll.css('position') === 'static' ) {
+				dtScroll.css( 'position', 'relative' );
+			}
+		}
+
+		if ( this.c.enable !== false ) {
+			this.enable();
+		}
+
+		dt.on( 'destroy.autoFill', function () {
+			that._focusListenerRemove();
+		} );
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Display the AutoFill drag handle by appending it to a table cell. This
+	 * is the opposite of the _detach method.
+	 *
+	 * @param  {node} node TD/TH cell to insert the handle into
+	 * @private
+	 */
+	_attach: function ( node )
+	{
+		var dt = this.s.dt;
+		var idx = dt.cell( node ).index();
+		var handle = this.dom.handle;
+		var handleDim = this.s.handle;
+
+		if ( ! idx || dt.columns( this.c.columns ).indexes().indexOf( idx.column ) === -1 ) {
+			this._detach();
+			return;
+		}
+
+		if ( ! this.dom.offsetParent ) {
+			// We attach to the table's offset parent
+			this.dom.offsetParent = $( dt.table().node() ).offsetParent();
+		}
+
+		if ( ! handleDim.height || ! handleDim.width ) {
+			// Append to document so we can get its size. Not expecting it to
+			// change during the life time of the page
+			handle.appendTo( 'body' );
+			handleDim.height = handle.outerHeight();
+			handleDim.width = handle.outerWidth();
+		}
+
+		// Might need to go through multiple offset parents
+		var offset = this._getPosition( node, this.dom.offsetParent );
+
+		this.dom.attachedTo = node;
+		handle
+			.css( {
+				top: offset.top + node.offsetHeight - handleDim.height,
+				left: offset.left + node.offsetWidth - handleDim.width
+			} )
+			.appendTo( this.dom.offsetParent );
+	},
+
+
+	/**
+	 * Determine can the fill type should be. This can be automatic, or ask the
+	 * end user.
+	 *
+	 * @param {array} cells Information about the selected cells from the key
+	 *     up function
+	 * @private
+	 */
+	_actionSelector: function ( cells )
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var actions = AutoFill.actions;
+		var available = [];
+
+		// "Ask" each plug-in if it wants to handle this data
+		$.each( actions, function ( key, action ) {
+			if ( action.available( dt, cells ) ) {
+				available.push( key );
+			}
+		} );
+
+		if ( available.length === 1 && this.c.alwaysAsk === false ) {
+			// Only one action available - enact it immediately
+			var result = actions[ available[0] ].execute( dt, cells );
+			this._update( result, cells );
+		}
+		else if ( available.length > 1 ) {
+			// Multiple actions available - ask the end user what they want to do
+			var list = this.dom.list.children('ul').empty();
+
+			// Add a cancel option
+			available.push( 'cancel' );
+
+			$.each( available, function ( i, name ) {
+				list.append( $('<li/>')
+					.append(
+						'<div class="dt-autofill-question">'+
+							actions[ name ].option( dt, cells )+
+						'<div>'
+					)
+					.append( $('<div class="dt-autofill-button">' )
+						.append( $('<button class="'+AutoFill.classes.btn+'">'+dt.i18n('autoFill.button', '&gt;')+'</button>')
+							.on( 'click', function () {
+								var result = actions[ name ].execute(
+									dt, cells, $(this).closest('li')
+								);
+								that._update( result, cells );
+
+								that.dom.background.remove();
+								that.dom.list.remove();
+							} )
+						)
+					)
+				);
+			} );
+
+			this.dom.background.appendTo( 'body' );
+			this.dom.list.appendTo( 'body' );
+
+			this.dom.list.css( 'margin-top', this.dom.list.outerHeight()/2 * -1 );
+		}
+	},
+
+
+	/**
+	 * Remove the AutoFill handle from the document
+	 *
+	 * @private
+	 */
+	_detach: function ()
+	{
+		this.dom.attachedTo = null;
+		this.dom.handle.detach();
+	},
+
+
+	/**
+	 * Draw the selection outline by calculating the range between the start
+	 * and end cells, then placing the highlighting elements to draw a rectangle
+	 *
+	 * @param  {node}   target End cell
+	 * @param  {object} e      Originating event
+	 * @private
+	 */
+	_drawSelection: function ( target, e )
+	{
+		// Calculate boundary for start cell to this one
+		var dt = this.s.dt;
+		var start = this.s.start;
+		var startCell = $(this.dom.start);
+		var end = {
+			row: this.c.vertical ?
+				dt.rows( { page: 'current' } ).nodes().indexOf( target.parentNode ) :
+				start.row,
+			column: this.c.horizontal ?
+				$(target).index() :
+				start.column
+		};
+		var colIndx = dt.column.index( 'toData', end.column );
+		var endRow =  dt.row( ':eq('+end.row+')', { page: 'current' } ); // Workaround for M581
+		var endCell = $( dt.cell( endRow.index(), colIndx ).node() );
+
+		// Be sure that is a DataTables controlled cell
+		if ( ! dt.cell( endCell ).any() ) {
+			return;
+		}
+
+		// if target is not in the columns available - do nothing
+		if ( dt.columns( this.c.columns ).indexes().indexOf( colIndx ) === -1 ) {
+			return;
+		}
+
+		this.s.end = end;
+
+		var top, bottom, left, right, height, width;
+
+		top    = start.row    < end.row    ? startCell : endCell;
+		bottom = start.row    < end.row    ? endCell   : startCell;
+		left   = start.column < end.column ? startCell : endCell;
+		right  = start.column < end.column ? endCell   : startCell;
+
+		top    = this._getPosition( top.get(0) ).top;
+		left   = this._getPosition( left.get(0) ).left;
+		height = this._getPosition( bottom.get(0) ).top + bottom.outerHeight() - top;
+		width  = this._getPosition( right.get(0) ).left + right.outerWidth() - left;
+
+		var select = this.dom.select;
+		select.top.css( {
+			top: top,
+			left: left,
+			width: width
+		} );
+
+		select.left.css( {
+			top: top,
+			left: left,
+			height: height
+		} );
+
+		select.bottom.css( {
+			top: top + height,
+			left: left,
+			width: width
+		} );
+
+		select.right.css( {
+			top: top,
+			left: left + width,
+			height: height
+		} );
+	},
+
+
+	/**
+	 * Use the Editor API to perform an update based on the new data for the
+	 * cells
+	 *
+	 * @param {array} cells Information about the selected cells from the key
+	 *     up function
+	 * @private
+	 */
+	_editor: function ( cells )
+	{
+		var dt = this.s.dt;
+		var editor = this.c.editor;
+
+		if ( ! editor ) {
+			return;
+		}
+
+		// Build the object structure for Editor's multi-row editing
+		var idValues = {};
+		var nodes = [];
+		var fields = editor.fields();
+
+		for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+			for ( var j=0, jen=cells[i].length ; j<jen ; j++ ) {
+				var cell = cells[i][j];
+
+				// Determine the field name for the cell being edited
+				var col = dt.settings()[0].aoColumns[ cell.index.column ];
+				var fieldName = col.editField;
+
+				if ( fieldName === undefined ) {
+					var dataSrc = col.mData;
+
+					// dataSrc is the `field.data` property, but we need to set
+					// using the field name, so we need to translate from the
+					// data to the name
+					for ( var k=0, ken=fields.length ; k<ken ; k++ ) {
+						var field = editor.field( fields[k] );
+
+						if ( field.dataSrc() === dataSrc ) {
+							fieldName = field.name();
+							break;
+						}
+					}
+				}
+
+				if ( ! fieldName ) {
+					throw 'Could not automatically determine field data. '+
+						'Please see https://datatables.net/tn/11';
+				}
+
+				if ( ! idValues[ fieldName ] ) {
+					idValues[ fieldName ] = {};
+				}
+
+				var id = dt.row( cell.index.row ).id();
+				idValues[ fieldName ][ id ] = cell.set;
+
+				// Keep a list of cells so we can activate the bubble editing
+				// with them
+				nodes.push( cell.index );
+			}
+		}
+
+		// Perform the edit using bubble editing as it allows us to specify
+		// the cells to be edited, rather than using full rows
+		editor
+			.bubble( nodes, false )
+			.multiSet( idValues )
+			.submit();
+	},
+
+
+	/**
+	 * Emit an event on the DataTable for listeners
+	 *
+	 * @param  {string} name Event name
+	 * @param  {array} args Event arguments
+	 * @private
+	 */
+	_emitEvent: function ( name, args )
+	{
+		this.s.dt.iterator( 'table', function ( ctx, i ) {
+			$(ctx.nTable).triggerHandler( name+'.dt', args );
+		} );
+	},
+
+
+	/**
+	 * Attach suitable listeners (based on the configuration) that will attach
+	 * and detach the AutoFill handle in the document.
+	 *
+	 * @private
+	 */
+	_focusListener: function ()
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var namespace = this.s.namespace;
+		var focus = this.c.focus !== null ?
+			this.c.focus :
+			dt.init().keys || dt.settings()[0].keytable ?
+				'focus' :
+				'hover';
+
+		// All event listeners attached here are removed in the `destroy`
+		// callback in the constructor
+		if ( focus === 'focus' ) {
+			dt
+				.on( 'key-focus.autoFill', function ( e, dt, cell ) {
+					that._attach( cell.node() );
+				} )
+				.on( 'key-blur.autoFill', function ( e, dt, cell ) {
+					that._detach();
+				} );
+		}
+		else if ( focus === 'click' ) {
+			$(dt.table().body()).on( 'click'+namespace, 'td, th', function (e) {
+				that._attach( this );
+			} );
+
+			$(document.body).on( 'click'+namespace, function (e) {
+				if ( ! $(e.target).parents().filter( dt.table().body() ).length ) {
+					that._detach();
+				}
+			} );
+		}
+		else {
+			$(dt.table().body())
+				.on( 'mouseenter'+namespace, 'td, th', function (e) {
+					that._attach( this );
+				} )
+				.on( 'mouseleave'+namespace, function (e) {
+					if ( $(e.relatedTarget).hasClass('dt-autofill-handle') ) {
+						return;
+					}
+
+					that._detach();
+				} );
+		}
+	},
+
+
+	_focusListenerRemove: function ()
+	{
+		var dt = this.s.dt;
+
+		dt.off( '.autoFill' );
+		$(dt.table().body()).off( this.s.namespace );
+		$(document.body).off( this.s.namespace );
+	},
+
+
+	/**
+	 * Get the position of a node, relative to another, including any scrolling
+	 * offsets.
+	 * @param  {Node}   node         Node to get the position of
+	 * @param  {jQuery} targetParent Node to use as the parent
+	 * @return {object}              Offset calculation
+	 * @private
+	 */
+	_getPosition: function ( node, targetParent )
+	{
+		var
+			currNode = node,
+			currOffsetParent,
+			top = 0,
+			left = 0;
+
+		if ( ! targetParent ) {
+			targetParent = $( $( this.s.dt.table().node() )[0].offsetParent );
+		}
+
+		do {
+			// Don't use jQuery().position() the behaviour changes between 1.x and 3.x for
+			// tables
+			var positionTop = currNode.offsetTop;
+			var positionLeft = currNode.offsetLeft;
+
+			// jQuery doesn't give a `table` as the offset parent oddly, so use DOM directly
+			currOffsetParent = $( currNode.offsetParent );
+
+			top += positionTop + parseInt( currOffsetParent.css('border-top-width') || 0 ) * 1;
+			left += positionLeft + parseInt( currOffsetParent.css('border-left-width') || 0 ) * 1;
+
+			// Emergency fall back. Shouldn't happen, but just in case!
+			if ( currNode.nodeName.toLowerCase() === 'body' ) {
+				break;
+			}
+
+			currNode = currOffsetParent.get(0); // for next loop
+		}
+		while ( currOffsetParent.get(0) !== targetParent.get(0) )
+
+		return {
+			top: top,
+			left: left
+		};
+	},
+
+
+	/**
+	 * Start mouse drag - selects the start cell
+	 *
+	 * @param  {object} e Mouse down event
+	 * @private
+	 */
+	_mousedown: function ( e )
+	{
+		var that = this;
+		var dt = this.s.dt;
+
+		this.dom.start = this.dom.attachedTo;
+		this.s.start = {
+			row: dt.rows( { page: 'current' } ).nodes().indexOf( $(this.dom.start).parent()[0] ),
+			column: $(this.dom.start).index()
+		};
+
+		$(document.body)
+			.on( 'mousemove.autoFill', function (e) {
+				that._mousemove( e );
+			} )
+			.on( 'mouseup.autoFill', function (e) {
+				that._mouseup( e );
+			} );
+
+		var select = this.dom.select;
+		var offsetParent = $( dt.table().node() ).offsetParent();
+		select.top.appendTo( offsetParent );
+		select.left.appendTo( offsetParent );
+		select.right.appendTo( offsetParent );
+		select.bottom.appendTo( offsetParent );
+
+		this._drawSelection( this.dom.start, e );
+
+		this.dom.handle.css( 'display', 'none' );
+
+		// Cache scrolling information so mouse move doesn't need to read.
+		// This assumes that the window and DT scroller will not change size
+		// during an AutoFill drag, which I think is a fair assumption
+		var scrollWrapper = this.dom.dtScroll;
+		this.s.scroll = {
+			windowHeight: $(window).height(),
+			windowWidth:  $(window).width(),
+			dtTop:        scrollWrapper ? scrollWrapper.offset().top : null,
+			dtLeft:       scrollWrapper ? scrollWrapper.offset().left : null,
+			dtHeight:     scrollWrapper ? scrollWrapper.outerHeight() : null,
+			dtWidth:      scrollWrapper ? scrollWrapper.outerWidth() : null
+		};
+	},
+
+
+	/**
+	 * Mouse drag - selects the end cell and update the selection display for
+	 * the end user
+	 *
+	 * @param  {object} e Mouse move event
+	 * @private
+	 */
+	_mousemove: function ( e )
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var name = e.target.nodeName.toLowerCase();
+		if ( name !== 'td' && name !== 'th' ) {
+			return;
+		}
+
+		this._drawSelection( e.target, e );
+		this._shiftScroll( e );
+	},
+
+
+	/**
+	 * End mouse drag - perform the update actions
+	 *
+	 * @param  {object} e Mouse up event
+	 * @private
+	 */
+	_mouseup: function ( e )
+	{
+		$(document.body).off( '.autoFill' );
+
+		var that = this;
+		var dt = this.s.dt;
+		var select = this.dom.select;
+		select.top.remove();
+		select.left.remove();
+		select.right.remove();
+		select.bottom.remove();
+
+		this.dom.handle.css( 'display', 'block' );
+
+		// Display complete - now do something useful with the selection!
+		var start = this.s.start;
+		var end = this.s.end;
+
+		// Haven't selected multiple cells, so nothing to do
+		if ( start.row === end.row && start.column === end.column ) {
+			return;
+		}
+
+		var startDt = dt.cell( ':eq('+start.row+')', start.column+':visible', {page:'current'} );
+
+		// If Editor is active inside this cell (inline editing) we need to wait for Editor to
+		// submit and then we can loop back and trigger the fill.
+		if ( $('div.DTE', startDt.node()).length ) {
+			var editor = dt.editor();
+
+			editor
+				.on( 'submitSuccess.dtaf close.dtaf', function () {
+					editor.off( '.dtaf');
+
+					setTimeout( function () {
+						that._mouseup( e );
+					}, 100 );
+				} )
+				.on( 'submitComplete.dtaf preSubmitCancelled.dtaf close.dtaf', function () {
+					editor.off( '.dtaf');
+				} );
+
+			// Make the current input submit
+			editor.submit();
+
+			return;
+		}
+
+		// Build a matrix representation of the selected rows
+		var rows       = this._range( start.row, end.row );
+		var columns    = this._range( start.column, end.column );
+		var selected   = [];
+		var dtSettings = dt.settings()[0];
+		var dtColumns  = dtSettings.aoColumns;
+		var enabledColumns = dt.columns( this.c.columns ).indexes();
+
+		// Can't use Array.prototype.map as IE8 doesn't support it
+		// Can't use $.map as jQuery flattens 2D arrays
+		// Need to use a good old fashioned for loop
+		for ( var rowIdx=0 ; rowIdx<rows.length ; rowIdx++ ) {
+			selected.push(
+				$.map( columns, function (column) {
+					var row = dt.row( ':eq('+rows[rowIdx]+')', {page:'current'} ); // Workaround for M581
+					var cell = dt.cell( row.index(), column+':visible' );
+					var data = cell.data();
+					var cellIndex = cell.index();
+					var editField = dtColumns[ cellIndex.column ].editField;
+
+					if ( editField !== undefined ) {
+						data = dtSettings.oApi._fnGetObjectDataFn( editField )( dt.row( cellIndex.row ).data() );
+					}
+
+					if ( enabledColumns.indexOf(cellIndex.column) === -1 ) {
+						return;
+					}
+
+					return {
+						cell:  cell,
+						data:  data,
+						label: cell.data(),
+						index: cellIndex
+					};
+				} )
+			);
+		}
+
+		this._actionSelector( selected );
+
+		// Stop shiftScroll
+		clearInterval( this.s.scrollInterval );
+		this.s.scrollInterval = null;
+	},
+
+
+	/**
+	 * Create an array with a range of numbers defined by the start and end
+	 * parameters passed in (inclusive!).
+	 *
+	 * @param  {integer} start Start
+	 * @param  {integer} end   End
+	 * @private
+	 */
+	_range: function ( start, end )
+	{
+		var out = [];
+		var i;
+
+		if ( start <= end ) {
+			for ( i=start ; i<=end ; i++ ) {
+				out.push( i );
+			}
+		}
+		else {
+			for ( i=start ; i>=end ; i-- ) {
+				out.push( i );
+			}
+		}
+
+		return out;
+	},
+
+
+	/**
+	 * Move the window and DataTables scrolling during a drag to scroll new
+	 * content into view. This is done by proximity to the edge of the scrolling
+	 * container of the mouse - for example near the top edge of the window
+	 * should scroll up. This is a little complicated as there are two elements
+	 * that can be scrolled - the window and the DataTables scrolling view port
+	 * (if scrollX and / or scrollY is enabled).
+	 *
+	 * @param  {object} e Mouse move event object
+	 * @private
+	 */
+	_shiftScroll: function ( e )
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var scroll = this.s.scroll;
+		var runInterval = false;
+		var scrollSpeed = 5;
+		var buffer = 65;
+		var
+			windowY = e.pageY - document.body.scrollTop,
+			windowX = e.pageX - document.body.scrollLeft,
+			windowVert, windowHoriz,
+			dtVert, dtHoriz;
+
+		// Window calculations - based on the mouse position in the window,
+		// regardless of scrolling
+		if ( windowY < buffer ) {
+			windowVert = scrollSpeed * -1;
+		}
+		else if ( windowY > scroll.windowHeight - buffer ) {
+			windowVert = scrollSpeed;
+		}
+
+		if ( windowX < buffer ) {
+			windowHoriz = scrollSpeed * -1;
+		}
+		else if ( windowX > scroll.windowWidth - buffer ) {
+			windowHoriz = scrollSpeed;
+		}
+
+		// DataTables scrolling calculations - based on the table's position in
+		// the document and the mouse position on the page
+		if ( scroll.dtTop !== null && e.pageY < scroll.dtTop + buffer ) {
+			dtVert = scrollSpeed * -1;
+		}
+		else if ( scroll.dtTop !== null && e.pageY > scroll.dtTop + scroll.dtHeight - buffer ) {
+			dtVert = scrollSpeed;
+		}
+
+		if ( scroll.dtLeft !== null && e.pageX < scroll.dtLeft + buffer ) {
+			dtHoriz = scrollSpeed * -1;
+		}
+		else if ( scroll.dtLeft !== null && e.pageX > scroll.dtLeft + scroll.dtWidth - buffer ) {
+			dtHoriz = scrollSpeed;
+		}
+
+		// This is where it gets interesting. We want to continue scrolling
+		// without requiring a mouse move, so we need an interval to be
+		// triggered. The interval should continue until it is no longer needed,
+		// but it must also use the latest scroll commands (for example consider
+		// that the mouse might move from scrolling up to scrolling left, all
+		// with the same interval running. We use the `scroll` object to "pass"
+		// this information to the interval. Can't use local variables as they
+		// wouldn't be the ones that are used by an already existing interval!
+		if ( windowVert || windowHoriz || dtVert || dtHoriz ) {
+			scroll.windowVert = windowVert;
+			scroll.windowHoriz = windowHoriz;
+			scroll.dtVert = dtVert;
+			scroll.dtHoriz = dtHoriz;
+			runInterval = true;
+		}
+		else if ( this.s.scrollInterval ) {
+			// Don't need to scroll - remove any existing timer
+			clearInterval( this.s.scrollInterval );
+			this.s.scrollInterval = null;
+		}
+
+		// If we need to run the interval to scroll and there is no existing
+		// interval (if there is an existing one, it will continue to run)
+		if ( ! this.s.scrollInterval && runInterval ) {
+			this.s.scrollInterval = setInterval( function () {
+				// Don't need to worry about setting scroll <0 or beyond the
+				// scroll bound as the browser will just reject that.
+				if ( scroll.windowVert ) {
+					document.body.scrollTop += scroll.windowVert;
+				}
+				if ( scroll.windowHoriz ) {
+					document.body.scrollLeft += scroll.windowHoriz;
+				}
+
+				// DataTables scrolling
+				if ( scroll.dtVert || scroll.dtHoriz ) {
+					var scroller = that.dom.dtScroll[0];
+
+					if ( scroll.dtVert ) {
+						scroller.scrollTop += scroll.dtVert;
+					}
+					if ( scroll.dtHoriz ) {
+						scroller.scrollLeft += scroll.dtHoriz;
+					}
+				}
+			}, 20 );
+		}
+	},
+
+
+	/**
+	 * Update the DataTable after the user has selected what they want to do
+	 *
+	 * @param  {false|undefined} result Return from the `execute` method - can
+	 *   be false internally to do nothing. This is not documented for plug-ins
+	 *   and is used only by the cancel option.
+	 * @param {array} cells Information about the selected cells from the key
+	 *     up function, argumented with the set values
+	 * @private
+	 */
+	_update: function ( result, cells )
+	{
+		// Do nothing on `false` return from an execute function
+		if ( result === false ) {
+			return;
+		}
+
+		var dt = this.s.dt;
+		var cell;
+		var columns = dt.columns( this.c.columns ).indexes();
+
+		// Potentially allow modifications to the cells matrix
+		this._emitEvent( 'preAutoFill', [ dt, cells ] );
+
+		this._editor( cells );
+
+		// Automatic updates are not performed if `update` is null and the
+		// `editor` parameter is passed in - the reason being that Editor will
+		// update the data once submitted
+		var update = this.c.update !== null ?
+			this.c.update :
+			this.c.editor ?
+				false :
+				true;
+
+		if ( update ) {
+			for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+				for ( var j=0, jen=cells[i].length ; j<jen ; j++ ) {
+					cell = cells[i][j];
+
+					if ( columns.indexOf(cell.index.column) !== -1 ) {
+						cell.cell.data( cell.set );
+					}
+				}
+			}
+
+			dt.draw(false);
+		}
+
+		this._emitEvent( 'autoFill', [ dt, cells ] );
+	}
+} );
+
+
+/**
+ * AutoFill actions. The options here determine how AutoFill will fill the data
+ * in the table when the user has selected a range of cells. Please see the
+ * documentation on the DataTables site for full details on how to create plug-
+ * ins.
+ *
+ * @type {Object}
+ */
+AutoFill.actions = {
+	increment: {
+		available: function ( dt, cells ) {
+			var d = cells[0][0].label;
+
+			// is numeric test based on jQuery's old `isNumeric` function
+			return !isNaN( d - parseFloat( d ) );
+		},
+
+		option: function ( dt, cells ) {
+			return dt.i18n(
+				'autoFill.increment',
+				'Increment / decrement each cell by: <input type="number" value="1">'
+			);
+		},
+
+		execute: function ( dt, cells, node ) {
+			var value = cells[0][0].data * 1;
+			var increment = $('input', node).val() * 1;
+
+			for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+				for ( var j=0, jen=cells[i].length ; j<jen ; j++ ) {
+					cells[i][j].set = value;
+
+					value += increment;
+				}
+			}
+		}
+	},
+
+	fill: {
+		available: function ( dt, cells ) {
+			return true;
+		},
+
+		option: function ( dt, cells ) {
+			return dt.i18n('autoFill.fill', 'Fill all cells with <i>%d</i>', cells[0][0].label );
+		},
+
+		execute: function ( dt, cells, node ) {
+			var value = cells[0][0].data;
+
+			for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+				for ( var j=0, jen=cells[i].length ; j<jen ; j++ ) {
+					cells[i][j].set = value;
+				}
+			}
+		}
+	},
+
+	fillHorizontal: {
+		available: function ( dt, cells ) {
+			return cells.length > 1 && cells[0].length > 1;
+		},
+
+		option: function ( dt, cells ) {
+			return dt.i18n('autoFill.fillHorizontal', 'Fill cells horizontally' );
+		},
+
+		execute: function ( dt, cells, node ) {
+			for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+				for ( var j=0, jen=cells[i].length ; j<jen ; j++ ) {
+					cells[i][j].set = cells[i][0].data;
+				}
+			}
+		}
+	},
+
+	fillVertical: {
+		available: function ( dt, cells ) {
+			return cells.length > 1;
+		},
+
+		option: function ( dt, cells ) {
+			return dt.i18n('autoFill.fillVertical', 'Fill cells vertically' );
+		},
+
+		execute: function ( dt, cells, node ) {
+			for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+				for ( var j=0, jen=cells[i].length ; j<jen ; j++ ) {
+					cells[i][j].set = cells[0][j].data;
+				}
+			}
+		}
+	},
+
+	// Special type that does not make itself available, but is added
+	// automatically by AutoFill if a multi-choice list is shown. This allows
+	// sensible code reuse
+	cancel: {
+		available: function () {
+			return false;
+		},
+
+		option: function ( dt ) {
+			return dt.i18n('autoFill.cancel', 'Cancel' );
+		},
+
+		execute: function () {
+			return false;
+		}
+	}
+};
+
+
+/**
+ * AutoFill version
+ *
+ * @static
+ * @type      String
+ */
+AutoFill.version = '2.3.9';
+
+
+/**
+ * AutoFill defaults
+ *
+ * @namespace
+ */
+AutoFill.defaults = {
+	/** @type {Boolean} Ask user what they want to do, even for a single option */
+	alwaysAsk: false,
+
+	/** @type {string|null} What will trigger a focus */
+	focus: null, // focus, click, hover
+
+	/** @type {column-selector} Columns to provide auto fill for */
+	columns: '', // all
+
+	/** @type {Boolean} Enable AutoFill on load */
+	enable: true,
+
+	/** @type {boolean|null} Update the cells after a drag */
+	update: null, // false is editor given, true otherwise
+
+	/** @type {DataTable.Editor} Editor instance for automatic submission */
+	editor: null,
+
+	/** @type {boolean} Enable vertical fill */
+	vertical: true,
+
+	/** @type {boolean} Enable horizontal fill */
+	horizontal: true
+};
+
+
+/**
+ * Classes used by AutoFill that are configurable
+ *
+ * @namespace
+ */
+AutoFill.classes = {
+	/** @type {String} Class used by the selection button */
+	btn: 'btn'
+};
+
+
+/*
+ * API
+ */
+var Api = $.fn.dataTable.Api;
+
+// Doesn't do anything - Not documented
+Api.register( 'autoFill()', function () {
+	return this;
+} );
+
+Api.register( 'autoFill().enabled()', function () {
+	var ctx = this.context[0];
+
+	return ctx.autoFill ?
+		ctx.autoFill.enabled() :
+		false;
+} );
+
+Api.register( 'autoFill().enable()', function ( flag ) {
+	return this.iterator( 'table', function ( ctx ) {
+		if ( ctx.autoFill ) {
+			ctx.autoFill.enable( flag );
+		}
+	} );
+} );
+
+Api.register( 'autoFill().disable()', function () {
+	return this.iterator( 'table', function ( ctx ) {
+		if ( ctx.autoFill ) {
+			ctx.autoFill.disable();
+		}
+	} );
+} );
+
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on( 'preInit.dt.autofill', function (e, settings, json) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var init = settings.oInit.autoFill;
+	var defaults = DataTable.defaults.autoFill;
+
+	if ( init || defaults ) {
+		var opts = $.extend( {}, init, defaults );
+
+		if ( init !== false ) {
+			new AutoFill( settings, opts  );
+		}
+	}
+} );
+
+
+// Alias for access
+DataTable.AutoFill = AutoFill;
+DataTable.AutoFill = AutoFill;
+
+
+return AutoFill;
+}));
+
+/*!
+   Copyright 2010-2021 SpryMedia Ltd.
+
+ This source file is free software, available under the following license:
+   MIT license - http://datatables.net/license/mit
+
+ This source file is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+
+ For details please refer to: http://www.datatables.net
+ AutoFill 2.3.9
+ ©2008-2021 SpryMedia Ltd - datatables.net/license
+*/
+var $jscomp=$jscomp||{};$jscomp.scope={};$jscomp.arrayIteratorImpl=function(c){var h=0;return function(){return h<c.length?{done:!1,value:c[h++]}:{done:!0}}};$jscomp.arrayIterator=function(c){return{next:$jscomp.arrayIteratorImpl(c)}};$jscomp.ASSUME_ES5=!1;$jscomp.ASSUME_NO_NATIVE_MAP=!1;$jscomp.ASSUME_NO_NATIVE_SET=!1;$jscomp.SIMPLE_FROUND_POLYFILL=!1;$jscomp.ISOLATE_POLYFILLS=!1;
+$jscomp.defineProperty=$jscomp.ASSUME_ES5||"function"==typeof Object.defineProperties?Object.defineProperty:function(c,h,g){if(c==Array.prototype||c==Object.prototype)return c;c[h]=g.value;return c};$jscomp.getGlobal=function(c){c=["object"==typeof globalThis&&globalThis,c,"object"==typeof window&&window,"object"==typeof self&&self,"object"==typeof global&&global];for(var h=0;h<c.length;++h){var g=c[h];if(g&&g.Math==Math)return g}throw Error("Cannot find global object");};$jscomp.global=$jscomp.getGlobal(this);
+$jscomp.IS_SYMBOL_NATIVE="function"===typeof Symbol&&"symbol"===typeof Symbol("x");$jscomp.TRUST_ES6_POLYFILLS=!$jscomp.ISOLATE_POLYFILLS||$jscomp.IS_SYMBOL_NATIVE;$jscomp.polyfills={};$jscomp.propertyToPolyfillSymbol={};$jscomp.POLYFILL_PREFIX="$jscp$";var $jscomp$lookupPolyfilledValue=function(c,h){var g=$jscomp.propertyToPolyfillSymbol[h];if(null==g)return c[h];g=c[g];return void 0!==g?g:c[h]};
+$jscomp.polyfill=function(c,h,g,k){h&&($jscomp.ISOLATE_POLYFILLS?$jscomp.polyfillIsolated(c,h,g,k):$jscomp.polyfillUnisolated(c,h,g,k))};$jscomp.polyfillUnisolated=function(c,h,g,k){g=$jscomp.global;c=c.split(".");for(k=0;k<c.length-1;k++){var l=c[k];if(!(l in g))return;g=g[l]}c=c[c.length-1];k=g[c];h=h(k);h!=k&&null!=h&&$jscomp.defineProperty(g,c,{configurable:!0,writable:!0,value:h})};
+$jscomp.polyfillIsolated=function(c,h,g,k){var l=c.split(".");c=1===l.length;k=l[0];k=!c&&k in $jscomp.polyfills?$jscomp.polyfills:$jscomp.global;for(var y=0;y<l.length-1;y++){var r=l[y];if(!(r in k))return;k=k[r]}l=l[l.length-1];g=$jscomp.IS_SYMBOL_NATIVE&&"es6"===g?k[l]:null;h=h(g);null!=h&&(c?$jscomp.defineProperty($jscomp.polyfills,l,{configurable:!0,writable:!0,value:h}):h!==g&&($jscomp.propertyToPolyfillSymbol[l]=$jscomp.IS_SYMBOL_NATIVE?$jscomp.global.Symbol(l):$jscomp.POLYFILL_PREFIX+l,l=
+$jscomp.propertyToPolyfillSymbol[l],$jscomp.defineProperty(k,l,{configurable:!0,writable:!0,value:h})))};$jscomp.initSymbol=function(){};
+$jscomp.polyfill("Symbol",function(c){if(c)return c;var h=function(l,y){this.$jscomp$symbol$id_=l;$jscomp.defineProperty(this,"description",{configurable:!0,writable:!0,value:y})};h.prototype.toString=function(){return this.$jscomp$symbol$id_};var g=0,k=function(l){if(this instanceof k)throw new TypeError("Symbol is not a constructor");return new h("jscomp_symbol_"+(l||"")+"_"+g++,l)};return k},"es6","es3");$jscomp.initSymbolIterator=function(){};
+$jscomp.polyfill("Symbol.iterator",function(c){if(c)return c;c=Symbol("Symbol.iterator");for(var h="Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Float32Array Float64Array".split(" "),g=0;g<h.length;g++){var k=$jscomp.global[h[g]];"function"===typeof k&&"function"!=typeof k.prototype[c]&&$jscomp.defineProperty(k.prototype,c,{configurable:!0,writable:!0,value:function(){return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this))}})}return c},"es6",
+"es3");$jscomp.initSymbolAsyncIterator=function(){};$jscomp.iteratorPrototype=function(c){c={next:c};c[Symbol.iterator]=function(){return this};return c};$jscomp.iteratorFromArray=function(c,h){c instanceof String&&(c+="");var g=0,k={next:function(){if(g<c.length){var l=g++;return{value:h(l,c[l]),done:!1}}k.next=function(){return{done:!0,value:void 0}};return k.next()}};k[Symbol.iterator]=function(){return k};return k};
+$jscomp.polyfill("Array.prototype.keys",function(c){return c?c:function(){return $jscomp.iteratorFromArray(this,function(h){return h})}},"es6","es3");
+(function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(h){return c(h,window,document)}):"object"===typeof exports?module.exports=function(h,g){h||(h=window);g&&g.fn.dataTable||(g=require("datatables.net")(h,g).$);return c(g,h,h.document)}:c(jQuery,window,document)})(function(c,h,g,k){var l=c.fn.dataTable,y=0,r=function(a,d){if(!l.versionCheck||!l.versionCheck("1.10.8"))throw"Warning: AutoFill requires DataTables 1.10.8 or greater";this.c=c.extend(!0,{},l.defaults.autoFill,
+r.defaults,d);this.s={dt:new l.Api(a),namespace:".autoFill"+y++,scroll:{},scrollInterval:null,handle:{height:0,width:0},enabled:!1};this.dom={handle:c('<div class="dt-autofill-handle"/>'),select:{top:c('<div class="dt-autofill-select top"/>'),right:c('<div class="dt-autofill-select right"/>'),bottom:c('<div class="dt-autofill-select bottom"/>'),left:c('<div class="dt-autofill-select left"/>')},background:c('<div class="dt-autofill-background"/>'),list:c('<div class="dt-autofill-list">'+this.s.dt.i18n("autoFill.info",
+"")+"<ul/></div>"),dtScroll:null,offsetParent:null};this._constructor()};c.extend(r.prototype,{enabled:function(){return this.s.enabled},enable:function(a){var d=this;if(!1===a)return this.disable();this.s.enabled=!0;this._focusListener();this.dom.handle.on("mousedown",function(b){d._mousedown(b);return!1});return this},disable:function(){this.s.enabled=!1;this._focusListenerRemove();return this},_constructor:function(){var a=this,d=this.s.dt,b=c("div.dataTables_scrollBody",this.s.dt.table().container());
+d.settings()[0].autoFill=this;b.length&&(this.dom.dtScroll=b,"static"===b.css("position")&&b.css("position","relative"));!1!==this.c.enable&&this.enable();d.on("destroy.autoFill",function(){a._focusListenerRemove()})},_attach:function(a){var d=this.s.dt,b=d.cell(a).index(),e=this.dom.handle,f=this.s.handle;b&&-1!==d.columns(this.c.columns).indexes().indexOf(b.column)?(this.dom.offsetParent||(this.dom.offsetParent=c(d.table().node()).offsetParent()),f.height&&f.width||(e.appendTo("body"),f.height=
+e.outerHeight(),f.width=e.outerWidth()),d=this._getPosition(a,this.dom.offsetParent),this.dom.attachedTo=a,e.css({top:d.top+a.offsetHeight-f.height,left:d.left+a.offsetWidth-f.width}).appendTo(this.dom.offsetParent)):this._detach()},_actionSelector:function(a){var d=this,b=this.s.dt,e=r.actions,f=[];c.each(e,function(p,q){q.available(b,a)&&f.push(p)});if(1===f.length&&!1===this.c.alwaysAsk){var m=e[f[0]].execute(b,a);this._update(m,a)}else if(1<f.length){var n=this.dom.list.children("ul").empty();
+f.push("cancel");c.each(f,function(p,q){n.append(c("<li/>").append('<div class="dt-autofill-question">'+e[q].option(b,a)+"<div>").append(c('<div class="dt-autofill-button">').append(c('<button class="'+r.classes.btn+'">'+b.i18n("autoFill.button","&gt;")+"</button>").on("click",function(){var v=e[q].execute(b,a,c(this).closest("li"));d._update(v,a);d.dom.background.remove();d.dom.list.remove()}))))});this.dom.background.appendTo("body");this.dom.list.appendTo("body");this.dom.list.css("margin-top",
+this.dom.list.outerHeight()/2*-1)}},_detach:function(){this.dom.attachedTo=null;this.dom.handle.detach()},_drawSelection:function(a,d){var b=this.s.dt;d=this.s.start;var e=c(this.dom.start),f={row:this.c.vertical?b.rows({page:"current"}).nodes().indexOf(a.parentNode):d.row,column:this.c.horizontal?c(a).index():d.column};a=b.column.index("toData",f.column);var m=b.row(":eq("+f.row+")",{page:"current"});m=c(b.cell(m.index(),a).node());if(b.cell(m).any()&&-1!==b.columns(this.c.columns).indexes().indexOf(a)){this.s.end=
+f;b=d.row<f.row?e:m;var n=d.row<f.row?m:e;a=d.column<f.column?e:m;e=d.column<f.column?m:e;b=this._getPosition(b.get(0)).top;a=this._getPosition(a.get(0)).left;d=this._getPosition(n.get(0)).top+n.outerHeight()-b;e=this._getPosition(e.get(0)).left+e.outerWidth()-a;f=this.dom.select;f.top.css({top:b,left:a,width:e});f.left.css({top:b,left:a,height:d});f.bottom.css({top:b+d,left:a,width:e});f.right.css({top:b,left:a+e,height:d})}},_editor:function(a){var d=this.s.dt,b=this.c.editor;if(b){for(var e={},
+f=[],m=b.fields(),n=0,p=a.length;n<p;n++)for(var q=0,v=a[n].length;q<v;q++){var u=a[n][q],w=d.settings()[0].aoColumns[u.index.column],t=w.editField;if(t===k){w=w.mData;for(var x=0,z=m.length;x<z;x++){var A=b.field(m[x]);if(A.dataSrc()===w){t=A.name();break}}}if(!t)throw"Could not automatically determine field data. Please see https://datatables.net/tn/11";e[t]||(e[t]={});w=d.row(u.index.row).id();e[t][w]=u.set;f.push(u.index)}b.bubble(f,!1).multiSet(e).submit()}},_emitEvent:function(a,d){this.s.dt.iterator("table",
+function(b,e){c(b.nTable).triggerHandler(a+".dt",d)})},_focusListener:function(){var a=this,d=this.s.dt,b=this.s.namespace,e=null!==this.c.focus?this.c.focus:d.init().keys||d.settings()[0].keytable?"focus":"hover";if("focus"===e)d.on("key-focus.autoFill",function(f,m,n){a._attach(n.node())}).on("key-blur.autoFill",function(f,m,n){a._detach()});else if("click"===e)c(d.table().body()).on("click"+b,"td, th",function(f){a._attach(this)}),c(g.body).on("click"+b,function(f){c(f.target).parents().filter(d.table().body()).length||
+a._detach()});else c(d.table().body()).on("mouseenter"+b,"td, th",function(f){a._attach(this)}).on("mouseleave"+b,function(f){c(f.relatedTarget).hasClass("dt-autofill-handle")||a._detach()})},_focusListenerRemove:function(){var a=this.s.dt;a.off(".autoFill");c(a.table().body()).off(this.s.namespace);c(g.body).off(this.s.namespace)},_getPosition:function(a,d){var b=0,e=0;d||(d=c(c(this.s.dt.table().node())[0].offsetParent));do{var f=a.offsetTop,m=a.offsetLeft;var n=c(a.offsetParent);b+=f+1*parseInt(n.css("border-top-width")||
+0);e+=m+1*parseInt(n.css("border-left-width")||0);if("body"===a.nodeName.toLowerCase())break;a=n.get(0)}while(n.get(0)!==d.get(0));return{top:b,left:e}},_mousedown:function(a){var d=this,b=this.s.dt;this.dom.start=this.dom.attachedTo;this.s.start={row:b.rows({page:"current"}).nodes().indexOf(c(this.dom.start).parent()[0]),column:c(this.dom.start).index()};c(g.body).on("mousemove.autoFill",function(f){d._mousemove(f)}).on("mouseup.autoFill",function(f){d._mouseup(f)});var e=this.dom.select;b=c(b.table().node()).offsetParent();
+e.top.appendTo(b);e.left.appendTo(b);e.right.appendTo(b);e.bottom.appendTo(b);this._drawSelection(this.dom.start,a);this.dom.handle.css("display","none");a=this.dom.dtScroll;this.s.scroll={windowHeight:c(h).height(),windowWidth:c(h).width(),dtTop:a?a.offset().top:null,dtLeft:a?a.offset().left:null,dtHeight:a?a.outerHeight():null,dtWidth:a?a.outerWidth():null}},_mousemove:function(a){var d=a.target.nodeName.toLowerCase();if("td"===d||"th"===d)this._drawSelection(a.target,a),this._shiftScroll(a)},_mouseup:function(a){c(g.body).off(".autoFill");
+var d=this,b=this.s.dt,e=this.dom.select;e.top.remove();e.left.remove();e.right.remove();e.bottom.remove();this.dom.handle.css("display","block");e=this.s.start;var f=this.s.end;if(e.row!==f.row||e.column!==f.column){var m=b.cell(":eq("+e.row+")",e.column+":visible",{page:"current"});if(c("div.DTE",m.node()).length){var n=b.editor();n.on("submitSuccess.dtaf close.dtaf",function(){n.off(".dtaf");setTimeout(function(){d._mouseup(a)},100)}).on("submitComplete.dtaf preSubmitCancelled.dtaf close.dtaf",
+function(){n.off(".dtaf")});n.submit()}else{var p=this._range(e.row,f.row);e=this._range(e.column,f.column);f=[];for(var q=b.settings()[0],v=q.aoColumns,u=b.columns(this.c.columns).indexes(),w=0;w<p.length;w++)f.push(c.map(e,function(t){var x=b.row(":eq("+p[w]+")",{page:"current"});t=b.cell(x.index(),t+":visible");x=t.data();var z=t.index(),A=v[z.column].editField;A!==k&&(x=q.oApi._fnGetObjectDataFn(A)(b.row(z.row).data()));if(-1!==u.indexOf(z.column))return{cell:t,data:x,label:t.data(),index:z}}));
+this._actionSelector(f);clearInterval(this.s.scrollInterval);this.s.scrollInterval=null}}},_range:function(a,d){var b=[];if(a<=d)for(;a<=d;a++)b.push(a);else for(;a>=d;a--)b.push(a);return b},_shiftScroll:function(a){var d=this,b=this.s.scroll,e=!1,f=a.pageY-g.body.scrollTop,m=a.pageX-g.body.scrollLeft,n,p,q,v;65>f?n=-5:f>b.windowHeight-65&&(n=5);65>m?p=-5:m>b.windowWidth-65&&(p=5);null!==b.dtTop&&a.pageY<b.dtTop+65?q=-5:null!==b.dtTop&&a.pageY>b.dtTop+b.dtHeight-65&&(q=5);null!==b.dtLeft&&a.pageX<
+b.dtLeft+65?v=-5:null!==b.dtLeft&&a.pageX>b.dtLeft+b.dtWidth-65&&(v=5);n||p||q||v?(b.windowVert=n,b.windowHoriz=p,b.dtVert=q,b.dtHoriz=v,e=!0):this.s.scrollInterval&&(clearInterval(this.s.scrollInterval),this.s.scrollInterval=null);!this.s.scrollInterval&&e&&(this.s.scrollInterval=setInterval(function(){b.windowVert&&(g.body.scrollTop+=b.windowVert);b.windowHoriz&&(g.body.scrollLeft+=b.windowHoriz);if(b.dtVert||b.dtHoriz){var u=d.dom.dtScroll[0];b.dtVert&&(u.scrollTop+=b.dtVert);b.dtHoriz&&(u.scrollLeft+=
+b.dtHoriz)}},20))},_update:function(a,d){if(!1!==a){a=this.s.dt;var b=a.columns(this.c.columns).indexes();this._emitEvent("preAutoFill",[a,d]);this._editor(d);if(null!==this.c.update?this.c.update:!this.c.editor){for(var e=0,f=d.length;e<f;e++)for(var m=0,n=d[e].length;m<n;m++){var p=d[e][m];-1!==b.indexOf(p.index.column)&&p.cell.data(p.set)}a.draw(!1)}this._emitEvent("autoFill",[a,d])}}});r.actions={increment:{available:function(a,d){a=d[0][0].label;return!isNaN(a-parseFloat(a))},option:function(a,
+d){return a.i18n("autoFill.increment",'Increment / decrement each cell by: <input type="number" value="1">')},execute:function(a,d,b){a=1*d[0][0].data;b=1*c("input",b).val();for(var e=0,f=d.length;e<f;e++)for(var m=0,n=d[e].length;m<n;m++)d[e][m].set=a,a+=b}},fill:{available:function(a,d){return!0},option:function(a,d){return a.i18n("autoFill.fill","Fill all cells with <i>%d</i>",d[0][0].label)},execute:function(a,d,b){a=d[0][0].data;b=0;for(var e=d.length;b<e;b++)for(var f=0,m=d[b].length;f<m;f++)d[b][f].set=
+a}},fillHorizontal:{available:function(a,d){return 1<d.length&&1<d[0].length},option:function(a,d){return a.i18n("autoFill.fillHorizontal","Fill cells horizontally")},execute:function(a,d,b){a=0;for(b=d.length;a<b;a++)for(var e=0,f=d[a].length;e<f;e++)d[a][e].set=d[a][0].data}},fillVertical:{available:function(a,d){return 1<d.length},option:function(a,d){return a.i18n("autoFill.fillVertical","Fill cells vertically")},execute:function(a,d,b){a=0;for(b=d.length;a<b;a++)for(var e=0,f=d[a].length;e<f;e++)d[a][e].set=
+d[0][e].data}},cancel:{available:function(){return!1},option:function(a){return a.i18n("autoFill.cancel","Cancel")},execute:function(){return!1}}};r.version="2.3.9";r.defaults={alwaysAsk:!1,focus:null,columns:"",enable:!0,update:null,editor:null,vertical:!0,horizontal:!0};r.classes={btn:"btn"};var B=c.fn.dataTable.Api;B.register("autoFill()",function(){return this});B.register("autoFill().enabled()",function(){var a=this.context[0];return a.autoFill?a.autoFill.enabled():!1});B.register("autoFill().enable()",
+function(a){return this.iterator("table",function(d){d.autoFill&&d.autoFill.enable(a)})});B.register("autoFill().disable()",function(){return this.iterator("table",function(a){a.autoFill&&a.autoFill.disable()})});c(g).on("preInit.dt.autofill",function(a,d,b){"dt"===a.namespace&&(a=d.oInit.autoFill,b=l.defaults.autoFill,a||b)&&(b=c.extend({},a,b),!1!==a&&new r(d,b))});l.AutoFill=r;return l.AutoFill=r});
+
 /*! Bootstrap integration for DataTables' AutoFill
  * ©2015 SpryMedia Ltd - datatables.net/license
  */
@@ -75587,6 +76847,5612 @@ return DataTable;
  ©2015 SpryMedia Ltd - datatables.net/license
 */
 (function(b){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-autofill"],function(a){return b(a,window,document)}):"object"===typeof exports?module.exports=function(a,c){a||(a=window);c&&c.fn.dataTable||(c=require("datatables.net-bs4")(a,c).$);c.fn.dataTable.AutoFill||require("datatables.net-autofill")(a,c);return b(c,a,a.document)}:b(jQuery,window,document)})(function(b,a,c,d){b=b.fn.dataTable;b.AutoFill.classes.btn="btn btn-primary";return b});
+
+/*! Buttons for DataTables 1.7.1
+ * ©2016-2021 SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+// Used for namespacing events added to the document by each instance, so they
+// can be removed on destroy
+var _instCounter = 0;
+
+// Button namespacing counter for namespacing events on individual buttons
+var _buttonCounter = 0;
+
+var _dtButtons = DataTable.ext.buttons;
+
+// Allow for jQuery slim
+function _fadeIn(el, duration, fn) {
+	if ($.fn.animate) {
+		el
+			.stop()
+			.fadeIn( duration, fn );
+	}
+	else {
+		el.css('display', 'block');
+
+		if (fn) {
+			fn.call(el);
+		}
+	}
+}
+
+function _fadeOut(el, duration, fn) {
+	if ($.fn.animate) {
+		el
+			.stop()
+			.fadeOut( duration, fn );
+	}
+	else {
+		el.css('display', 'none');
+
+		if (fn) {
+			fn.call(el);
+		}
+	}
+}
+
+/**
+ * [Buttons description]
+ * @param {[type]}
+ * @param {[type]}
+ */
+var Buttons = function( dt, config )
+{
+	// If not created with a `new` keyword then we return a wrapper function that
+	// will take the settings object for a DT. This allows easy use of new instances
+	// with the `layout` option - e.g. `topLeft: $.fn.dataTable.Buttons( ... )`.
+	if ( !(this instanceof Buttons) ) {
+		return function (settings) {
+			return new Buttons( settings, dt ).container();
+		};
+	}
+
+	// If there is no config set it to an empty object
+	if ( typeof( config ) === 'undefined' ) {
+		config = {};
+	}
+
+	// Allow a boolean true for defaults
+	if ( config === true ) {
+		config = {};
+	}
+
+	// For easy configuration of buttons an array can be given
+	if ( Array.isArray( config ) ) {
+		config = { buttons: config };
+	}
+
+	this.c = $.extend( true, {}, Buttons.defaults, config );
+
+	// Don't want a deep copy for the buttons
+	if ( config.buttons ) {
+		this.c.buttons = config.buttons;
+	}
+
+	this.s = {
+		dt: new DataTable.Api( dt ),
+		buttons: [],
+		listenKeys: '',
+		namespace: 'dtb'+(_instCounter++)
+	};
+
+	this.dom = {
+		container: $('<'+this.c.dom.container.tag+'/>')
+			.addClass( this.c.dom.container.className )
+	};
+
+	this._constructor();
+};
+
+
+$.extend( Buttons.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Public methods
+	 */
+
+	/**
+	 * Get the action of a button
+	 * @param  {int|string} Button index
+	 * @return {function}
+	 *//**
+	 * Set the action of a button
+	 * @param  {node} node Button element
+	 * @param  {function} action Function to set
+	 * @return {Buttons} Self for chaining
+	 */
+	action: function ( node, action )
+	{
+		var button = this._nodeToButton( node );
+
+		if ( action === undefined ) {
+			return button.conf.action;
+		}
+
+		button.conf.action = action;
+
+		return this;
+	},
+
+	/**
+	 * Add an active class to the button to make to look active or get current
+	 * active state.
+	 * @param  {node} node Button element
+	 * @param  {boolean} [flag] Enable / disable flag
+	 * @return {Buttons} Self for chaining or boolean for getter
+	 */
+	active: function ( node, flag ) {
+		var button = this._nodeToButton( node );
+		var klass = this.c.dom.button.active;
+		var jqNode = $(button.node);
+
+		if ( flag === undefined ) {
+			return jqNode.hasClass( klass );
+		}
+
+		jqNode.toggleClass( klass, flag === undefined ? true : flag );
+
+		return this;
+	},
+
+	/**
+	 * Add a new button
+	 * @param {object} config Button configuration object, base string name or function
+	 * @param {int|string} [idx] Button index for where to insert the button
+	 * @return {Buttons} Self for chaining
+	 */
+	add: function ( config, idx )
+	{
+		var buttons = this.s.buttons;
+
+		if ( typeof idx === 'string' ) {
+			var split = idx.split('-');
+			var base = this.s;
+
+			for ( var i=0, ien=split.length-1 ; i<ien ; i++ ) {
+				base = base.buttons[ split[i]*1 ];
+			}
+
+			buttons = base.buttons;
+			idx = split[ split.length-1 ]*1;
+		}
+
+		this._expandButton( buttons, config, base !== undefined, idx );
+		this._draw();
+
+		return this;
+	},
+
+	/**
+	 * Get the container node for the buttons
+	 * @return {jQuery} Buttons node
+	 */
+	container: function ()
+	{
+		return this.dom.container;
+	},
+
+	/**
+	 * Disable a button
+	 * @param  {node} node Button node
+	 * @return {Buttons} Self for chaining
+	 */
+	disable: function ( node ) {
+		var button = this._nodeToButton( node );
+
+		$(button.node)
+			.addClass( this.c.dom.button.disabled )
+			.attr('disabled', true);
+
+		return this;
+	},
+
+	/**
+	 * Destroy the instance, cleaning up event handlers and removing DOM
+	 * elements
+	 * @return {Buttons} Self for chaining
+	 */
+	destroy: function ()
+	{
+		// Key event listener
+		$('body').off( 'keyup.'+this.s.namespace );
+
+		// Individual button destroy (so they can remove their own events if
+		// needed). Take a copy as the array is modified by `remove`
+		var buttons = this.s.buttons.slice();
+		var i, ien;
+
+		for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
+			this.remove( buttons[i].node );
+		}
+
+		// Container
+		this.dom.container.remove();
+
+		// Remove from the settings object collection
+		var buttonInsts = this.s.dt.settings()[0];
+
+		for ( i=0, ien=buttonInsts.length ; i<ien ; i++ ) {
+			if ( buttonInsts.inst === this ) {
+				buttonInsts.splice( i, 1 );
+				break;
+			}
+		}
+
+		return this;
+	},
+
+	/**
+	 * Enable / disable a button
+	 * @param  {node} node Button node
+	 * @param  {boolean} [flag=true] Enable / disable flag
+	 * @return {Buttons} Self for chaining
+	 */
+	enable: function ( node, flag )
+	{
+		if ( flag === false ) {
+			return this.disable( node );
+		}
+
+		var button = this._nodeToButton( node );
+		$(button.node)
+			.removeClass( this.c.dom.button.disabled )
+			.removeAttr('disabled');
+
+		return this;
+	},
+
+	/**
+	 * Get the instance name for the button set selector
+	 * @return {string} Instance name
+	 */
+	name: function ()
+	{
+		return this.c.name;
+	},
+
+	/**
+	 * Get a button's node of the buttons container if no button is given
+	 * @param  {node} [node] Button node
+	 * @return {jQuery} Button element, or container
+	 */
+	node: function ( node )
+	{
+		if ( ! node ) {
+			return this.dom.container;
+		}
+
+		var button = this._nodeToButton( node );
+		return $(button.node);
+	},
+
+	/**
+	 * Set / get a processing class on the selected button
+	 * @param {element} node Triggering button node
+	 * @param  {boolean} flag true to add, false to remove, undefined to get
+	 * @return {boolean|Buttons} Getter value or this if a setter.
+	 */
+	processing: function ( node, flag )
+	{
+		var dt = this.s.dt;
+		var button = this._nodeToButton( node );
+
+		if ( flag === undefined ) {
+			return $(button.node).hasClass( 'processing' );
+		}
+
+		$(button.node).toggleClass( 'processing', flag );
+
+		$(dt.table().node()).triggerHandler( 'buttons-processing.dt', [
+			flag, dt.button( node ), dt, $(node), button.conf
+		] );
+
+		return this;
+	},
+
+	/**
+	 * Remove a button.
+	 * @param  {node} node Button node
+	 * @return {Buttons} Self for chaining
+	 */
+	remove: function ( node )
+	{
+		var button = this._nodeToButton( node );
+		var host = this._nodeToHost( node );
+		var dt = this.s.dt;
+
+		// Remove any child buttons first
+		if ( button.buttons.length ) {
+			for ( var i=button.buttons.length-1 ; i>=0 ; i-- ) {
+				this.remove( button.buttons[i].node );
+			}
+		}
+
+		// Allow the button to remove event handlers, etc
+		if ( button.conf.destroy ) {
+			button.conf.destroy.call( dt.button(node), dt, $(node), button.conf );
+		}
+
+		this._removeKey( button.conf );
+
+		$(button.node).remove();
+
+		var idx = $.inArray( button, host );
+		host.splice( idx, 1 );
+
+		return this;
+	},
+
+	/**
+	 * Get the text for a button
+	 * @param  {int|string} node Button index
+	 * @return {string} Button text
+	 *//**
+	 * Set the text for a button
+	 * @param  {int|string|function} node Button index
+	 * @param  {string} label Text
+	 * @return {Buttons} Self for chaining
+	 */
+	text: function ( node, label )
+	{
+		var button = this._nodeToButton( node );
+		var buttonLiner = this.c.dom.collection.buttonLiner;
+		var linerTag = button.inCollection && buttonLiner && buttonLiner.tag ?
+			buttonLiner.tag :
+			this.c.dom.buttonLiner.tag;
+		var dt = this.s.dt;
+		var jqNode = $(button.node);
+		var text = function ( opt ) {
+			return typeof opt === 'function' ?
+				opt( dt, jqNode, button.conf ) :
+				opt;
+		};
+
+		if ( label === undefined ) {
+			return text( button.conf.text );
+		}
+
+		button.conf.text = label;
+
+		if ( linerTag ) {
+			jqNode.children( linerTag ).html( text(label) );
+		}
+		else {
+			jqNode.html( text(label) );
+		}
+
+		return this;
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * Buttons constructor
+	 * @private
+	 */
+	_constructor: function ()
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var dtSettings = dt.settings()[0];
+		var buttons =  this.c.buttons;
+
+		if ( ! dtSettings._buttons ) {
+			dtSettings._buttons = [];
+		}
+
+		dtSettings._buttons.push( {
+			inst: this,
+			name: this.c.name
+		} );
+
+		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+			this.add( buttons[i] );
+		}
+
+		dt.on( 'destroy', function ( e, settings ) {
+			if ( settings === dtSettings ) {
+				that.destroy();
+			}
+		} );
+
+		// Global key event binding to listen for button keys
+		$('body').on( 'keyup.'+this.s.namespace, function ( e ) {
+			if ( ! document.activeElement || document.activeElement === document.body ) {
+				// SUse a string of characters for fast lookup of if we need to
+				// handle this
+				var character = String.fromCharCode(e.keyCode).toLowerCase();
+
+				if ( that.s.listenKeys.toLowerCase().indexOf( character ) !== -1 ) {
+					that._keypress( character, e );
+				}
+			}
+		} );
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Add a new button to the key press listener
+	 * @param {object} conf Resolved button configuration object
+	 * @private
+	 */
+	_addKey: function ( conf )
+	{
+		if ( conf.key ) {
+			this.s.listenKeys += $.isPlainObject( conf.key ) ?
+				conf.key.key :
+				conf.key;
+		}
+	},
+
+	/**
+	 * Insert the buttons into the container. Call without parameters!
+	 * @param  {node} [container] Recursive only - Insert point
+	 * @param  {array} [buttons] Recursive only - Buttons array
+	 * @private
+	 */
+	_draw: function ( container, buttons )
+	{
+		if ( ! container ) {
+			container = this.dom.container;
+			buttons = this.s.buttons;
+		}
+
+		container.children().detach();
+
+		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+			container.append( buttons[i].inserter );
+			container.append( ' ' );
+
+			if ( buttons[i].buttons && buttons[i].buttons.length ) {
+				this._draw( buttons[i].collection, buttons[i].buttons );
+			}
+		}
+	},
+
+	/**
+	 * Create buttons from an array of buttons
+	 * @param  {array} attachTo Buttons array to attach to
+	 * @param  {object} button Button definition
+	 * @param  {boolean} inCollection true if the button is in a collection
+	 * @private
+	 */
+	_expandButton: function ( attachTo, button, inCollection, attachPoint )
+	{
+		var dt = this.s.dt;
+		var buttonCounter = 0;
+		var buttons = ! Array.isArray( button ) ?
+			[ button ] :
+			button;
+
+		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+			var conf = this._resolveExtends( buttons[i] );
+
+			if ( ! conf ) {
+				continue;
+			}
+
+			// If the configuration is an array, then expand the buttons at this
+			// point
+			if ( Array.isArray( conf ) ) {
+				this._expandButton( attachTo, conf, inCollection, attachPoint );
+				continue;
+			}
+
+			var built = this._buildButton( conf, inCollection );
+			if ( ! built ) {
+				continue;
+			}
+
+			if ( attachPoint !== undefined && attachPoint !== null ) {
+				attachTo.splice( attachPoint, 0, built );
+				attachPoint++;
+			}
+			else {
+				attachTo.push( built );
+			}
+
+			if ( built.conf.buttons ) {
+				built.collection = $('<'+this.c.dom.collection.tag+'/>');
+
+				built.conf._collection = built.collection;
+
+				this._expandButton( built.buttons, built.conf.buttons, true, attachPoint );
+			}
+
+			// init call is made here, rather than buildButton as it needs to
+			// be selectable, and for that it needs to be in the buttons array
+			if ( conf.init ) {
+				conf.init.call( dt.button( built.node ), dt, $(built.node), conf );
+			}
+
+			buttonCounter++;
+		}
+	},
+
+	/**
+	 * Create an individual button
+	 * @param  {object} config            Resolved button configuration
+	 * @param  {boolean} inCollection `true` if a collection button
+	 * @return {jQuery} Created button node (jQuery)
+	 * @private
+	 */
+	_buildButton: function ( config, inCollection )
+	{
+		var buttonDom = this.c.dom.button;
+		var linerDom = this.c.dom.buttonLiner;
+		var collectionDom = this.c.dom.collection;
+		var dt = this.s.dt;
+		var text = function ( opt ) {
+			return typeof opt === 'function' ?
+				opt( dt, button, config ) :
+				opt;
+		};
+
+		if ( inCollection && collectionDom.button ) {
+			buttonDom = collectionDom.button;
+		}
+
+		if ( inCollection && collectionDom.buttonLiner ) {
+			linerDom = collectionDom.buttonLiner;
+		}
+
+		// Make sure that the button is available based on whatever requirements
+		// it has. For example, PDF button require pdfmake
+		if ( config.available && ! config.available( dt, config ) ) {
+			return false;
+		}
+
+		var action = function ( e, dt, button, config ) {
+			config.action.call( dt.button( button ), e, dt, button, config );
+
+			$(dt.table().node()).triggerHandler( 'buttons-action.dt', [
+				dt.button( button ), dt, button, config
+			] );
+		};
+
+		var tag = config.tag || buttonDom.tag;
+		var clickBlurs = config.clickBlurs === undefined ? true : config.clickBlurs
+		var button = $('<'+tag+'/>')
+			.addClass( buttonDom.className )
+			.attr( 'tabindex', this.s.dt.settings()[0].iTabIndex )
+			.attr( 'aria-controls', this.s.dt.table().node().id )
+			.on( 'click.dtb', function (e) {
+				e.preventDefault();
+
+				if ( ! button.hasClass( buttonDom.disabled ) && config.action ) {
+					action( e, dt, button, config );
+				}
+				if( clickBlurs ) {
+					button.trigger('blur');
+				}
+			} )
+			.on( 'keyup.dtb', function (e) {
+				if ( e.keyCode === 13 ) {
+					if ( ! button.hasClass( buttonDom.disabled ) && config.action ) {
+						action( e, dt, button, config );
+					}
+				}
+			} );
+
+		// Make `a` tags act like a link
+		if ( tag.toLowerCase() === 'a' ) {
+			button.attr( 'href', '#' );
+		}
+
+		// Button tags should have `type=button` so they don't have any default behaviour
+		if ( tag.toLowerCase() === 'button' ) {
+			button.attr( 'type', 'button' );
+		}
+
+		if ( linerDom.tag ) {
+			var liner = $('<'+linerDom.tag+'/>')
+				.html( text( config.text ) )
+				.addClass( linerDom.className );
+
+			if ( linerDom.tag.toLowerCase() === 'a' ) {
+				liner.attr( 'href', '#' );
+			}
+
+			button.append( liner );
+		}
+		else {
+			button.html( text( config.text ) );
+		}
+
+		if ( config.enabled === false ) {
+			button.addClass( buttonDom.disabled );
+		}
+
+		if ( config.className ) {
+			button.addClass( config.className );
+		}
+
+		if ( config.titleAttr ) {
+			button.attr( 'title', text( config.titleAttr ) );
+		}
+
+		if ( config.attr ) {
+			button.attr( config.attr );
+		}
+
+		if ( ! config.namespace ) {
+			config.namespace = '.dt-button-'+(_buttonCounter++);
+		}
+
+		var buttonContainer = this.c.dom.buttonContainer;
+		var inserter;
+		if ( buttonContainer && buttonContainer.tag ) {
+			inserter = $('<'+buttonContainer.tag+'/>')
+				.addClass( buttonContainer.className )
+				.append( button );
+		}
+		else {
+			inserter = button;
+		}
+
+		this._addKey( config );
+
+		// Style integration callback for DOM manipulation
+		// Note that this is _not_ documented. It is currently
+		// for style integration only
+		if( this.c.buttonCreated ) {
+			inserter = this.c.buttonCreated( config, inserter );
+		}
+
+		return {
+			conf:         config,
+			node:         button.get(0),
+			inserter:     inserter,
+			buttons:      [],
+			inCollection: inCollection,
+			collection:   null
+		};
+	},
+
+	/**
+	 * Get the button object from a node (recursive)
+	 * @param  {node} node Button node
+	 * @param  {array} [buttons] Button array, uses base if not defined
+	 * @return {object} Button object
+	 * @private
+	 */
+	_nodeToButton: function ( node, buttons )
+	{
+		if ( ! buttons ) {
+			buttons = this.s.buttons;
+		}
+
+		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+			if ( buttons[i].node === node ) {
+				return buttons[i];
+			}
+
+			if ( buttons[i].buttons.length ) {
+				var ret = this._nodeToButton( node, buttons[i].buttons );
+
+				if ( ret ) {
+					return ret;
+				}
+			}
+		}
+	},
+
+	/**
+	 * Get container array for a button from a button node (recursive)
+	 * @param  {node} node Button node
+	 * @param  {array} [buttons] Button array, uses base if not defined
+	 * @return {array} Button's host array
+	 * @private
+	 */
+	_nodeToHost: function ( node, buttons )
+	{
+		if ( ! buttons ) {
+			buttons = this.s.buttons;
+		}
+
+		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+			if ( buttons[i].node === node ) {
+				return buttons;
+			}
+
+			if ( buttons[i].buttons.length ) {
+				var ret = this._nodeToHost( node, buttons[i].buttons );
+
+				if ( ret ) {
+					return ret;
+				}
+			}
+		}
+	},
+
+	/**
+	 * Handle a key press - determine if any button's key configured matches
+	 * what was typed and trigger the action if so.
+	 * @param  {string} character The character pressed
+	 * @param  {object} e Key event that triggered this call
+	 * @private
+	 */
+	_keypress: function ( character, e )
+	{
+		// Check if this button press already activated on another instance of Buttons
+		if ( e._buttonsHandled ) {
+			return;
+		}
+
+		var run = function ( conf, node ) {
+			if ( ! conf.key ) {
+				return;
+			}
+
+			if ( conf.key === character ) {
+				e._buttonsHandled = true;
+				$(node).click();
+			}
+			else if ( $.isPlainObject( conf.key ) ) {
+				if ( conf.key.key !== character ) {
+					return;
+				}
+
+				if ( conf.key.shiftKey && ! e.shiftKey ) {
+					return;
+				}
+
+				if ( conf.key.altKey && ! e.altKey ) {
+					return;
+				}
+
+				if ( conf.key.ctrlKey && ! e.ctrlKey ) {
+					return;
+				}
+
+				if ( conf.key.metaKey && ! e.metaKey ) {
+					return;
+				}
+
+				// Made it this far - it is good
+				e._buttonsHandled = true;
+				$(node).click();
+			}
+		};
+
+		var recurse = function ( a ) {
+			for ( var i=0, ien=a.length ; i<ien ; i++ ) {
+				run( a[i].conf, a[i].node );
+
+				if ( a[i].buttons.length ) {
+					recurse( a[i].buttons );
+				}
+			}
+		};
+
+		recurse( this.s.buttons );
+	},
+
+	/**
+	 * Remove a key from the key listener for this instance (to be used when a
+	 * button is removed)
+	 * @param  {object} conf Button configuration
+	 * @private
+	 */
+	_removeKey: function ( conf )
+	{
+		if ( conf.key ) {
+			var character = $.isPlainObject( conf.key ) ?
+				conf.key.key :
+				conf.key;
+
+			// Remove only one character, as multiple buttons could have the
+			// same listening key
+			var a = this.s.listenKeys.split('');
+			var idx = $.inArray( character, a );
+			a.splice( idx, 1 );
+			this.s.listenKeys = a.join('');
+		}
+	},
+
+	/**
+	 * Resolve a button configuration
+	 * @param  {string|function|object} conf Button config to resolve
+	 * @return {object} Button configuration
+	 * @private
+	 */
+	_resolveExtends: function ( conf )
+	{
+		var dt = this.s.dt;
+		var i, ien;
+		var toConfObject = function ( base ) {
+			var loop = 0;
+
+			// Loop until we have resolved to a button configuration, or an
+			// array of button configurations (which will be iterated
+			// separately)
+			while ( ! $.isPlainObject(base) && ! Array.isArray(base) ) {
+				if ( base === undefined ) {
+					return;
+				}
+
+				if ( typeof base === 'function' ) {
+					base = base( dt, conf );
+
+					if ( ! base ) {
+						return false;
+					}
+				}
+				else if ( typeof base === 'string' ) {
+					if ( ! _dtButtons[ base ] ) {
+						throw 'Unknown button type: '+base;
+					}
+
+					base = _dtButtons[ base ];
+				}
+
+				loop++;
+				if ( loop > 30 ) {
+					// Protect against misconfiguration killing the browser
+					throw 'Buttons: Too many iterations';
+				}
+			}
+
+			return Array.isArray( base ) ?
+				base :
+				$.extend( {}, base );
+		};
+
+		conf = toConfObject( conf );
+
+		while ( conf && conf.extend ) {
+			// Use `toConfObject` in case the button definition being extended
+			// is itself a string or a function
+			if ( ! _dtButtons[ conf.extend ] ) {
+				throw 'Cannot extend unknown button type: '+conf.extend;
+			}
+
+			var objArray = toConfObject( _dtButtons[ conf.extend ] );
+			if ( Array.isArray( objArray ) ) {
+				return objArray;
+			}
+			else if ( ! objArray ) {
+				// This is a little brutal as it might be possible to have a
+				// valid button without the extend, but if there is no extend
+				// then the host button would be acting in an undefined state
+				return false;
+			}
+
+			// Stash the current class name
+			var originalClassName = objArray.className;
+
+			conf = $.extend( {}, objArray, conf );
+
+			// The extend will have overwritten the original class name if the
+			// `conf` object also assigned a class, but we want to concatenate
+			// them so they are list that is combined from all extended buttons
+			if ( originalClassName && conf.className !== originalClassName ) {
+				conf.className = originalClassName+' '+conf.className;
+			}
+
+			// Buttons to be added to a collection  -gives the ability to define
+			// if buttons should be added to the start or end of a collection
+			var postfixButtons = conf.postfixButtons;
+			if ( postfixButtons ) {
+				if ( ! conf.buttons ) {
+					conf.buttons = [];
+				}
+
+				for ( i=0, ien=postfixButtons.length ; i<ien ; i++ ) {
+					conf.buttons.push( postfixButtons[i] );
+				}
+
+				conf.postfixButtons = null;
+			}
+
+			var prefixButtons = conf.prefixButtons;
+			if ( prefixButtons ) {
+				if ( ! conf.buttons ) {
+					conf.buttons = [];
+				}
+
+				for ( i=0, ien=prefixButtons.length ; i<ien ; i++ ) {
+					conf.buttons.splice( i, 0, prefixButtons[i] );
+				}
+
+				conf.prefixButtons = null;
+			}
+
+			// Although we want the `conf` object to overwrite almost all of
+			// the properties of the object being extended, the `extend`
+			// property should come from the object being extended
+			conf.extend = objArray.extend;
+		}
+
+		return conf;
+	},
+
+	/**
+	 * Display (and replace if there is an existing one) a popover attached to a button
+	 * @param {string|node} content Content to show
+	 * @param {DataTable.Api} hostButton DT API instance of the button
+	 * @param {object} inOpts Options (see object below for all options)
+	 */
+	_popover: function ( content, hostButton, inOpts ) {
+		var dt = hostButton;
+		var buttonsSettings = this.c;
+		var options = $.extend( {
+			align: 'button-left', // button-right, dt-container
+			autoClose: false,
+			background: true,
+			backgroundClassName: 'dt-button-background',
+			contentClassName: buttonsSettings.dom.collection.className,
+			collectionLayout: '',
+			collectionTitle: '',
+			dropup: false,
+			fade: 400,
+			rightAlignClassName: 'dt-button-right',
+			tag: buttonsSettings.dom.collection.tag
+		}, inOpts );
+		var hostNode = hostButton.node();
+
+		var close = function () {
+			_fadeOut(
+				$('.dt-button-collection'),
+				options.fade,
+				function () {
+					$(this).detach();
+				}
+			);
+
+			$(dt.buttons( '[aria-haspopup="true"][aria-expanded="true"]' ).nodes())
+				.attr('aria-expanded', 'false');
+
+			$('div.dt-button-background').off( 'click.dtb-collection' );
+			Buttons.background( false, options.backgroundClassName, options.fade, hostNode );
+
+			$('body').off( '.dtb-collection' );
+			dt.off( 'buttons-action.b-internal' );
+		};
+
+		if (content === false) {
+			close();
+		}
+
+		var existingExpanded = $(dt.buttons( '[aria-haspopup="true"][aria-expanded="true"]' ).nodes());
+		if ( existingExpanded.length ) {
+			hostNode = existingExpanded.eq(0);
+
+			close();
+		}
+
+		var display = $('<div/>')
+			.addClass('dt-button-collection')
+			.addClass(options.collectionLayout)
+			.css('display', 'none');
+
+		content = $(content)
+			.addClass(options.contentClassName)
+			.attr('role', 'menu')
+			.appendTo(display);
+
+		hostNode.attr( 'aria-expanded', 'true' );
+
+		if ( hostNode.parents('body')[0] !== document.body ) {
+			hostNode = document.body.lastChild;
+		}
+
+		if ( options.collectionTitle ) {
+			display.prepend('<div class="dt-button-collection-title">'+options.collectionTitle+'</div>');
+		}
+
+		_fadeIn( display.insertAfter( hostNode ), options.fade );
+
+		var tableContainer = $( hostButton.table().container() );
+		var position = display.css( 'position' );
+
+		if ( options.align === 'dt-container' ) {
+			hostNode = hostNode.parent();
+			display.css('width', tableContainer.width());
+		}
+
+		// Align the popover relative to the DataTables container
+		// Useful for wide popovers such as SearchPanes
+		if (position === 'absolute') {
+			// Align relative to the host button
+			var hostPosition = hostNode.position();
+			var buttonPosition = $(hostButton.node()).position();
+
+			display.css( {
+				top: buttonPosition.top + hostNode.outerHeight(),
+				left: hostPosition.left
+			} );
+
+			// calculate overflow when positioned beneath
+			var collectionHeight = display.outerHeight();
+			var tableBottom = tableContainer.offset().top + tableContainer.height();
+			var listBottom = buttonPosition.top + hostNode.outerHeight() + collectionHeight;
+			var bottomOverflow = listBottom - tableBottom;
+
+			// calculate overflow when positioned above
+			var listTop = buttonPosition.top - collectionHeight;
+			var tableTop = tableContainer.offset().top;
+			var topOverflow = tableTop - listTop;
+
+			// if bottom overflow is larger, move to the top because it fits better, or if dropup is requested
+			var moveTop = buttonPosition.top - collectionHeight - 5;
+			if ( (bottomOverflow > topOverflow || options.dropup) && -moveTop < tableTop ) {
+				display.css( 'top', moveTop);
+			}
+
+			// Get the size of the container (left and width - and thus also right)
+			var tableLeft = tableContainer.offset().left;
+			var tableWidth = tableContainer.width();
+			var tableRight = tableLeft + tableWidth;
+
+			// Get the size of the popover (left and width - and ...)
+			var popoverLeft = display.offset().left;
+			var popoverWidth = display.width();
+			var popoverRight = popoverLeft + popoverWidth;
+
+			// Get the size of the host buttons (left and width - and ...)
+			var buttonsLeft = hostNode.offset().left;
+			var buttonsWidth = hostNode.outerWidth()
+			var buttonsRight = buttonsLeft + buttonsWidth;
+
+			if (
+				display.hasClass( options.rightAlignClassName ) ||
+				display.hasClass( options.leftAlignClassName ) ||
+				options.align === 'dt-container'
+			){
+				// You've then got all the numbers you need to do some calculations and if statements,
+				//  so we can do some quick JS maths and apply it only once
+				// If it has the right align class OR the buttons are right aligned OR the button container is floated right,
+				//  then calculate left position for the popover to align the popover to the right hand
+				//  side of the button - check to see if the left of the popover is inside the table container.
+				// If not, move the popover so it is, but not more than it means that the popover is to the right of the table container
+				var popoverShuffle = 0;
+				if ( display.hasClass( options.rightAlignClassName )) {
+					popoverShuffle = buttonsRight - popoverRight;
+					if(tableLeft > (popoverLeft + popoverShuffle)){
+						var leftGap = tableLeft - (popoverLeft + popoverShuffle);
+						var rightGap = tableRight - (popoverRight + popoverShuffle);
+
+						if(leftGap > rightGap){
+							popoverShuffle += rightGap;
+						}
+						else {
+							popoverShuffle += leftGap;
+						}
+					}
+				}
+				// else attempt to left align the popover to the button. Similar to above, if the popover's right goes past the table container's right,
+				//  then move it back, but not so much that it goes past the left of the table container
+				else {
+					popoverShuffle = tableLeft - popoverLeft;
+
+					if(tableRight < (popoverRight + popoverShuffle)){
+						var leftGap = tableLeft - (popoverLeft + popoverShuffle);
+						var rightGap = tableRight - (popoverRight + popoverShuffle);
+
+						if(leftGap > rightGap ){
+							popoverShuffle += rightGap;
+						}
+						else {
+							popoverShuffle += leftGap;
+						}
+
+					}
+				}
+
+				display.css('left', display.position().left + popoverShuffle);
+			}
+			else {
+				var top = hostNode.offset().top
+				var popoverShuffle = 0;
+
+				popoverShuffle = options.align === 'button-right'
+					? buttonsRight - popoverRight
+					: buttonsLeft - popoverLeft;
+
+				display.css('left', display.position().left + popoverShuffle);
+			}
+
+
+		}
+		else {
+			// Fix position - centre on screen
+			var top = display.height() / 2;
+			if ( top > $(window).height() / 2 ) {
+				top = $(window).height() / 2;
+			}
+
+			display.css( 'marginTop', top*-1 );
+		}
+
+		if ( options.background ) {
+			Buttons.background( true, options.backgroundClassName, options.fade, hostNode );
+		}
+
+		// This is bonkers, but if we don't have a click listener on the
+		// background element, iOS Safari will ignore the body click
+		// listener below. An empty function here is all that is
+		// required to make it work...
+		$('div.dt-button-background').on( 'click.dtb-collection', function () {} );
+
+		$('body')
+			.on( 'click.dtb-collection', function (e) {
+				// andSelf is deprecated in jQ1.8, but we want 1.7 compat
+				var back = $.fn.addBack ? 'addBack' : 'andSelf';
+				var parent = $(e.target).parent()[0];
+
+				if (( ! $(e.target).parents()[back]().filter( content ).length  && !$(parent).hasClass('dt-buttons')) || $(e.target).hasClass('dt-button-background')) {
+					close();
+				}
+			} )
+			.on( 'keyup.dtb-collection', function (e) {
+				if ( e.keyCode === 27 ) {
+					close();
+				}
+			} );
+
+		if ( options.autoClose ) {
+			setTimeout( function () {
+				dt.on( 'buttons-action.b-internal', function (e, btn, dt, node) {
+					if ( node[0] === hostNode[0] ) {
+						return;
+					}
+					close();
+				} );
+			}, 0);
+		}
+
+		$(display).trigger('buttons-popover.dt');
+	}
+} );
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Statics
+ */
+
+/**
+ * Show / hide a background layer behind a collection
+ * @param  {boolean} Flag to indicate if the background should be shown or
+ *   hidden
+ * @param  {string} Class to assign to the background
+ * @static
+ */
+Buttons.background = function ( show, className, fade, insertPoint ) {
+	if ( fade === undefined ) {
+		fade = 400;
+	}
+	if ( ! insertPoint ) {
+		insertPoint = document.body;
+	}
+
+	if ( show ) {
+		_fadeIn(
+			$('<div/>')
+				.addClass( className )
+				.css( 'display', 'none' )
+				.insertAfter( insertPoint ),
+			fade
+		);
+	}
+	else {
+		_fadeOut(
+			$('div.'+className),
+			fade,
+			function () {
+				$(this)
+					.removeClass( className )
+					.remove();
+			}
+		);
+	}
+};
+
+/**
+ * Instance selector - select Buttons instances based on an instance selector
+ * value from the buttons assigned to a DataTable. This is only useful if
+ * multiple instances are attached to a DataTable.
+ * @param  {string|int|array} Instance selector - see `instance-selector`
+ *   documentation on the DataTables site
+ * @param  {array} Button instance array that was attached to the DataTables
+ *   settings object
+ * @return {array} Buttons instances
+ * @static
+ */
+Buttons.instanceSelector = function ( group, buttons )
+{
+	if ( group === undefined || group === null ) {
+		return $.map( buttons, function ( v ) {
+			return v.inst;
+		} );
+	}
+
+	var ret = [];
+	var names = $.map( buttons, function ( v ) {
+		return v.name;
+	} );
+
+	// Flatten the group selector into an array of single options
+	var process = function ( input ) {
+		if ( Array.isArray( input ) ) {
+			for ( var i=0, ien=input.length ; i<ien ; i++ ) {
+				process( input[i] );
+			}
+			return;
+		}
+
+		if ( typeof input === 'string' ) {
+			if ( input.indexOf( ',' ) !== -1 ) {
+				// String selector, list of names
+				process( input.split(',') );
+			}
+			else {
+				// String selector individual name
+				var idx = $.inArray( input.trim(), names );
+
+				if ( idx !== -1 ) {
+					ret.push( buttons[ idx ].inst );
+				}
+			}
+		}
+		else if ( typeof input === 'number' ) {
+			// Index selector
+			ret.push( buttons[ input ].inst );
+		}
+	};
+
+	process( group );
+
+	return ret;
+};
+
+/**
+ * Button selector - select one or more buttons from a selector input so some
+ * operation can be performed on them.
+ * @param  {array} Button instances array that the selector should operate on
+ * @param  {string|int|node|jQuery|array} Button selector - see
+ *   `button-selector` documentation on the DataTables site
+ * @return {array} Array of objects containing `inst` and `idx` properties of
+ *   the selected buttons so you know which instance each button belongs to.
+ * @static
+ */
+Buttons.buttonSelector = function ( insts, selector )
+{
+	var ret = [];
+	var nodeBuilder = function ( a, buttons, baseIdx ) {
+		var button;
+		var idx;
+
+		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+			button = buttons[i];
+
+			if ( button ) {
+				idx = baseIdx !== undefined ?
+					baseIdx+i :
+					i+'';
+
+				a.push( {
+					node: button.node,
+					name: button.conf.name,
+					idx:  idx
+				} );
+
+				if ( button.buttons ) {
+					nodeBuilder( a, button.buttons, idx+'-' );
+				}
+			}
+		}
+	};
+
+	var run = function ( selector, inst ) {
+		var i, ien;
+		var buttons = [];
+		nodeBuilder( buttons, inst.s.buttons );
+
+		var nodes = $.map( buttons, function (v) {
+			return v.node;
+		} );
+
+		if ( Array.isArray( selector ) || selector instanceof $ ) {
+			for ( i=0, ien=selector.length ; i<ien ; i++ ) {
+				run( selector[i], inst );
+			}
+			return;
+		}
+
+		if ( selector === null || selector === undefined || selector === '*' ) {
+			// Select all
+			for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
+				ret.push( {
+					inst: inst,
+					node: buttons[i].node
+				} );
+			}
+		}
+		else if ( typeof selector === 'number' ) {
+			// Main button index selector
+			ret.push( {
+				inst: inst,
+				node: inst.s.buttons[ selector ].node
+			} );
+		}
+		else if ( typeof selector === 'string' ) {
+			if ( selector.indexOf( ',' ) !== -1 ) {
+				// Split
+				var a = selector.split(',');
+
+				for ( i=0, ien=a.length ; i<ien ; i++ ) {
+					run( a[i].trim(), inst );
+				}
+			}
+			else if ( selector.match( /^\d+(\-\d+)*$/ ) ) {
+				// Sub-button index selector
+				var indexes = $.map( buttons, function (v) {
+					return v.idx;
+				} );
+
+				ret.push( {
+					inst: inst,
+					node: buttons[ $.inArray( selector, indexes ) ].node
+				} );
+			}
+			else if ( selector.indexOf( ':name' ) !== -1 ) {
+				// Button name selector
+				var name = selector.replace( ':name', '' );
+
+				for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
+					if ( buttons[i].name === name ) {
+						ret.push( {
+							inst: inst,
+							node: buttons[i].node
+						} );
+					}
+				}
+			}
+			else {
+				// jQuery selector on the nodes
+				$( nodes ).filter( selector ).each( function () {
+					ret.push( {
+						inst: inst,
+						node: this
+					} );
+				} );
+			}
+		}
+		else if ( typeof selector === 'object' && selector.nodeName ) {
+			// Node selector
+			var idx = $.inArray( selector, nodes );
+
+			if ( idx !== -1 ) {
+				ret.push( {
+					inst: inst,
+					node: nodes[ idx ]
+				} );
+			}
+		}
+	};
+
+
+	for ( var i=0, ien=insts.length ; i<ien ; i++ ) {
+		var inst = insts[i];
+
+		run( selector, inst );
+	}
+
+	return ret;
+};
+
+/**
+ * Default function used for formatting output data.
+ * @param {*} str Data to strip
+ */
+Buttons.stripData = function ( str, config ) {
+	if ( typeof str !== 'string' ) {
+		return str;
+	}
+
+	// Always remove script tags
+	str = str.replace( /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '' );
+
+	// Always remove comments
+	str = str.replace( /<!\-\-.*?\-\->/g, '' );
+
+	if ( ! config || config.stripHtml ) {
+		str = str.replace( /<[^>]*>/g, '' );
+	}
+
+	if ( ! config || config.trim ) {
+		str = str.replace( /^\s+|\s+$/g, '' );
+	}
+
+	if ( ! config || config.stripNewlines ) {
+		str = str.replace( /\n/g, ' ' );
+	}
+
+	if ( ! config || config.decodeEntities ) {
+		_exportTextarea.innerHTML = str;
+		str = _exportTextarea.value;
+	}
+
+	return str;
+};
+
+
+/**
+ * Buttons defaults. For full documentation, please refer to the docs/option
+ * directory or the DataTables site.
+ * @type {Object}
+ * @static
+ */
+Buttons.defaults = {
+	buttons: [ 'copy', 'excel', 'csv', 'pdf', 'print' ],
+	name: 'main',
+	tabIndex: 0,
+	dom: {
+		container: {
+			tag: 'div',
+			className: 'dt-buttons'
+		},
+		collection: {
+			tag: 'div',
+			className: ''
+		},
+		button: {
+			tag: 'button',
+			className: 'dt-button',
+			active: 'active',
+			disabled: 'disabled'
+		},
+		buttonLiner: {
+			tag: 'span',
+			className: ''
+		}
+	}
+};
+
+/**
+ * Version information
+ * @type {string}
+ * @static
+ */
+Buttons.version = '1.7.1';
+
+
+$.extend( _dtButtons, {
+	collection: {
+		text: function ( dt ) {
+			return dt.i18n( 'buttons.collection', 'Collection' );
+		},
+		className: 'buttons-collection',
+		init: function ( dt, button, config ) {
+			button.attr( 'aria-expanded', false );
+		},
+		action: function ( e, dt, button, config ) {
+			e.stopPropagation();
+
+			if ( config._collection.parents('body').length ) {
+				this.popover(false, config);
+			}
+			else {
+				this.popover(config._collection, config);
+			}
+		},
+		attr: {
+			'aria-haspopup': true
+		}
+		// Also the popover options, defined in Buttons.popover
+	},
+	copy: function ( dt, conf ) {
+		if ( _dtButtons.copyHtml5 ) {
+			return 'copyHtml5';
+		}
+	},
+	csv: function ( dt, conf ) {
+		if ( _dtButtons.csvHtml5 && _dtButtons.csvHtml5.available( dt, conf ) ) {
+			return 'csvHtml5';
+		}
+	},
+	excel: function ( dt, conf ) {
+		if ( _dtButtons.excelHtml5 && _dtButtons.excelHtml5.available( dt, conf ) ) {
+			return 'excelHtml5';
+		}
+	},
+	pdf: function ( dt, conf ) {
+		if ( _dtButtons.pdfHtml5 && _dtButtons.pdfHtml5.available( dt, conf ) ) {
+			return 'pdfHtml5';
+		}
+	},
+	pageLength: function ( dt ) {
+		var lengthMenu = dt.settings()[0].aLengthMenu;
+		var vals = [];
+		var lang = [];
+		var text = function ( dt ) {
+			return dt.i18n( 'buttons.pageLength', {
+				"-1": 'Show all rows',
+				_:    'Show %d rows'
+			}, dt.page.len() );
+		};
+
+		// Support for DataTables 1.x 2D array
+		if (Array.isArray( lengthMenu[0] )) {
+			vals = lengthMenu[0];
+			lang = lengthMenu[1];
+		}
+		else {
+			for (var i=0 ; i<lengthMenu.length ; i++) {
+				var option = lengthMenu[i];
+
+				// Support for DataTables 2 object in the array
+				if ($.isPlainObject(option)) {
+					vals.push(option.value);
+					lang.push(option.label);
+				}
+				else {
+					vals.push(option);
+					lang.push(option);
+				}
+			}
+		}
+
+		return {
+			extend: 'collection',
+			text: text,
+			className: 'buttons-page-length',
+			autoClose: true,
+			buttons: $.map( vals, function ( val, i ) {
+				return {
+					text: lang[i],
+					className: 'button-page-length',
+					action: function ( e, dt ) {
+						dt.page.len( val ).draw();
+					},
+					init: function ( dt, node, conf ) {
+						var that = this;
+						var fn = function () {
+							that.active( dt.page.len() === val );
+						};
+
+						dt.on( 'length.dt'+conf.namespace, fn );
+						fn();
+					},
+					destroy: function ( dt, node, conf ) {
+						dt.off( 'length.dt'+conf.namespace );
+					}
+				};
+			} ),
+			init: function ( dt, node, conf ) {
+				var that = this;
+				dt.on( 'length.dt'+conf.namespace, function () {
+					that.text( conf.text );
+				} );
+			},
+			destroy: function ( dt, node, conf ) {
+				dt.off( 'length.dt'+conf.namespace );
+			}
+		};
+	}
+} );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables API
+ *
+ * For complete documentation, please refer to the docs/api directory or the
+ * DataTables site
+ */
+
+// Buttons group and individual button selector
+DataTable.Api.register( 'buttons()', function ( group, selector ) {
+	// Argument shifting
+	if ( selector === undefined ) {
+		selector = group;
+		group = undefined;
+	}
+
+	this.selector.buttonGroup = group;
+
+	var res = this.iterator( true, 'table', function ( ctx ) {
+		if ( ctx._buttons ) {
+			return Buttons.buttonSelector(
+				Buttons.instanceSelector( group, ctx._buttons ),
+				selector
+			);
+		}
+	}, true );
+
+	res._groupSelector = group;
+	return res;
+} );
+
+// Individual button selector
+DataTable.Api.register( 'button()', function ( group, selector ) {
+	// just run buttons() and truncate
+	var buttons = this.buttons( group, selector );
+
+	if ( buttons.length > 1 ) {
+		buttons.splice( 1, buttons.length );
+	}
+
+	return buttons;
+} );
+
+// Active buttons
+DataTable.Api.registerPlural( 'buttons().active()', 'button().active()', function ( flag ) {
+	if ( flag === undefined ) {
+		return this.map( function ( set ) {
+			return set.inst.active( set.node );
+		} );
+	}
+
+	return this.each( function ( set ) {
+		set.inst.active( set.node, flag );
+	} );
+} );
+
+// Get / set button action
+DataTable.Api.registerPlural( 'buttons().action()', 'button().action()', function ( action ) {
+	if ( action === undefined ) {
+		return this.map( function ( set ) {
+			return set.inst.action( set.node );
+		} );
+	}
+
+	return this.each( function ( set ) {
+		set.inst.action( set.node, action );
+	} );
+} );
+
+// Enable / disable buttons
+DataTable.Api.register( ['buttons().enable()', 'button().enable()'], function ( flag ) {
+	return this.each( function ( set ) {
+		set.inst.enable( set.node, flag );
+	} );
+} );
+
+// Disable buttons
+DataTable.Api.register( ['buttons().disable()', 'button().disable()'], function () {
+	return this.each( function ( set ) {
+		set.inst.disable( set.node );
+	} );
+} );
+
+// Get button nodes
+DataTable.Api.registerPlural( 'buttons().nodes()', 'button().node()', function () {
+	var jq = $();
+
+	// jQuery will automatically reduce duplicates to a single entry
+	$( this.each( function ( set ) {
+		jq = jq.add( set.inst.node( set.node ) );
+	} ) );
+
+	return jq;
+} );
+
+// Get / set button processing state
+DataTable.Api.registerPlural( 'buttons().processing()', 'button().processing()', function ( flag ) {
+	if ( flag === undefined ) {
+		return this.map( function ( set ) {
+			return set.inst.processing( set.node );
+		} );
+	}
+
+	return this.each( function ( set ) {
+		set.inst.processing( set.node, flag );
+	} );
+} );
+
+// Get / set button text (i.e. the button labels)
+DataTable.Api.registerPlural( 'buttons().text()', 'button().text()', function ( label ) {
+	if ( label === undefined ) {
+		return this.map( function ( set ) {
+			return set.inst.text( set.node );
+		} );
+	}
+
+	return this.each( function ( set ) {
+		set.inst.text( set.node, label );
+	} );
+} );
+
+// Trigger a button's action
+DataTable.Api.registerPlural( 'buttons().trigger()', 'button().trigger()', function () {
+	return this.each( function ( set ) {
+		set.inst.node( set.node ).trigger( 'click' );
+	} );
+} );
+
+// Button resolver to the popover
+DataTable.Api.register( 'button().popover()', function (content, options) {
+	return this.map( function ( set ) {
+		return set.inst._popover( content, this.button(this[0].node), options );
+	} );
+} );
+
+// Get the container elements
+DataTable.Api.register( 'buttons().containers()', function () {
+	var jq = $();
+	var groupSelector = this._groupSelector;
+
+	// We need to use the group selector directly, since if there are no buttons
+	// the result set will be empty
+	this.iterator( true, 'table', function ( ctx ) {
+		if ( ctx._buttons ) {
+			var insts = Buttons.instanceSelector( groupSelector, ctx._buttons );
+
+			for ( var i=0, ien=insts.length ; i<ien ; i++ ) {
+				jq = jq.add( insts[i].container() );
+			}
+		}
+	} );
+
+	return jq;
+} );
+
+DataTable.Api.register( 'buttons().container()', function () {
+	// API level of nesting is `buttons()` so we can zip into the containers method
+	return this.containers().eq(0);
+} );
+
+// Add a new button
+DataTable.Api.register( 'button().add()', function ( idx, conf ) {
+	var ctx = this.context;
+
+	// Don't use `this` as it could be empty - select the instances directly
+	if ( ctx.length ) {
+		var inst = Buttons.instanceSelector( this._groupSelector, ctx[0]._buttons );
+
+		if ( inst.length ) {
+			inst[0].add( conf, idx );
+		}
+	}
+
+	return this.button( this._groupSelector, idx );
+} );
+
+// Destroy the button sets selected
+DataTable.Api.register( 'buttons().destroy()', function () {
+	this.pluck( 'inst' ).unique().each( function ( inst ) {
+		inst.destroy();
+	} );
+
+	return this;
+} );
+
+// Remove a button
+DataTable.Api.registerPlural( 'buttons().remove()', 'buttons().remove()', function () {
+	this.each( function ( set ) {
+		set.inst.remove( set.node );
+	} );
+
+	return this;
+} );
+
+// Information box that can be used by buttons
+var _infoTimer;
+DataTable.Api.register( 'buttons.info()', function ( title, message, time ) {
+	var that = this;
+
+	if ( title === false ) {
+		this.off('destroy.btn-info');
+		_fadeOut(
+			$('#datatables_buttons_info'),
+			400,
+			function () {
+				$(this).remove();
+			}
+		);
+		clearTimeout( _infoTimer );
+		_infoTimer = null;
+
+		return this;
+	}
+
+	if ( _infoTimer ) {
+		clearTimeout( _infoTimer );
+	}
+
+	if ( $('#datatables_buttons_info').length ) {
+		$('#datatables_buttons_info').remove();
+	}
+
+	title = title ? '<h2>'+title+'</h2>' : '';
+
+	_fadeIn(
+		$('<div id="datatables_buttons_info" class="dt-button-info"/>')
+			.html( title )
+			.append( $('<div/>')[ typeof message === 'string' ? 'html' : 'append' ]( message ) )
+			.css( 'display', 'none' )
+			.appendTo( 'body' )
+	);
+
+	if ( time !== undefined && time !== 0 ) {
+		_infoTimer = setTimeout( function () {
+			that.buttons.info( false );
+		}, time );
+	}
+
+	this.on('destroy.btn-info', function () {
+		that.buttons.info(false);
+	});
+
+	return this;
+} );
+
+// Get data from the table for export - this is common to a number of plug-in
+// buttons so it is included in the Buttons core library
+DataTable.Api.register( 'buttons.exportData()', function ( options ) {
+	if ( this.context.length ) {
+		return _exportData( new DataTable.Api( this.context[0] ), options );
+	}
+} );
+
+// Get information about the export that is common to many of the export data
+// types (DRY)
+DataTable.Api.register( 'buttons.exportInfo()', function ( conf ) {
+	if ( ! conf ) {
+		conf = {};
+	}
+
+	return {
+		filename: _filename( conf ),
+		title: _title( conf ),
+		messageTop: _message(this, conf.message || conf.messageTop, 'top'),
+		messageBottom: _message(this, conf.messageBottom, 'bottom')
+	};
+} );
+
+
+
+/**
+ * Get the file name for an exported file.
+ *
+ * @param {object}	config Button configuration
+ * @param {boolean} incExtension Include the file name extension
+ */
+var _filename = function ( config )
+{
+	// Backwards compatibility
+	var filename = config.filename === '*' && config.title !== '*' && config.title !== undefined && config.title !== null && config.title !== '' ?
+		config.title :
+		config.filename;
+
+	if ( typeof filename === 'function' ) {
+		filename = filename();
+	}
+
+	if ( filename === undefined || filename === null ) {
+		return null;
+	}
+
+	if ( filename.indexOf( '*' ) !== -1 ) {
+		filename = filename.replace( '*', $('head > title').text() ).trim();
+	}
+
+	// Strip characters which the OS will object to
+	filename = filename.replace(/[^a-zA-Z0-9_\u00A1-\uFFFF\.,\-_ !\(\)]/g, "");
+
+	var extension = _stringOrFunction( config.extension );
+	if ( ! extension ) {
+		extension = '';
+	}
+
+	return filename + extension;
+};
+
+/**
+ * Simply utility method to allow parameters to be given as a function
+ *
+ * @param {undefined|string|function} option Option
+ * @return {null|string} Resolved value
+ */
+var _stringOrFunction = function ( option )
+{
+	if ( option === null || option === undefined ) {
+		return null;
+	}
+	else if ( typeof option === 'function' ) {
+		return option();
+	}
+	return option;
+};
+
+/**
+ * Get the title for an exported file.
+ *
+ * @param {object} config	Button configuration
+ */
+var _title = function ( config )
+{
+	var title = _stringOrFunction( config.title );
+
+	return title === null ?
+		null : title.indexOf( '*' ) !== -1 ?
+			title.replace( '*', $('head > title').text() || 'Exported data' ) :
+			title;
+};
+
+var _message = function ( dt, option, position )
+{
+	var message = _stringOrFunction( option );
+	if ( message === null ) {
+		return null;
+	}
+
+	var caption = $('caption', dt.table().container()).eq(0);
+	if ( message === '*' ) {
+		var side = caption.css( 'caption-side' );
+		if ( side !== position ) {
+			return null;
+		}
+
+		return caption.length ?
+			caption.text() :
+			'';
+	}
+
+	return message;
+};
+
+
+
+
+var _exportTextarea = $('<textarea/>')[0];
+var _exportData = function ( dt, inOpts )
+{
+	var config = $.extend( true, {}, {
+		rows:           null,
+		columns:        '',
+		modifier:       {
+			search: 'applied',
+			order:  'applied'
+		},
+		orthogonal:     'display',
+		stripHtml:      true,
+		stripNewlines:  true,
+		decodeEntities: true,
+		trim:           true,
+		format:         {
+			header: function ( d ) {
+				return Buttons.stripData( d, config );
+			},
+			footer: function ( d ) {
+				return Buttons.stripData( d, config );
+			},
+			body: function ( d ) {
+				return Buttons.stripData( d, config );
+			}
+		},
+		customizeData: null
+	}, inOpts );
+
+	var header = dt.columns( config.columns ).indexes().map( function (idx) {
+		var el = dt.column( idx ).header();
+		return config.format.header( el.innerHTML, idx, el );
+	} ).toArray();
+
+	var footer = dt.table().footer() ?
+		dt.columns( config.columns ).indexes().map( function (idx) {
+			var el = dt.column( idx ).footer();
+			return config.format.footer( el ? el.innerHTML : '', idx, el );
+		} ).toArray() :
+		null;
+
+	// If Select is available on this table, and any rows are selected, limit the export
+	// to the selected rows. If no rows are selected, all rows will be exported. Specify
+	// a `selected` modifier to control directly.
+	var modifier = $.extend( {}, config.modifier );
+	if ( dt.select && typeof dt.select.info === 'function' && modifier.selected === undefined ) {
+		if ( dt.rows( config.rows, $.extend( { selected: true }, modifier ) ).any() ) {
+			$.extend( modifier, { selected: true } )
+		}
+	}
+
+	var rowIndexes = dt.rows( config.rows, modifier ).indexes().toArray();
+	var selectedCells = dt.cells( rowIndexes, config.columns );
+	var cells = selectedCells
+		.render( config.orthogonal )
+		.toArray();
+	var cellNodes = selectedCells
+		.nodes()
+		.toArray();
+
+	var columns = header.length;
+	var rows = columns > 0 ? cells.length / columns : 0;
+	var body = [];
+	var cellCounter = 0;
+
+	for ( var i=0, ien=rows ; i<ien ; i++ ) {
+		var row = [ columns ];
+
+		for ( var j=0 ; j<columns ; j++ ) {
+			row[j] = config.format.body( cells[ cellCounter ], i, j, cellNodes[ cellCounter ] );
+			cellCounter++;
+		}
+
+		body[i] = row;
+	}
+
+	var data = {
+		header: header,
+		footer: footer,
+		body:   body
+	};
+
+	if ( config.customizeData ) {
+		config.customizeData( data );
+	}
+
+	return data;
+};
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables interface
+ */
+
+// Attach to DataTables objects for global access
+$.fn.dataTable.Buttons = Buttons;
+$.fn.DataTable.Buttons = Buttons;
+
+
+
+// DataTables creation - check if the buttons have been defined for this table,
+// they will have been if the `B` option was used in `dom`, otherwise we should
+// create the buttons instance here so they can be inserted into the document
+// using the API. Listen for `init` for compatibility with pre 1.10.10, but to
+// be removed in future.
+$(document).on( 'init.dt plugin-init.dt', function (e, settings) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var opts = settings.oInit.buttons || DataTable.defaults.buttons;
+
+	if ( opts && ! settings._buttons ) {
+		new Buttons( settings, opts ).container();
+	}
+} );
+
+function _init ( settings, options ) {
+	var api = new DataTable.Api( settings );
+	var opts = options
+		? options
+		: api.init().buttons || DataTable.defaults.buttons;
+
+	return new Buttons( api, opts ).container();
+}
+
+// DataTables `dom` feature option
+DataTable.ext.feature.push( {
+	fnInit: _init,
+	cFeature: "B"
+} );
+
+// DataTables 2 layout feature
+if ( DataTable.ext.features ) {
+	DataTable.ext.features.register( 'buttons', _init );
+}
+
+
+return Buttons;
+}));
+
+/*!
+ Buttons for DataTables 1.7.1
+ ©2016-2021 SpryMedia Ltd - datatables.net/license
+*/
+(function(e){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(r){return e(r,window,document)}):"object"===typeof exports?module.exports=function(r,q){r||(r=window);if(!q||!q.fn.dataTable)q=require("datatables.net")(r,q).$;return e(q,r,r.document)}:e(jQuery,window,document)})(function(e,r,q,l){function t(a,b,c){e.fn.animate?a.stop().fadeIn(b,c):(a.css("display","block"),c&&c.call(a))}function u(a,b,c){e.fn.animate?a.stop().fadeOut(b,c):(a.css("display","none"),c&&
+c.call(a))}function w(a,b){var c=new j.Api(a),d=b?b:c.init().buttons||j.defaults.buttons;return(new o(c,d)).container()}var j=e.fn.dataTable,z=0,A=0,p=j.ext.buttons,o=function(a,b){if(!(this instanceof o))return function(b){return(new o(b,a)).container()};"undefined"===typeof b&&(b={});!0===b&&(b={});Array.isArray(b)&&(b={buttons:b});this.c=e.extend(!0,{},o.defaults,b);b.buttons&&(this.c.buttons=b.buttons);this.s={dt:new j.Api(a),buttons:[],listenKeys:"",namespace:"dtb"+z++};this.dom={container:e("<"+
+this.c.dom.container.tag+"/>").addClass(this.c.dom.container.className)};this._constructor()};e.extend(o.prototype,{action:function(a,b){var c=this._nodeToButton(a);if(b===l)return c.conf.action;c.conf.action=b;return this},active:function(a,b){var c=this._nodeToButton(a),d=this.c.dom.button.active,c=e(c.node);if(b===l)return c.hasClass(d);c.toggleClass(d,b===l?!0:b);return this},add:function(a,b){var c=this.s.buttons;if("string"===typeof b){for(var d=b.split("-"),e=this.s,c=0,h=d.length-1;c<h;c++)e=
+e.buttons[1*d[c]];c=e.buttons;b=1*d[d.length-1]}this._expandButton(c,a,e!==l,b);this._draw();return this},container:function(){return this.dom.container},disable:function(a){a=this._nodeToButton(a);e(a.node).addClass(this.c.dom.button.disabled).attr("disabled",!0);return this},destroy:function(){e("body").off("keyup."+this.s.namespace);var a=this.s.buttons.slice(),b,c;b=0;for(c=a.length;b<c;b++)this.remove(a[b].node);this.dom.container.remove();a=this.s.dt.settings()[0];b=0;for(c=a.length;b<c;b++)if(a.inst===
+this){a.splice(b,1);break}return this},enable:function(a,b){if(!1===b)return this.disable(a);var c=this._nodeToButton(a);e(c.node).removeClass(this.c.dom.button.disabled).removeAttr("disabled");return this},name:function(){return this.c.name},node:function(a){if(!a)return this.dom.container;a=this._nodeToButton(a);return e(a.node)},processing:function(a,b){var c=this.s.dt,d=this._nodeToButton(a);if(b===l)return e(d.node).hasClass("processing");e(d.node).toggleClass("processing",b);e(c.table().node()).triggerHandler("buttons-processing.dt",
+[b,c.button(a),c,e(a),d.conf]);return this},remove:function(a){var b=this._nodeToButton(a),c=this._nodeToHost(a),d=this.s.dt;if(b.buttons.length)for(var f=b.buttons.length-1;0<=f;f--)this.remove(b.buttons[f].node);b.conf.destroy&&b.conf.destroy.call(d.button(a),d,e(a),b.conf);this._removeKey(b.conf);e(b.node).remove();a=e.inArray(b,c);c.splice(a,1);return this},text:function(a,b){var c=this._nodeToButton(a),d=this.c.dom.collection.buttonLiner,d=c.inCollection&&d&&d.tag?d.tag:this.c.dom.buttonLiner.tag,
+f=this.s.dt,h=e(c.node),i=function(a){return"function"===typeof a?a(f,h,c.conf):a};if(b===l)return i(c.conf.text);c.conf.text=b;d?h.children(d).html(i(b)):h.html(i(b));return this},_constructor:function(){var a=this,b=this.s.dt,c=b.settings()[0],d=this.c.buttons;c._buttons||(c._buttons=[]);c._buttons.push({inst:this,name:this.c.name});for(var f=0,h=d.length;f<h;f++)this.add(d[f]);b.on("destroy",function(b,d){d===c&&a.destroy()});e("body").on("keyup."+this.s.namespace,function(b){if(!q.activeElement||
+q.activeElement===q.body){var c=String.fromCharCode(b.keyCode).toLowerCase();a.s.listenKeys.toLowerCase().indexOf(c)!==-1&&a._keypress(c,b)}})},_addKey:function(a){a.key&&(this.s.listenKeys+=e.isPlainObject(a.key)?a.key.key:a.key)},_draw:function(a,b){a||(a=this.dom.container,b=this.s.buttons);a.children().detach();for(var c=0,d=b.length;c<d;c++)a.append(b[c].inserter),a.append(" "),b[c].buttons&&b[c].buttons.length&&this._draw(b[c].collection,b[c].buttons)},_expandButton:function(a,b,c,d){for(var f=
+this.s.dt,h=0,b=!Array.isArray(b)?[b]:b,i=0,k=b.length;i<k;i++){var m=this._resolveExtends(b[i]);if(m)if(Array.isArray(m))this._expandButton(a,m,c,d);else{var g=this._buildButton(m,c);g&&(d!==l&&null!==d?(a.splice(d,0,g),d++):a.push(g),g.conf.buttons&&(g.collection=e("<"+this.c.dom.collection.tag+"/>"),g.conf._collection=g.collection,this._expandButton(g.buttons,g.conf.buttons,!0,d)),m.init&&m.init.call(f.button(g.node),f,e(g.node),m),h++)}}},_buildButton:function(a,b){var c=this.c.dom.button,d=this.c.dom.buttonLiner,
+f=this.c.dom.collection,h=this.s.dt,i=function(b){return"function"===typeof b?b(h,g,a):b};b&&f.button&&(c=f.button);b&&f.buttonLiner&&(d=f.buttonLiner);if(a.available&&!a.available(h,a))return!1;var k=function(a,b,c,d){d.action.call(b.button(c),a,b,c,d);e(b.table().node()).triggerHandler("buttons-action.dt",[b.button(c),b,c,d])},f=a.tag||c.tag,m=a.clickBlurs===l?!0:a.clickBlurs,g=e("<"+f+"/>").addClass(c.className).attr("tabindex",this.s.dt.settings()[0].iTabIndex).attr("aria-controls",this.s.dt.table().node().id).on("click.dtb",
+function(b){b.preventDefault();!g.hasClass(c.disabled)&&a.action&&k(b,h,g,a);m&&g.trigger("blur")}).on("keyup.dtb",function(b){b.keyCode===13&&!g.hasClass(c.disabled)&&a.action&&k(b,h,g,a)});"a"===f.toLowerCase()&&g.attr("href","#");"button"===f.toLowerCase()&&g.attr("type","button");d.tag?(f=e("<"+d.tag+"/>").html(i(a.text)).addClass(d.className),"a"===d.tag.toLowerCase()&&f.attr("href","#"),g.append(f)):g.html(i(a.text));!1===a.enabled&&g.addClass(c.disabled);a.className&&g.addClass(a.className);
+a.titleAttr&&g.attr("title",i(a.titleAttr));a.attr&&g.attr(a.attr);a.namespace||(a.namespace=".dt-button-"+A++);d=(d=this.c.dom.buttonContainer)&&d.tag?e("<"+d.tag+"/>").addClass(d.className).append(g):g;this._addKey(a);this.c.buttonCreated&&(d=this.c.buttonCreated(a,d));return{conf:a,node:g.get(0),inserter:d,buttons:[],inCollection:b,collection:null}},_nodeToButton:function(a,b){b||(b=this.s.buttons);for(var c=0,d=b.length;c<d;c++){if(b[c].node===a)return b[c];if(b[c].buttons.length){var e=this._nodeToButton(a,
+b[c].buttons);if(e)return e}}},_nodeToHost:function(a,b){b||(b=this.s.buttons);for(var c=0,d=b.length;c<d;c++){if(b[c].node===a)return b;if(b[c].buttons.length){var e=this._nodeToHost(a,b[c].buttons);if(e)return e}}},_keypress:function(a,b){if(!b._buttonsHandled){var c=function(d){for(var f=0,h=d.length;f<h;f++){var i=d[f].conf,k=d[f].node;if(i.key)if(i.key===a)b._buttonsHandled=!0,e(k).click();else if(e.isPlainObject(i.key)&&i.key.key===a&&(!i.key.shiftKey||b.shiftKey))if(!i.key.altKey||b.altKey)if(!i.key.ctrlKey||
+b.ctrlKey)if(!i.key.metaKey||b.metaKey)b._buttonsHandled=!0,e(k).click();d[f].buttons.length&&c(d[f].buttons)}};c(this.s.buttons)}},_removeKey:function(a){if(a.key){var b=e.isPlainObject(a.key)?a.key.key:a.key,a=this.s.listenKeys.split(""),b=e.inArray(b,a);a.splice(b,1);this.s.listenKeys=a.join("")}},_resolveExtends:function(a){for(var b=this.s.dt,c,d,f=function(c){for(var d=0;!e.isPlainObject(c)&&!Array.isArray(c);){if(c===l)return;if("function"===typeof c){if(c=c(b,a),!c)return!1}else if("string"===
+typeof c){if(!p[c])throw"Unknown button type: "+c;c=p[c]}d++;if(30<d)throw"Buttons: Too many iterations";}return Array.isArray(c)?c:e.extend({},c)},a=f(a);a&&a.extend;){if(!p[a.extend])throw"Cannot extend unknown button type: "+a.extend;var h=f(p[a.extend]);if(Array.isArray(h))return h;if(!h)return!1;c=h.className;a=e.extend({},h,a);c&&a.className!==c&&(a.className=c+" "+a.className);var i=a.postfixButtons;if(i){a.buttons||(a.buttons=[]);c=0;for(d=i.length;c<d;c++)a.buttons.push(i[c]);a.postfixButtons=
+null}if(i=a.prefixButtons){a.buttons||(a.buttons=[]);c=0;for(d=i.length;c<d;c++)a.buttons.splice(c,0,i[c]);a.prefixButtons=null}a.extend=h.extend}return a},_popover:function(a,b,c){var d=this.c,f=e.extend({align:"button-left",autoClose:!1,background:!0,backgroundClassName:"dt-button-background",contentClassName:d.dom.collection.className,collectionLayout:"",collectionTitle:"",dropup:!1,fade:400,rightAlignClassName:"dt-button-right",tag:d.dom.collection.tag},c),h=b.node(),i=function(){u(e(".dt-button-collection"),
+f.fade,function(){e(this).detach()});e(b.buttons('[aria-haspopup="true"][aria-expanded="true"]').nodes()).attr("aria-expanded","false");e("div.dt-button-background").off("click.dtb-collection");o.background(!1,f.backgroundClassName,f.fade,h);e("body").off(".dtb-collection");b.off("buttons-action.b-internal")};!1===a&&i();c=e(b.buttons('[aria-haspopup="true"][aria-expanded="true"]').nodes());c.length&&(h=c.eq(0),i());c=e("<div/>").addClass("dt-button-collection").addClass(f.collectionLayout).css("display",
+"none");a=e(a).addClass(f.contentClassName).attr("role","menu").appendTo(c);h.attr("aria-expanded","true");h.parents("body")[0]!==q.body&&(h=q.body.lastChild);f.collectionTitle&&c.prepend('<div class="dt-button-collection-title">'+f.collectionTitle+"</div>");t(c.insertAfter(h),f.fade);var d=e(b.table().container()),k=c.css("position");"dt-container"===f.align&&(h=h.parent(),c.css("width",d.width()));if("absolute"===k){var m=h.position(),k=e(b.node()).position();c.css({top:k.top+h.outerHeight(),left:m.left});
+var m=c.outerHeight(),g=d.offset().top+d.height(),g=k.top+h.outerHeight()+m-g,j=k.top-m,n=d.offset().top,k=k.top-m-5;(g>n-j||f.dropup)&&-k<n&&c.css("top",k);var k=d.offset().left,d=d.width(),d=k+d,m=c.offset().left,g=c.width(),g=m+g,j=h.offset().left,n=h.outerWidth(),l=j+n;c.hasClass(f.rightAlignClassName)||c.hasClass(f.leftAlignClassName)||"dt-container"===f.align?(n=0,c.hasClass(f.rightAlignClassName)?(n=l-g,k>m+n&&(k-=m+n,d-=g+n,n=k>d?n+d:n+k)):(n=k-m,d<g+n&&(k-=m+n,d-=g+n,n=k>d?n+d:n+k))):(d=
+h.offset().top,n=0,n="button-right"===f.align?l-g:j-m);c.css("left",c.position().left+n)}else d=c.height()/2,d>e(r).height()/2&&(d=e(r).height()/2),c.css("marginTop",-1*d);f.background&&o.background(!0,f.backgroundClassName,f.fade,h);e("div.dt-button-background").on("click.dtb-collection",function(){});e("body").on("click.dtb-collection",function(b){var c=e.fn.addBack?"addBack":"andSelf",d=e(b.target).parent()[0];(!e(b.target).parents()[c]().filter(a).length&&!e(d).hasClass("dt-buttons")||e(b.target).hasClass("dt-button-background"))&&
+i()}).on("keyup.dtb-collection",function(a){a.keyCode===27&&i()});f.autoClose&&setTimeout(function(){b.on("buttons-action.b-internal",function(a,b,c,d){d[0]!==h[0]&&i()})},0);e(c).trigger("buttons-popover.dt")}});o.background=function(a,b,c,d){c===l&&(c=400);d||(d=q.body);a?t(e("<div/>").addClass(b).css("display","none").insertAfter(d),c):u(e("div."+b),c,function(){e(this).removeClass(b).remove()})};o.instanceSelector=function(a,b){if(a===l||null===a)return e.map(b,function(a){return a.inst});var c=
+[],d=e.map(b,function(a){return a.name}),f=function(a){if(Array.isArray(a))for(var i=0,k=a.length;i<k;i++)f(a[i]);else"string"===typeof a?-1!==a.indexOf(",")?f(a.split(",")):(a=e.inArray(a.trim(),d),-1!==a&&c.push(b[a].inst)):"number"===typeof a&&c.push(b[a].inst)};f(a);return c};o.buttonSelector=function(a,b){for(var c=[],d=function(a,b,c){for(var e,f,h=0,i=b.length;h<i;h++)if(e=b[h])f=c!==l?c+h:h+"",a.push({node:e.node,name:e.conf.name,idx:f}),e.buttons&&d(a,e.buttons,f+"-")},f=function(a,b){var g,
+h,i=[];d(i,b.s.buttons);g=e.map(i,function(a){return a.node});if(Array.isArray(a)||a instanceof e){g=0;for(h=a.length;g<h;g++)f(a[g],b)}else if(null===a||a===l||"*"===a){g=0;for(h=i.length;g<h;g++)c.push({inst:b,node:i[g].node})}else if("number"===typeof a)c.push({inst:b,node:b.s.buttons[a].node});else if("string"===typeof a)if(-1!==a.indexOf(",")){i=a.split(",");g=0;for(h=i.length;g<h;g++)f(i[g].trim(),b)}else if(a.match(/^\d+(\-\d+)*$/))g=e.map(i,function(a){return a.idx}),c.push({inst:b,node:i[e.inArray(a,
+g)].node});else if(-1!==a.indexOf(":name")){var j=a.replace(":name","");g=0;for(h=i.length;g<h;g++)i[g].name===j&&c.push({inst:b,node:i[g].node})}else e(g).filter(a).each(function(){c.push({inst:b,node:this})});else"object"===typeof a&&a.nodeName&&(i=e.inArray(a,g),-1!==i&&c.push({inst:b,node:g[i]}))},h=0,i=a.length;h<i;h++)f(b,a[h]);return c};o.stripData=function(a,b){if("string"!==typeof a)return a;a=a.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,"");a=a.replace(/<!\-\-.*?\-\->/g,
+"");if(!b||b.stripHtml)a=a.replace(/<[^>]*>/g,"");if(!b||b.trim)a=a.replace(/^\s+|\s+$/g,"");if(!b||b.stripNewlines)a=a.replace(/\n/g," ");if(!b||b.decodeEntities)x.innerHTML=a,a=x.value;return a};o.defaults={buttons:["copy","excel","csv","pdf","print"],name:"main",tabIndex:0,dom:{container:{tag:"div",className:"dt-buttons"},collection:{tag:"div",className:""},button:{tag:"button",className:"dt-button",active:"active",disabled:"disabled"},buttonLiner:{tag:"span",className:""}}};o.version="1.7.1";
+e.extend(p,{collection:{text:function(a){return a.i18n("buttons.collection","Collection")},className:"buttons-collection",init:function(a,b){b.attr("aria-expanded",!1)},action:function(a,b,c,d){a.stopPropagation();d._collection.parents("body").length?this.popover(!1,d):this.popover(d._collection,d)},attr:{"aria-haspopup":!0}},copy:function(){if(p.copyHtml5)return"copyHtml5"},csv:function(a,b){if(p.csvHtml5&&p.csvHtml5.available(a,b))return"csvHtml5"},excel:function(a,b){if(p.excelHtml5&&p.excelHtml5.available(a,
+b))return"excelHtml5"},pdf:function(a,b){if(p.pdfHtml5&&p.pdfHtml5.available(a,b))return"pdfHtml5"},pageLength:function(a){var a=a.settings()[0].aLengthMenu,b=[],c=[];if(Array.isArray(a[0]))b=a[0],c=a[1];else for(var d=0;d<a.length;d++){var f=a[d];e.isPlainObject(f)?(b.push(f.value),c.push(f.label)):(b.push(f),c.push(f))}return{extend:"collection",text:function(a){return a.i18n("buttons.pageLength",{"-1":"Show all rows",_:"Show %d rows"},a.page.len())},className:"buttons-page-length",autoClose:!0,
+buttons:e.map(b,function(a,b){return{text:c[b],className:"button-page-length",action:function(b,c){c.page.len(a).draw()},init:function(b,c,d){var e=this,c=function(){e.active(b.page.len()===a)};b.on("length.dt"+d.namespace,c);c()},destroy:function(a,b,c){a.off("length.dt"+c.namespace)}}}),init:function(a,b,c){var d=this;a.on("length.dt"+c.namespace,function(){d.text(c.text)})},destroy:function(a,b,c){a.off("length.dt"+c.namespace)}}}});j.Api.register("buttons()",function(a,b){b===l&&(b=a,a=l);this.selector.buttonGroup=
+a;var c=this.iterator(!0,"table",function(c){if(c._buttons)return o.buttonSelector(o.instanceSelector(a,c._buttons),b)},!0);c._groupSelector=a;return c});j.Api.register("button()",function(a,b){var c=this.buttons(a,b);1<c.length&&c.splice(1,c.length);return c});j.Api.registerPlural("buttons().active()","button().active()",function(a){return a===l?this.map(function(a){return a.inst.active(a.node)}):this.each(function(b){b.inst.active(b.node,a)})});j.Api.registerPlural("buttons().action()","button().action()",
+function(a){return a===l?this.map(function(a){return a.inst.action(a.node)}):this.each(function(b){b.inst.action(b.node,a)})});j.Api.register(["buttons().enable()","button().enable()"],function(a){return this.each(function(b){b.inst.enable(b.node,a)})});j.Api.register(["buttons().disable()","button().disable()"],function(){return this.each(function(a){a.inst.disable(a.node)})});j.Api.registerPlural("buttons().nodes()","button().node()",function(){var a=e();e(this.each(function(b){a=a.add(b.inst.node(b.node))}));
+return a});j.Api.registerPlural("buttons().processing()","button().processing()",function(a){return a===l?this.map(function(a){return a.inst.processing(a.node)}):this.each(function(b){b.inst.processing(b.node,a)})});j.Api.registerPlural("buttons().text()","button().text()",function(a){return a===l?this.map(function(a){return a.inst.text(a.node)}):this.each(function(b){b.inst.text(b.node,a)})});j.Api.registerPlural("buttons().trigger()","button().trigger()",function(){return this.each(function(a){a.inst.node(a.node).trigger("click")})});
+j.Api.register("button().popover()",function(a,b){return this.map(function(c){return c.inst._popover(a,this.button(this[0].node),b)})});j.Api.register("buttons().containers()",function(){var a=e(),b=this._groupSelector;this.iterator(!0,"table",function(c){if(c._buttons)for(var c=o.instanceSelector(b,c._buttons),d=0,e=c.length;d<e;d++)a=a.add(c[d].container())});return a});j.Api.register("buttons().container()",function(){return this.containers().eq(0)});j.Api.register("button().add()",function(a,
+b){var c=this.context;c.length&&(c=o.instanceSelector(this._groupSelector,c[0]._buttons),c.length&&c[0].add(b,a));return this.button(this._groupSelector,a)});j.Api.register("buttons().destroy()",function(){this.pluck("inst").unique().each(function(a){a.destroy()});return this});j.Api.registerPlural("buttons().remove()","buttons().remove()",function(){this.each(function(a){a.inst.remove(a.node)});return this});var s;j.Api.register("buttons.info()",function(a,b,c){var d=this;if(!1===a)return this.off("destroy.btn-info"),
+u(e("#datatables_buttons_info"),400,function(){e(this).remove()}),clearTimeout(s),s=null,this;s&&clearTimeout(s);e("#datatables_buttons_info").length&&e("#datatables_buttons_info").remove();t(e('<div id="datatables_buttons_info" class="dt-button-info"/>').html(a?"<h2>"+a+"</h2>":"").append(e("<div/>")["string"===typeof b?"html":"append"](b)).css("display","none").appendTo("body"));c!==l&&0!==c&&(s=setTimeout(function(){d.buttons.info(!1)},c));this.on("destroy.btn-info",function(){d.buttons.info(!1)});
+return this});j.Api.register("buttons.exportData()",function(a){if(this.context.length){var b=new j.Api(this.context[0]),c=e.extend(!0,{},{rows:null,columns:"",modifier:{search:"applied",order:"applied"},orthogonal:"display",stripHtml:!0,stripNewlines:!0,decodeEntities:!0,trim:!0,format:{header:function(a){return o.stripData(a,c)},footer:function(a){return o.stripData(a,c)},body:function(a){return o.stripData(a,c)}},customizeData:null},a),a=b.columns(c.columns).indexes().map(function(a){var d=b.column(a).header();
+return c.format.header(d.innerHTML,a,d)}).toArray(),d=b.table().footer()?b.columns(c.columns).indexes().map(function(a){var d=b.column(a).footer();return c.format.footer(d?d.innerHTML:"",a,d)}).toArray():null,f=e.extend({},c.modifier);b.select&&"function"===typeof b.select.info&&f.selected===l&&b.rows(c.rows,e.extend({selected:!0},f)).any()&&e.extend(f,{selected:!0});for(var f=b.rows(c.rows,f).indexes().toArray(),h=b.cells(f,c.columns),f=h.render(c.orthogonal).toArray(),h=h.nodes().toArray(),i=a.length,
+k=[],m=0,g=0,q=0<i?f.length/i:0;g<q;g++){for(var n=[i],p=0;p<i;p++)n[p]=c.format.body(f[m],g,p,h[m]),m++;k[g]=n}a={header:a,footer:d,body:k};c.customizeData&&c.customizeData(a);return a}});j.Api.register("buttons.exportInfo()",function(a){a||(a={});var b;var c=a;b="*"===c.filename&&"*"!==c.title&&c.title!==l&&null!==c.title&&""!==c.title?c.title:c.filename;"function"===typeof b&&(b=b());b===l||null===b?b=null:(-1!==b.indexOf("*")&&(b=b.replace("*",e("head > title").text()).trim()),b=b.replace(/[^a-zA-Z0-9_\u00A1-\uFFFF\.,\-_ !\(\)]/g,
+""),(c=v(c.extension))||(c=""),b+=c);c=v(a.title);c=null===c?null:-1!==c.indexOf("*")?c.replace("*",e("head > title").text()||"Exported data"):c;return{filename:b,title:c,messageTop:y(this,a.message||a.messageTop,"top"),messageBottom:y(this,a.messageBottom,"bottom")}});var v=function(a){return null===a||a===l?null:"function"===typeof a?a():a},y=function(a,b,c){b=v(b);if(null===b)return null;a=e("caption",a.table().container()).eq(0);return"*"===b?a.css("caption-side")!==c?null:a.length?a.text():"":
+b},x=e("<textarea/>")[0];e.fn.dataTable.Buttons=o;e.fn.DataTable.Buttons=o;e(q).on("init.dt plugin-init.dt",function(a,b){if("dt"===a.namespace){var c=b.oInit.buttons||j.defaults.buttons;c&&!b._buttons&&(new o(b,c)).container()}});j.ext.feature.push({fnInit:w,cFeature:"B"});j.ext.features&&j.ext.features.register("buttons",w);return o});
+
+/*!
+ * Column visibility buttons for Buttons and DataTables.
+ * 2016 SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net', 'datatables.net-buttons'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			if ( ! $.fn.dataTable.Buttons ) {
+				require('datatables.net-buttons')(root, $);
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+$.extend( DataTable.ext.buttons, {
+	// A collection of column visibility buttons
+	colvis: function ( dt, conf ) {
+		return {
+			extend: 'collection',
+			text: function ( dt ) {
+				return dt.i18n( 'buttons.colvis', 'Column visibility' );
+			},
+			className: 'buttons-colvis',
+			buttons: [ {
+				extend: 'columnsToggle',
+				columns: conf.columns,
+				columnText: conf.columnText
+			} ]
+		};
+	},
+
+	// Selected columns with individual buttons - toggle column visibility
+	columnsToggle: function ( dt, conf ) {
+		var columns = dt.columns( conf.columns ).indexes().map( function ( idx ) {
+			return {
+				extend: 'columnToggle',
+				columns: idx,
+				columnText: conf.columnText
+			};
+		} ).toArray();
+
+		return columns;
+	},
+
+	// Single button to toggle column visibility
+	columnToggle: function ( dt, conf ) {
+		return {
+			extend: 'columnVisibility',
+			columns: conf.columns,
+			columnText: conf.columnText
+		};
+	},
+
+	// Selected columns with individual buttons - set column visibility
+	columnsVisibility: function ( dt, conf ) {
+		var columns = dt.columns( conf.columns ).indexes().map( function ( idx ) {
+			return {
+				extend: 'columnVisibility',
+				columns: idx,
+				visibility: conf.visibility,
+				columnText: conf.columnText
+			};
+		} ).toArray();
+
+		return columns;
+	},
+
+	// Single button to set column visibility
+	columnVisibility: {
+		columns: undefined, // column selector
+		text: function ( dt, button, conf ) {
+			return conf._columnText( dt, conf );
+		},
+		className: 'buttons-columnVisibility',
+		action: function ( e, dt, button, conf ) {
+			var col = dt.columns( conf.columns );
+			var curr = col.visible();
+
+			col.visible( conf.visibility !== undefined ?
+				conf.visibility :
+				! (curr.length ? curr[0] : false )
+			);
+		},
+		init: function ( dt, button, conf ) {
+			var that = this;
+			button.attr( 'data-cv-idx', conf.columns );
+
+			dt
+				.on( 'column-visibility.dt'+conf.namespace, function (e, settings) {
+					if ( ! settings.bDestroying && settings.nTable == dt.settings()[0].nTable ) {
+						that.active( dt.column( conf.columns ).visible() );
+					}
+				} )
+				.on( 'column-reorder.dt'+conf.namespace, function (e, settings, details) {
+					if ( dt.columns( conf.columns ).count() !== 1 ) {
+						return;
+					}
+
+					// This button controls the same column index but the text for the column has
+					// changed
+					that.text( conf._columnText( dt, conf ) );
+
+					// Since its a different column, we need to check its visibility
+					that.active( dt.column( conf.columns ).visible() );
+				} );
+
+			this.active( dt.column( conf.columns ).visible() );
+		},
+		destroy: function ( dt, button, conf ) {
+			dt
+				.off( 'column-visibility.dt'+conf.namespace )
+				.off( 'column-reorder.dt'+conf.namespace );
+		},
+
+		_columnText: function ( dt, conf ) {
+			// Use DataTables' internal data structure until this is presented
+			// is a public API. The other option is to use
+			// `$( column(col).node() ).text()` but the node might not have been
+			// populated when Buttons is constructed.
+			var idx = dt.column( conf.columns ).index();
+			var title = dt.settings()[0].aoColumns[ idx ].sTitle;
+
+			if (! title) {
+				title = dt.column(idx).header().innerHTML;
+			}
+
+			title = title
+				.replace(/\n/g," ")        // remove new lines
+				.replace(/<br\s*\/?>/gi, " ")  // replace line breaks with spaces
+				.replace(/<select(.*?)<\/select>/g, "") // remove select tags, including options text
+				.replace(/<!\-\-.*?\-\->/g, "") // strip HTML comments
+				.replace(/<.*?>/g, "")   // strip HTML
+				.replace(/^\s+|\s+$/g,""); // trim
+
+			return conf.columnText ?
+				conf.columnText( dt, idx, title ) :
+				title;
+		}
+	},
+
+
+	colvisRestore: {
+		className: 'buttons-colvisRestore',
+
+		text: function ( dt ) {
+			return dt.i18n( 'buttons.colvisRestore', 'Restore visibility' );
+		},
+
+		init: function ( dt, button, conf ) {
+			conf._visOriginal = dt.columns().indexes().map( function ( idx ) {
+				return dt.column( idx ).visible();
+			} ).toArray();
+		},
+
+		action: function ( e, dt, button, conf ) {
+			dt.columns().every( function ( i ) {
+				// Take into account that ColReorder might have disrupted our
+				// indexes
+				var idx = dt.colReorder && dt.colReorder.transpose ?
+					dt.colReorder.transpose( i, 'toOriginal' ) :
+					i;
+
+				this.visible( conf._visOriginal[ idx ] );
+			} );
+		}
+	},
+
+
+	colvisGroup: {
+		className: 'buttons-colvisGroup',
+
+		action: function ( e, dt, button, conf ) {
+			dt.columns( conf.show ).visible( true, false );
+			dt.columns( conf.hide ).visible( false, false );
+
+			dt.columns.adjust();
+		},
+
+		show: [],
+
+		hide: []
+	}
+} );
+
+
+return DataTable.Buttons;
+}));
+
+(function(g){"function"===typeof define&&define.amd?define(["jquery","datatables.net","datatables.net-buttons"],function(e){return g(e,window,document)}):"object"===typeof exports?module.exports=function(e,f){e||(e=window);if(!f||!f.fn.dataTable)f=require("datatables.net")(e,f).$;f.fn.dataTable.Buttons||require("datatables.net-buttons")(e,f);return g(f,e,e.document)}:g(jQuery,window,document)})(function(g,e,f,h){e=g.fn.dataTable;g.extend(e.ext.buttons,{colvis:function(a,b){return{extend:"collection",
+text:function(b){return b.i18n("buttons.colvis","Column visibility")},className:"buttons-colvis",buttons:[{extend:"columnsToggle",columns:b.columns,columnText:b.columnText}]}},columnsToggle:function(a,b){return a.columns(b.columns).indexes().map(function(a){return{extend:"columnToggle",columns:a,columnText:b.columnText}}).toArray()},columnToggle:function(a,b){return{extend:"columnVisibility",columns:b.columns,columnText:b.columnText}},columnsVisibility:function(a,b){return a.columns(b.columns).indexes().map(function(a){return{extend:"columnVisibility",
+columns:a,visibility:b.visibility,columnText:b.columnText}}).toArray()},columnVisibility:{columns:h,text:function(a,b,c){return c._columnText(a,c)},className:"buttons-columnVisibility",action:function(a,b,c,d){a=b.columns(d.columns);b=a.visible();a.visible(d.visibility!==h?d.visibility:!(b.length&&b[0]))},init:function(a,b,c){var d=this;b.attr("data-cv-idx",c.columns);a.on("column-visibility.dt"+c.namespace,function(b,e){!e.bDestroying&&e.nTable==a.settings()[0].nTable&&d.active(a.column(c.columns).visible())}).on("column-reorder.dt"+
+c.namespace,function(){1===a.columns(c.columns).count()&&(d.text(c._columnText(a,c)),d.active(a.column(c.columns).visible()))});this.active(a.column(c.columns).visible())},destroy:function(a,b,c){a.off("column-visibility.dt"+c.namespace).off("column-reorder.dt"+c.namespace)},_columnText:function(a,b){var c=a.column(b.columns).index(),d=a.settings()[0].aoColumns[c].sTitle;d||(d=a.column(c).header().innerHTML);d=d.replace(/\n/g," ").replace(/<br\s*\/?>/gi," ").replace(/<select(.*?)<\/select>/g,"").replace(/<!\-\-.*?\-\->/g,
+"").replace(/<.*?>/g,"").replace(/^\s+|\s+$/g,"");return b.columnText?b.columnText(a,c,d):d}},colvisRestore:{className:"buttons-colvisRestore",text:function(a){return a.i18n("buttons.colvisRestore","Restore visibility")},init:function(a,b,c){c._visOriginal=a.columns().indexes().map(function(b){return a.column(b).visible()}).toArray()},action:function(a,b,c,d){b.columns().every(function(a){a=b.colReorder&&b.colReorder.transpose?b.colReorder.transpose(a,"toOriginal"):a;this.visible(d._visOriginal[a])})}},
+colvisGroup:{className:"buttons-colvisGroup",action:function(a,b,c,d){b.columns(d.show).visible(!0,!1);b.columns(d.hide).visible(!1,!1);b.columns.adjust()},show:[],hide:[]}});return e.Buttons});
+
+/*!
+ * Flash export buttons for Buttons and DataTables.
+ * 2015-2017 SpryMedia Ltd - datatables.net/license
+ *
+ * ZeroClipbaord - MIT license
+ * Copyright (c) 2012 Joseph Huckaby
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net', 'datatables.net-buttons'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			if ( ! $.fn.dataTable.Buttons ) {
+				require('datatables.net-buttons')(root, $);
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * ZeroClipboard dependency
+ */
+
+/*
+ * ZeroClipboard 1.0.4 with modifications
+ * Author: Joseph Huckaby
+ * License: MIT
+ *
+ * Copyright (c) 2012 Joseph Huckaby
+ */
+var ZeroClipboard_TableTools = {
+	version: "1.0.4-TableTools2",
+	clients: {}, // registered upload clients on page, indexed by id
+	moviePath: '', // URL to movie
+	nextId: 1, // ID of next movie
+
+	$: function(thingy) {
+		// simple DOM lookup utility function
+		if (typeof(thingy) == 'string') {
+			thingy = document.getElementById(thingy);
+		}
+		if (!thingy.addClass) {
+			// extend element with a few useful methods
+			thingy.hide = function() { this.style.display = 'none'; };
+			thingy.show = function() { this.style.display = ''; };
+			thingy.addClass = function(name) { this.removeClass(name); this.className += ' ' + name; };
+			thingy.removeClass = function(name) {
+				this.className = this.className.replace( new RegExp("\\s*" + name + "\\s*"), " ").replace(/^\s+/, '').replace(/\s+$/, '');
+			};
+			thingy.hasClass = function(name) {
+				return !!this.className.match( new RegExp("\\s*" + name + "\\s*") );
+			};
+		}
+		return thingy;
+	},
+
+	setMoviePath: function(path) {
+		// set path to ZeroClipboard.swf
+		this.moviePath = path;
+	},
+
+	dispatch: function(id, eventName, args) {
+		// receive event from flash movie, send to client
+		var client = this.clients[id];
+		if (client) {
+			client.receiveEvent(eventName, args);
+		}
+	},
+
+	log: function ( str ) {
+		console.log( 'Flash: '+str );
+	},
+
+	register: function(id, client) {
+		// register new client to receive events
+		this.clients[id] = client;
+	},
+
+	getDOMObjectPosition: function(obj) {
+		// get absolute coordinates for dom element
+		var info = {
+			left: 0,
+			top: 0,
+			width: obj.width ? obj.width : obj.offsetWidth,
+			height: obj.height ? obj.height : obj.offsetHeight
+		};
+
+		if ( obj.style.width !== "" ) {
+			info.width = obj.style.width.replace("px","");
+		}
+
+		if ( obj.style.height !== "" ) {
+			info.height = obj.style.height.replace("px","");
+		}
+
+		while (obj) {
+			info.left += obj.offsetLeft;
+			info.top += obj.offsetTop;
+			obj = obj.offsetParent;
+		}
+
+		return info;
+	},
+
+	Client: function(elem) {
+		// constructor for new simple upload client
+		this.handlers = {};
+
+		// unique ID
+		this.id = ZeroClipboard_TableTools.nextId++;
+		this.movieId = 'ZeroClipboard_TableToolsMovie_' + this.id;
+
+		// register client with singleton to receive flash events
+		ZeroClipboard_TableTools.register(this.id, this);
+
+		// create movie
+		if (elem) {
+			this.glue(elem);
+		}
+	}
+};
+
+ZeroClipboard_TableTools.Client.prototype = {
+
+	id: 0, // unique ID for us
+	ready: false, // whether movie is ready to receive events or not
+	movie: null, // reference to movie object
+	clipText: '', // text to copy to clipboard
+	fileName: '', // default file save name
+	action: 'copy', // action to perform
+	handCursorEnabled: true, // whether to show hand cursor, or default pointer cursor
+	cssEffects: true, // enable CSS mouse effects on dom container
+	handlers: null, // user event handlers
+	sized: false,
+	sheetName: '', // default sheet name for excel export
+
+	glue: function(elem, title) {
+		// glue to DOM element
+		// elem can be ID or actual DOM element object
+		this.domElement = ZeroClipboard_TableTools.$(elem);
+
+		// float just above object, or zIndex 99 if dom element isn't set
+		var zIndex = 99;
+		if (this.domElement.style.zIndex) {
+			zIndex = parseInt(this.domElement.style.zIndex, 10) + 1;
+		}
+
+		// find X/Y position of domElement
+		var box = ZeroClipboard_TableTools.getDOMObjectPosition(this.domElement);
+
+		// create floating DIV above element
+		this.div = document.createElement('div');
+		var style = this.div.style;
+		style.position = 'absolute';
+		style.left = '0px';
+		style.top = '0px';
+		style.width = (box.width) + 'px';
+		style.height = box.height + 'px';
+		style.zIndex = zIndex;
+
+		if ( typeof title != "undefined" && title !== "" ) {
+			this.div.title = title;
+		}
+		if ( box.width !== 0 && box.height !== 0 ) {
+			this.sized = true;
+		}
+
+		// style.backgroundColor = '#f00'; // debug
+		if ( this.domElement ) {
+			this.domElement.appendChild(this.div);
+			this.div.innerHTML = this.getHTML( box.width, box.height ).replace(/&/g, '&amp;');
+		}
+	},
+
+	positionElement: function() {
+		var box = ZeroClipboard_TableTools.getDOMObjectPosition(this.domElement);
+		var style = this.div.style;
+
+		style.position = 'absolute';
+		//style.left = (this.domElement.offsetLeft)+'px';
+		//style.top = this.domElement.offsetTop+'px';
+		style.width = box.width + 'px';
+		style.height = box.height + 'px';
+
+		if ( box.width !== 0 && box.height !== 0 ) {
+			this.sized = true;
+		} else {
+			return;
+		}
+
+		var flash = this.div.childNodes[0];
+		flash.width = box.width;
+		flash.height = box.height;
+	},
+
+	getHTML: function(width, height) {
+		// return HTML for movie
+		var html = '';
+		var flashvars = 'id=' + this.id +
+			'&width=' + width +
+			'&height=' + height;
+
+		if (navigator.userAgent.match(/MSIE/)) {
+			// IE gets an OBJECT tag
+			var protocol = location.href.match(/^https/i) ? 'https://' : 'http://';
+			html += '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="'+protocol+'download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=10,0,0,0" width="'+width+'" height="'+height+'" id="'+this.movieId+'" align="middle"><param name="allowScriptAccess" value="always" /><param name="allowFullScreen" value="false" /><param name="movie" value="'+ZeroClipboard_TableTools.moviePath+'" /><param name="loop" value="false" /><param name="menu" value="false" /><param name="quality" value="best" /><param name="bgcolor" value="#ffffff" /><param name="flashvars" value="'+flashvars+'"/><param name="wmode" value="transparent"/></object>';
+		}
+		else {
+			// all other browsers get an EMBED tag
+			html += '<embed id="'+this.movieId+'" src="'+ZeroClipboard_TableTools.moviePath+'" loop="false" menu="false" quality="best" bgcolor="#ffffff" width="'+width+'" height="'+height+'" name="'+this.movieId+'" align="middle" allowScriptAccess="always" allowFullScreen="false" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" flashvars="'+flashvars+'" wmode="transparent" />';
+		}
+		return html;
+	},
+
+	hide: function() {
+		// temporarily hide floater offscreen
+		if (this.div) {
+			this.div.style.left = '-2000px';
+		}
+	},
+
+	show: function() {
+		// show ourselves after a call to hide()
+		this.reposition();
+	},
+
+	destroy: function() {
+		// destroy control and floater
+		var that = this;
+
+		if (this.domElement && this.div) {
+			$(this.div).remove();
+
+			this.domElement = null;
+			this.div = null;
+
+			$.each( ZeroClipboard_TableTools.clients, function ( id, client ) {
+				if ( client === that ) {
+					delete ZeroClipboard_TableTools.clients[ id ];
+				}
+			} );
+		}
+	},
+
+	reposition: function(elem) {
+		// reposition our floating div, optionally to new container
+		// warning: container CANNOT change size, only position
+		if (elem) {
+			this.domElement = ZeroClipboard_TableTools.$(elem);
+			if (!this.domElement) {
+				this.hide();
+			}
+		}
+
+		if (this.domElement && this.div) {
+			var box = ZeroClipboard_TableTools.getDOMObjectPosition(this.domElement);
+			var style = this.div.style;
+			style.left = '' + box.left + 'px';
+			style.top = '' + box.top + 'px';
+		}
+	},
+
+	clearText: function() {
+		// clear the text to be copy / saved
+		this.clipText = '';
+		if (this.ready) {
+			this.movie.clearText();
+		}
+	},
+
+	appendText: function(newText) {
+		// append text to that which is to be copied / saved
+		this.clipText += newText;
+		if (this.ready) { this.movie.appendText(newText) ;}
+	},
+
+	setText: function(newText) {
+		// set text to be copied to be copied / saved
+		this.clipText = newText;
+		if (this.ready) { this.movie.setText(newText) ;}
+	},
+
+	setFileName: function(newText) {
+		// set the file name
+		this.fileName = newText;
+		if (this.ready) {
+			this.movie.setFileName(newText);
+		}
+	},
+
+	setSheetData: function(data) {
+		// set the xlsx sheet data
+		if (this.ready) {
+			this.movie.setSheetData( JSON.stringify( data ) );
+		}
+	},
+
+	setAction: function(newText) {
+		// set action (save or copy)
+		this.action = newText;
+		if (this.ready) {
+			this.movie.setAction(newText);
+		}
+	},
+
+	addEventListener: function(eventName, func) {
+		// add user event listener for event
+		// event types: load, queueStart, fileStart, fileComplete, queueComplete, progress, error, cancel
+		eventName = eventName.toString().toLowerCase().replace(/^on/, '');
+		if (!this.handlers[eventName]) {
+			this.handlers[eventName] = [];
+		}
+		this.handlers[eventName].push(func);
+	},
+
+	setHandCursor: function(enabled) {
+		// enable hand cursor (true), or default arrow cursor (false)
+		this.handCursorEnabled = enabled;
+		if (this.ready) {
+			this.movie.setHandCursor(enabled);
+		}
+	},
+
+	setCSSEffects: function(enabled) {
+		// enable or disable CSS effects on DOM container
+		this.cssEffects = !!enabled;
+	},
+
+	receiveEvent: function(eventName, args) {
+		var self;
+
+		// receive event from flash
+		eventName = eventName.toString().toLowerCase().replace(/^on/, '');
+
+		// special behavior for certain events
+		switch (eventName) {
+			case 'load':
+				// movie claims it is ready, but in IE this isn't always the case...
+				// bug fix: Cannot extend EMBED DOM elements in Firefox, must use traditional function
+				this.movie = document.getElementById(this.movieId);
+				if (!this.movie) {
+					self = this;
+					setTimeout( function() { self.receiveEvent('load', null); }, 1 );
+					return;
+				}
+
+				// firefox on pc needs a "kick" in order to set these in certain cases
+				if (!this.ready && navigator.userAgent.match(/Firefox/) && navigator.userAgent.match(/Windows/)) {
+					self = this;
+					setTimeout( function() { self.receiveEvent('load', null); }, 100 );
+					this.ready = true;
+					return;
+				}
+
+				this.ready = true;
+				this.movie.clearText();
+				this.movie.appendText( this.clipText );
+				this.movie.setFileName( this.fileName );
+				this.movie.setAction( this.action );
+				this.movie.setHandCursor( this.handCursorEnabled );
+				break;
+
+			case 'mouseover':
+				if (this.domElement && this.cssEffects) {
+					//this.domElement.addClass('hover');
+					if (this.recoverActive) {
+						this.domElement.addClass('active');
+					}
+				}
+				break;
+
+			case 'mouseout':
+				if (this.domElement && this.cssEffects) {
+					this.recoverActive = false;
+					if (this.domElement.hasClass('active')) {
+						this.domElement.removeClass('active');
+						this.recoverActive = true;
+					}
+					//this.domElement.removeClass('hover');
+				}
+				break;
+
+			case 'mousedown':
+				if (this.domElement && this.cssEffects) {
+					this.domElement.addClass('active');
+				}
+				break;
+
+			case 'mouseup':
+				if (this.domElement && this.cssEffects) {
+					this.domElement.removeClass('active');
+					this.recoverActive = false;
+				}
+				break;
+		} // switch eventName
+
+		if (this.handlers[eventName]) {
+			for (var idx = 0, len = this.handlers[eventName].length; idx < len; idx++) {
+				var func = this.handlers[eventName][idx];
+
+				if (typeof(func) == 'function') {
+					// actual function reference
+					func(this, args);
+				}
+				else if ((typeof(func) == 'object') && (func.length == 2)) {
+					// PHP style object + method, i.e. [myObject, 'myMethod']
+					func[0][ func[1] ](this, args);
+				}
+				else if (typeof(func) == 'string') {
+					// name of function
+					window[func](this, args);
+				}
+			} // foreach event handler defined
+		} // user defined handler for event
+	}
+};
+
+ZeroClipboard_TableTools.hasFlash = function ()
+{
+	try {
+		var fo = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
+		if (fo) {
+			return true;
+		}
+	}
+	catch (e) {
+		if (
+			navigator.mimeTypes &&
+			navigator.mimeTypes['application/x-shockwave-flash'] !== undefined &&
+			navigator.mimeTypes['application/x-shockwave-flash'].enabledPlugin
+		) {
+			return true;
+		}
+	}
+
+	return false;
+};
+
+// For the Flash binding to work, ZeroClipboard_TableTools must be on the global
+// object list
+window.ZeroClipboard_TableTools = ZeroClipboard_TableTools;
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Local (private) functions
+ */
+
+/**
+ * If a Buttons instance is initlaised before it is placed into the DOM, Flash
+ * won't be able to bind to it, so we need to wait until it is available, this
+ * method abstracts that out.
+ *
+ * @param {ZeroClipboard} flash ZeroClipboard instance
+ * @param {jQuery} node  Button
+ */
+var _glue = function ( flash, node )
+{
+	var id = node.attr('id');
+
+	if ( node.parents('html').length ) {
+		flash.glue( node[0], '' );
+	}
+	else {
+		setTimeout( function () {
+			_glue( flash, node );
+		}, 500 );
+	}
+};
+
+/**
+ * Get the sheet name for Excel exports.
+ *
+ * @param {object}  config       Button configuration
+ */
+var _sheetname = function ( config )
+{
+	var sheetName = 'Sheet1';
+
+	if ( config.sheetName ) {
+		sheetName = config.sheetName.replace(/[\[\]\*\/\\\?\:]/g, '');
+	}
+
+	return sheetName;
+};
+
+/**
+ * Set the flash text. This has to be broken up into chunks as the Javascript /
+ * Flash bridge has a size limit. There is no indication in the Flash
+ * documentation what this is, and it probably depends upon the browser.
+ * Experimentation shows that the point is around 50k when data starts to get
+ * lost, so an 8K limit used here is safe.
+ *
+ * @param {ZeroClipboard} flash ZeroClipboard instance
+ * @param {string}        data  Data to send to Flash
+ */
+var _setText = function ( flash, data )
+{
+	var parts = data.match(/[\s\S]{1,8192}/g) || [];
+
+	flash.clearText();
+	for ( var i=0, len=parts.length ; i<len ; i++ )
+	{
+		flash.appendText( parts[i] );
+	}
+};
+
+/**
+ * Get the newline character(s)
+ *
+ * @param {object}  config Button configuration
+ * @return {string}        Newline character
+ */
+var _newLine = function ( config )
+{
+	return config.newline ?
+		config.newline :
+		navigator.userAgent.match(/Windows/) ?
+			'\r\n' :
+			'\n';
+};
+
+/**
+ * Combine the data from the `buttons.exportData` method into a string that
+ * will be used in the export file.
+ *
+ * @param  {DataTable.Api} dt     DataTables API instance
+ * @param  {object}        config Button configuration
+ * @return {object}               The data to export
+ */
+var _exportData = function ( dt, config )
+{
+	var newLine = _newLine( config );
+	var data = dt.buttons.exportData( config.exportOptions );
+	var boundary = config.fieldBoundary;
+	var separator = config.fieldSeparator;
+	var reBoundary = new RegExp( boundary, 'g' );
+	var escapeChar = config.escapeChar !== undefined ?
+		config.escapeChar :
+		'\\';
+	var join = function ( a ) {
+		var s = '';
+
+		// If there is a field boundary, then we might need to escape it in
+		// the source data
+		for ( var i=0, ien=a.length ; i<ien ; i++ ) {
+			if ( i > 0 ) {
+				s += separator;
+			}
+
+			s += boundary ?
+				boundary + ('' + a[i]).replace( reBoundary, escapeChar+boundary ) + boundary :
+				a[i];
+		}
+
+		return s;
+	};
+
+	var header = config.header ? join( data.header )+newLine : '';
+	var footer = config.footer && data.footer ? newLine+join( data.footer ) : '';
+	var body = [];
+
+	for ( var i=0, ien=data.body.length ; i<ien ; i++ ) {
+		body.push( join( data.body[i] ) );
+	}
+
+	return {
+		str: header + body.join( newLine ) + footer,
+		rows: body.length
+	};
+};
+
+
+// Basic initialisation for the buttons is common between them
+var flashButton = {
+	available: function () {
+		return ZeroClipboard_TableTools.hasFlash();
+	},
+
+	init: function ( dt, button, config ) {
+		// Insert the Flash movie
+		ZeroClipboard_TableTools.moviePath = DataTable.Buttons.swfPath;
+		var flash = new ZeroClipboard_TableTools.Client();
+
+		flash.setHandCursor( true );
+		flash.addEventListener('mouseDown', function(client) {
+			config._fromFlash = true;
+			dt.button( button[0] ).trigger();
+			config._fromFlash = false;
+		} );
+
+		_glue( flash, button );
+
+		config._flash = flash;
+	},
+
+	destroy: function ( dt, button, config ) {
+		config._flash.destroy();
+	},
+
+	fieldSeparator: ',',
+
+	fieldBoundary: '"',
+
+	exportOptions: {},
+
+	title: '*',
+
+	messageTop: '*',
+
+	messageBottom: '*',
+
+	filename: '*',
+
+	extension: '.csv',
+
+	header: true,
+
+	footer: false
+};
+
+
+/**
+ * Convert from numeric position to letter for column names in Excel
+ * @param  {int} n Column number
+ * @return {string} Column letter(s) name
+ */
+function createCellPos( n ){
+	var ordA = 'A'.charCodeAt(0);
+	var ordZ = 'Z'.charCodeAt(0);
+	var len = ordZ - ordA + 1;
+	var s = "";
+
+	while( n >= 0 ) {
+		s = String.fromCharCode(n % len + ordA) + s;
+		n = Math.floor(n / len) - 1;
+	}
+
+	return s;
+}
+
+/**
+ * Create an XML node and add any children, attributes, etc without needing to
+ * be verbose in the DOM.
+ *
+ * @param  {object} doc      XML document
+ * @param  {string} nodeName Node name
+ * @param  {object} opts     Options - can be `attr` (attributes), `children`
+ *   (child nodes) and `text` (text content)
+ * @return {node}            Created node
+ */
+function _createNode( doc, nodeName, opts ){
+	var tempNode = doc.createElement( nodeName );
+
+	if ( opts ) {
+		if ( opts.attr ) {
+			$(tempNode).attr( opts.attr );
+		}
+
+		if ( opts.children ) {
+			$.each( opts.children, function ( key, value ) {
+				tempNode.appendChild( value );
+			} );
+		}
+
+		if ( opts.text !== null && opts.text !== undefined ) {
+			tempNode.appendChild( doc.createTextNode( opts.text ) );
+		}
+	}
+
+	return tempNode;
+}
+
+/**
+ * Get the width for an Excel column based on the contents of that column
+ * @param  {object} data Data for export
+ * @param  {int}    col  Column index
+ * @return {int}         Column width
+ */
+function _excelColWidth( data, col ) {
+	var max = data.header[col].length;
+	var len, lineSplit, str;
+
+	if ( data.footer && data.footer[col].length > max ) {
+		max = data.footer[col].length;
+	}
+
+	for ( var i=0, ien=data.body.length ; i<ien ; i++ ) {
+		var point = data.body[i][col];
+		str = point !== null && point !== undefined ?
+			point.toString() :
+			'';
+
+		// If there is a newline character, workout the width of the column
+		// based on the longest line in the string
+		if ( str.indexOf('\n') !== -1 ) {
+			lineSplit = str.split('\n');
+			lineSplit.sort( function (a, b) {
+				return b.length - a.length;
+			} );
+
+			len = lineSplit[0].length;
+		}
+		else {
+			len = str.length;
+		}
+
+		if ( len > max ) {
+			max = len;
+		}
+
+		// Max width rather than having potentially massive column widths
+		if ( max > 40 ) {
+			return 52; // 40 * 1.3
+		}
+	}
+
+	max *= 1.3;
+
+	// And a min width
+	return max > 6 ? max : 6;
+}
+
+  var _serialiser = "";
+    if (typeof window.XMLSerializer === 'undefined') {
+        _serialiser = new function () {
+            this.serializeToString = function (input) {
+                return input.xml
+            }
+        };
+    } else {
+        _serialiser =  new XMLSerializer();
+    }
+
+    var _ieExcel;
+
+
+/**
+ * Convert XML documents in an object to strings
+ * @param  {object} obj XLSX document object
+ */
+function _xlsxToStrings( obj ) {
+	if ( _ieExcel === undefined ) {
+		// Detect if we are dealing with IE's _awful_ serialiser by seeing if it
+		// drop attributes
+		_ieExcel = _serialiser
+			.serializeToString(
+				$.parseXML( excelStrings['xl/worksheets/sheet1.xml'] )
+			)
+			.indexOf( 'xmlns:r' ) === -1;
+	}
+
+	$.each( obj, function ( name, val ) {
+		if ( $.isPlainObject( val ) ) {
+			_xlsxToStrings( val );
+		}
+		else {
+			if ( _ieExcel ) {
+				// IE's XML serialiser will drop some name space attributes from
+				// from the root node, so we need to save them. Do this by
+				// replacing the namespace nodes with a regular attribute that
+				// we convert back when serialised. Edge does not have this
+				// issue
+				var worksheet = val.childNodes[0];
+				var i, ien;
+				var attrs = [];
+
+				for ( i=worksheet.attributes.length-1 ; i>=0 ; i-- ) {
+					var attrName = worksheet.attributes[i].nodeName;
+					var attrValue = worksheet.attributes[i].nodeValue;
+
+					if ( attrName.indexOf( ':' ) !== -1 ) {
+						attrs.push( { name: attrName, value: attrValue } );
+
+						worksheet.removeAttribute( attrName );
+					}
+				}
+
+				for ( i=0, ien=attrs.length ; i<ien ; i++ ) {
+					var attr = val.createAttribute( attrs[i].name.replace( ':', '_dt_b_namespace_token_' ) );
+					attr.value = attrs[i].value;
+					worksheet.setAttributeNode( attr );
+				}
+			}
+
+			var str = _serialiser.serializeToString(val);
+
+			// Fix IE's XML
+			if ( _ieExcel ) {
+				// IE doesn't include the XML declaration
+				if ( str.indexOf( '<?xml' ) === -1 ) {
+					str = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+str;
+				}
+
+				// Return namespace attributes to being as such
+				str = str.replace( /_dt_b_namespace_token_/g, ':' );
+			}
+
+			// Safari, IE and Edge will put empty name space attributes onto
+			// various elements making them useless. This strips them out
+			str = str.replace( /<([^<>]*?) xmlns=""([^<>]*?)>/g, '<$1 $2>' );
+
+			obj[ name ] = str;
+		}
+	} );
+}
+
+// Excel - Pre-defined strings to build a basic XLSX file
+var excelStrings = {
+	"_rels/.rels":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+			'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+		'</Relationships>',
+
+	"xl/_rels/workbook.xml.rels":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+			'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+			'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+		'</Relationships>',
+
+	"[Content_Types].xml":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+			'<Default Extension="xml" ContentType="application/xml" />'+
+			'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />'+
+			'<Default Extension="jpeg" ContentType="image/jpeg" />'+
+			'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" />'+
+			'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" />'+
+			'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml" />'+
+		'</Types>',
+
+	"xl/workbook.xml":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+			'<fileVersion appName="xl" lastEdited="5" lowestEdited="5" rupBuild="24816"/>'+
+			'<workbookPr showInkAnnotation="0" autoCompressPictures="0"/>'+
+			'<bookViews>'+
+				'<workbookView xWindow="0" yWindow="0" windowWidth="25600" windowHeight="19020" tabRatio="500"/>'+
+			'</bookViews>'+
+			'<sheets>'+
+				'<sheet name="" sheetId="1" r:id="rId1"/>'+
+			'</sheets>'+
+		'</workbook>',
+
+	"xl/worksheets/sheet1.xml":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">'+
+			'<sheetData/>'+
+			'<mergeCells count="0"/>'+
+		'</worksheet>',
+
+	"xl/styles.xml":
+		'<?xml version="1.0" encoding="UTF-8"?>'+
+		'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">'+
+			'<numFmts count="6">'+
+				'<numFmt numFmtId="164" formatCode="#,##0.00_-\ [$$-45C]"/>'+
+				'<numFmt numFmtId="165" formatCode="&quot;£&quot;#,##0.00"/>'+
+				'<numFmt numFmtId="166" formatCode="[$€-2]\ #,##0.00"/>'+
+				'<numFmt numFmtId="167" formatCode="0.0%"/>'+
+				'<numFmt numFmtId="168" formatCode="#,##0;(#,##0)"/>'+
+				'<numFmt numFmtId="169" formatCode="#,##0.00;(#,##0.00)"/>'+
+			'</numFmts>'+
+			'<fonts count="5" x14ac:knownFonts="1">'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<color rgb="FFFFFFFF" />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<b />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<i />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<u />'+
+				'</font>'+
+			'</fonts>'+
+			'<fills count="6">'+
+				'<fill>'+
+					'<patternFill patternType="none" />'+
+				'</fill>'+
+				'<fill>'+ // Excel appears to use this as a dotted background regardless of values but
+					'<patternFill patternType="none" />'+ // to be valid to the schema, use a patternFill
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="FFD9D9D9" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="FFD99795" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="ffc6efce" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="ffc6cfef" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+			'</fills>'+
+			'<borders count="2">'+
+				'<border>'+
+					'<left />'+
+					'<right />'+
+					'<top />'+
+					'<bottom />'+
+					'<diagonal />'+
+				'</border>'+
+				'<border diagonalUp="false" diagonalDown="false">'+
+					'<left style="thin">'+
+						'<color auto="1" />'+
+					'</left>'+
+					'<right style="thin">'+
+						'<color auto="1" />'+
+					'</right>'+
+					'<top style="thin">'+
+						'<color auto="1" />'+
+					'</top>'+
+					'<bottom style="thin">'+
+						'<color auto="1" />'+
+					'</bottom>'+
+					'<diagonal />'+
+				'</border>'+
+			'</borders>'+
+			'<cellStyleXfs count="1">'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" />'+
+			'</cellStyleXfs>'+
+			'<cellXfs count="61">'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="left"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="center"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="right"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="fill"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment textRotation="90"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment wrapText="1"/>'+
+				'</xf>'+
+				'<xf numFmtId="9"   fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="165" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="166" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="167" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="168" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="169" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="3" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="4" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+			'</cellXfs>'+
+			'<cellStyles count="1">'+
+				'<cellStyle name="Normal" xfId="0" builtinId="0" />'+
+			'</cellStyles>'+
+			'<dxfs count="0" />'+
+			'<tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleMedium4" />'+
+		'</styleSheet>'
+};
+// Note we could use 3 `for` loops for the styles, but when gzipped there is
+// virtually no difference in size, since the above can be easily compressed
+
+// Pattern matching for special number formats. Perhaps this should be exposed
+// via an API in future?
+var _excelSpecials = [
+	{ match: /^\-?\d+\.\d%$/,       style: 60, fmt: function (d) { return d/100; } }, // Precent with d.p.
+	{ match: /^\-?\d+\.?\d*%$/,     style: 56, fmt: function (d) { return d/100; } }, // Percent
+	{ match: /^\-?\$[\d,]+.?\d*$/,  style: 57 }, // Dollars
+	{ match: /^\-?£[\d,]+.?\d*$/,   style: 58 }, // Pounds
+	{ match: /^\-?€[\d,]+.?\d*$/,   style: 59 }, // Euros
+	{ match: /^\([\d,]+\)$/,        style: 61, fmt: function (d) { return -1 * d.replace(/[\(\)]/g, ''); } },  // Negative numbers indicated by brackets
+	{ match: /^\([\d,]+\.\d{2}\)$/, style: 62, fmt: function (d) { return -1 * d.replace(/[\(\)]/g, ''); } },  // Negative numbers indicated by brackets - 2d.p.
+	{ match: /^[\d,]+$/,            style: 63 }, // Numbers with thousand separators
+	{ match: /^[\d,]+\.\d{2}$/,     style: 64 }  // Numbers with 2d.p. and thousands separators
+];
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables options and methods
+ */
+
+// Set the default SWF path
+DataTable.Buttons.swfPath = '//cdn.datatables.net/buttons/'+DataTable.Buttons.version+'/swf/flashExport.swf';
+
+// Method to allow Flash buttons to be resized when made visible - as they are
+// of zero height and width if initialised hidden
+DataTable.Api.register( 'buttons.resize()', function () {
+	$.each( ZeroClipboard_TableTools.clients, function ( i, client ) {
+		if ( client.domElement !== undefined && client.domElement.parentNode ) {
+			client.positionElement();
+		}
+	} );
+} );
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Button definitions
+ */
+
+// Copy to clipboard
+DataTable.ext.buttons.copyFlash = $.extend( {}, flashButton, {
+	className: 'buttons-copy buttons-flash',
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.copy', 'Copy' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		// Check that the trigger did actually occur due to a Flash activation
+		if ( ! config._fromFlash ) {
+			return;
+		}
+
+		this.processing( true );
+
+		var flash = config._flash;
+		var exportData = _exportData( dt, config );
+		var info = dt.buttons.exportInfo( config );
+		var newline = _newLine(config);
+		var output = exportData.str;
+
+		if ( info.title ) {
+			output = info.title + newline + newline + output;
+		}
+
+		if ( info.messageTop ) {
+			output = info.messageTop + newline + newline + output;
+		}
+
+		if ( info.messageBottom ) {
+			output = output + newline + newline + info.messageBottom;
+		}
+
+		if ( config.customize ) {
+			output = config.customize( output, config, dt );
+		}
+
+		flash.setAction( 'copy' );
+		_setText( flash, output );
+
+		this.processing( false );
+
+		dt.buttons.info(
+			dt.i18n( 'buttons.copyTitle', 'Copy to clipboard' ),
+			dt.i18n( 'buttons.copySuccess', {
+				_: 'Copied %d rows to clipboard',
+				1: 'Copied 1 row to clipboard'
+			}, data.rows ),
+			3000
+		);
+	},
+
+	fieldSeparator: '\t',
+
+	fieldBoundary: ''
+} );
+
+// CSV save file
+DataTable.ext.buttons.csvFlash = $.extend( {}, flashButton, {
+	className: 'buttons-csv buttons-flash',
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.csv', 'CSV' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		// Set the text
+		var flash = config._flash;
+		var data = _exportData( dt, config );
+		var info = dt.buttons.exportInfo( config );
+		var output = config.customize ?
+			config.customize( data.str, config, dt ) :
+			data.str;
+
+		flash.setAction( 'csv' );
+		flash.setFileName( info.filename );
+		_setText( flash, output );
+	},
+
+	escapeChar: '"'
+} );
+
+// Excel save file - this is really a CSV file using UTF-8 that Excel can read
+DataTable.ext.buttons.excelFlash = $.extend( {}, flashButton, {
+	className: 'buttons-excel buttons-flash',
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.excel', 'Excel' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		this.processing( true );
+
+		var flash = config._flash;
+		var rowPos = 0;
+		var rels = $.parseXML( excelStrings['xl/worksheets/sheet1.xml'] ) ; //Parses xml
+		var relsGet = rels.getElementsByTagName( "sheetData" )[0];
+
+		var xlsx = {
+			_rels: {
+				".rels": $.parseXML( excelStrings['_rels/.rels'] )
+			},
+			xl: {
+				_rels: {
+					"workbook.xml.rels": $.parseXML( excelStrings['xl/_rels/workbook.xml.rels'] )
+				},
+				"workbook.xml": $.parseXML( excelStrings['xl/workbook.xml'] ),
+				"styles.xml": $.parseXML( excelStrings['xl/styles.xml'] ),
+				"worksheets": {
+					"sheet1.xml": rels
+				}
+
+			},
+			"[Content_Types].xml": $.parseXML( excelStrings['[Content_Types].xml'])
+		};
+
+		var data = dt.buttons.exportData( config.exportOptions );
+		var currentRow, rowNode;
+		var addRow = function ( row ) {
+			currentRow = rowPos+1;
+			rowNode = _createNode( rels, "row", { attr: {r:currentRow} } );
+
+			for ( var i=0, ien=row.length ; i<ien ; i++ ) {
+				// Concat both the Cell Columns as a letter and the Row of the cell.
+				var cellId = createCellPos(i) + '' + currentRow;
+				var cell = null;
+
+				// For null, undefined of blank cell, continue so it doesn't create the _createNode
+				if ( row[i] === null || row[i] === undefined || row[i] === '' ) {
+					if ( config.createEmptyCells === true ) {
+						row[i] = '';
+					}
+					else {
+						continue;
+					}
+				}
+
+				row[i] = typeof row[i].trim === 'function'
+					? row[i].trim()
+					: row[i];
+
+				// Special number formatting options
+				for ( var j=0, jen=_excelSpecials.length ; j<jen ; j++ ) {
+					var special = _excelSpecials[j];
+
+					// TODO Need to provide the ability for the specials to say
+					// if they are returning a string, since at the moment it is
+					// assumed to be a number
+					if ( row[i].match && ! row[i].match(/^0\d+/) && row[i].match( special.match ) ) {
+						var val = row[i].replace(/[^\d\.\-]/g, '');
+
+						if ( special.fmt ) {
+							val = special.fmt( val );
+						}
+
+						cell = _createNode( rels, 'c', {
+							attr: {
+								r: cellId,
+								s: special.style
+							},
+							children: [
+								_createNode( rels, 'v', { text: val } )
+							]
+						} );
+
+						break;
+					}
+				}
+
+				if ( ! cell ) {
+					if ( typeof row[i] === 'number' || (
+						row[i].match &&
+						row[i].match(/^-?\d+(\.\d+)?$/) &&
+						! row[i].match(/^0\d+/) )
+					) {
+						// Detect numbers - don't match numbers with leading zeros
+						// or a negative anywhere but the start
+						cell = _createNode( rels, 'c', {
+							attr: {
+								t: 'n',
+								r: cellId
+							},
+							children: [
+								_createNode( rels, 'v', { text: row[i] } )
+							]
+						} );
+					}
+					else {
+						// String output - replace non standard characters for text output
+						var text = ! row[i].replace ?
+							row[i] :
+							row[i].replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+
+						cell = _createNode( rels, 'c', {
+							attr: {
+								t: 'inlineStr',
+								r: cellId
+							},
+							children:{
+								row: _createNode( rels, 'is', {
+									children: {
+										row: _createNode( rels, 't', {
+											text: text
+										} )
+									}
+								} )
+							}
+						} );
+					}
+				}
+
+				rowNode.appendChild( cell );
+			}
+
+			relsGet.appendChild(rowNode);
+			rowPos++;
+		};
+
+		$( 'sheets sheet', xlsx.xl['workbook.xml'] ).attr( 'name', _sheetname( config ) );
+
+		if ( config.customizeData ) {
+			config.customizeData( data );
+		}
+
+		var mergeCells = function ( row, colspan ) {
+			var mergeCells = $('mergeCells', rels);
+
+			mergeCells[0].appendChild( _createNode( rels, 'mergeCell', {
+				attr: {
+					ref: 'A'+row+':'+createCellPos(colspan)+row
+				}
+			} ) );
+			mergeCells.attr( 'count', mergeCells.attr( 'count' )+1 );
+			$('row:eq('+(row-1)+') c', rels).attr( 's', '51' ); // centre
+		};
+
+		// Title and top messages
+		var exportInfo = dt.buttons.exportInfo( config );
+		if ( exportInfo.title ) {
+			addRow( [exportInfo.title], rowPos );
+			mergeCells( rowPos, data.header.length-1 );
+		}
+
+		if ( exportInfo.messageTop ) {
+			addRow( [exportInfo.messageTop], rowPos );
+			mergeCells( rowPos, data.header.length-1 );
+		}
+
+		// Table itself
+		if ( config.header ) {
+			addRow( data.header, rowPos );
+			$('row:last c', rels).attr( 's', '2' ); // bold
+		}
+
+		for ( var n=0, ie=data.body.length ; n<ie ; n++ ) {
+			addRow( data.body[n], rowPos );
+		}
+
+		if ( config.footer && data.footer ) {
+			addRow( data.footer, rowPos);
+			$('row:last c', rels).attr( 's', '2' ); // bold
+		}
+
+		// Below the table
+		if ( exportInfo.messageBottom ) {
+			addRow( [exportInfo.messageBottom], rowPos );
+			mergeCells( rowPos, data.header.length-1 );
+		}
+
+		// Set column widths
+		var cols = _createNode( rels, 'cols' );
+		$('worksheet', rels).prepend( cols );
+
+		for ( var i=0, ien=data.header.length ; i<ien ; i++ ) {
+			cols.appendChild( _createNode( rels, 'col', {
+				attr: {
+					min: i+1,
+					max: i+1,
+					width: _excelColWidth( data, i ),
+					customWidth: 1
+				}
+			} ) );
+		}
+
+		// Let the developer customise the document if they want to
+		if ( config.customize ) {
+			config.customize( xlsx, config, dt );
+		}
+
+		_xlsxToStrings( xlsx );
+
+		flash.setAction( 'excel' );
+		flash.setFileName( exportInfo.filename );
+		flash.setSheetData( xlsx );
+		_setText( flash, '' );
+
+		this.processing( false );
+	},
+
+	extension: '.xlsx',
+
+	createEmptyCells: false
+} );
+
+
+
+// PDF export
+DataTable.ext.buttons.pdfFlash = $.extend( {}, flashButton, {
+	className: 'buttons-pdf buttons-flash',
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.pdf', 'PDF' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		this.processing( true );
+
+		// Set the text
+		var flash = config._flash;
+		var data = dt.buttons.exportData( config.exportOptions );
+		var info = dt.buttons.exportInfo( config );
+		var totalWidth = dt.table().node().offsetWidth;
+
+		// Calculate the column width ratios for layout of the table in the PDF
+		var ratios = dt.columns( config.columns ).indexes().map( function ( idx ) {
+			return dt.column( idx ).header().offsetWidth / totalWidth;
+		} );
+
+		flash.setAction( 'pdf' );
+		flash.setFileName( info.filename );
+
+		_setText( flash, JSON.stringify( {
+			title:         info.title || '',
+			messageTop:    info.messageTop || '',
+			messageBottom: info.messageBottom || '',
+			colWidth:      ratios.toArray(),
+			orientation:   config.orientation,
+			size:          config.pageSize,
+			header:        config.header ? data.header : null,
+			footer:        config.footer ? data.footer : null,
+			body:          data.body
+		} ) );
+
+		this.processing( false );
+	},
+
+	extension: '.pdf',
+
+	orientation: 'portrait',
+
+	pageSize: 'A4',
+
+	newline: '\n'
+} );
+
+
+return DataTable.Buttons;
+}));
+
+(function(g){"function"===typeof define&&define.amd?define(["jquery","datatables.net","datatables.net-buttons"],function(j){return g(j,window,document)}):"object"===typeof exports?module.exports=function(j,m){j||(j=window);if(!m||!m.fn.dataTable)m=require("datatables.net")(j,m).$;m.fn.dataTable.Buttons||require("datatables.net-buttons")(j,m);return g(m,j,j.document)}:g(jQuery,window,document)})(function(g,j,m,p){function w(a){for(var b="";0<=a;)b=String.fromCharCode(a%26+65)+b,a=Math.floor(a/26)-
+1;return b}function o(a,b,d){var c=a.createElement(b);d&&(d.attr&&g(c).attr(d.attr),d.children&&g.each(d.children,function(a,b){c.appendChild(b)}),null!==d.text&&d.text!==p&&c.appendChild(a.createTextNode(d.text)));return c}function C(a,b){var d=a.header[b].length,c;a.footer&&a.footer[b].length>d&&(d=a.footer[b].length);for(var e=0,f=a.body.length;e<f;e++)if(c=a.body[e][b],c=null!==c&&c!==p?c.toString():"",-1!==c.indexOf("\n")?(c=c.split("\n"),c.sort(function(a,b){return b.length-a.length}),c=c[0].length):
+c=c.length,c>d&&(d=c),40<d)return 52;d*=1.3;return 6<d?d:6}function x(a){r===p&&(r=-1===v.serializeToString(g.parseXML(q["xl/worksheets/sheet1.xml"])).indexOf("xmlns:r"));g.each(a,function(b,d){if(g.isPlainObject(d))x(d);else{if(r){var c=d.childNodes[0],e,f,i=[];for(e=c.attributes.length-1;0<=e;e--){f=c.attributes[e].nodeName;var k=c.attributes[e].nodeValue;-1!==f.indexOf(":")&&(i.push({name:f,value:k}),c.removeAttribute(f))}e=0;for(f=i.length;e<f;e++)k=d.createAttribute(i[e].name.replace(":","_dt_b_namespace_token_")),
+k.value=i[e].value,c.setAttributeNode(k)}c=v.serializeToString(d);r&&(-1===c.indexOf("<?xml")&&(c='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+c),c=c.replace(/_dt_b_namespace_token_/g,":"));c=c.replace(/<([^<>]*?) xmlns=""([^<>]*?)>/g,"<$1 $2>");a[b]=c}})}var h=g.fn.dataTable,i={version:"1.0.4-TableTools2",clients:{},moviePath:"",nextId:1,$:function(a){"string"==typeof a&&(a=m.getElementById(a));a.addClass||(a.hide=function(){this.style.display="none"},a.show=function(){this.style.display=
+""},a.addClass=function(a){this.removeClass(a);this.className+=" "+a},a.removeClass=function(a){this.className=this.className.replace(RegExp("\\s*"+a+"\\s*")," ").replace(/^\s+/,"").replace(/\s+$/,"")},a.hasClass=function(a){return!!this.className.match(RegExp("\\s*"+a+"\\s*"))});return a},setMoviePath:function(a){this.moviePath=a},dispatch:function(a,b,d){(a=this.clients[a])&&a.receiveEvent(b,d)},log:function(a){console.log("Flash: "+a)},register:function(a,b){this.clients[a]=b},getDOMObjectPosition:function(a){var b=
+{left:0,top:0,width:a.width?a.width:a.offsetWidth,height:a.height?a.height:a.offsetHeight};""!==a.style.width&&(b.width=a.style.width.replace("px",""));""!==a.style.height&&(b.height=a.style.height.replace("px",""));for(;a;)b.left+=a.offsetLeft,b.top+=a.offsetTop,a=a.offsetParent;return b},Client:function(a){this.handlers={};this.id=i.nextId++;this.movieId="ZeroClipboard_TableToolsMovie_"+this.id;i.register(this.id,this);a&&this.glue(a)}};i.Client.prototype={id:0,ready:!1,movie:null,clipText:"",fileName:"",
+action:"copy",handCursorEnabled:!0,cssEffects:!0,handlers:null,sized:!1,sheetName:"",glue:function(a,b){this.domElement=i.$(a);var d=99;this.domElement.style.zIndex&&(d=parseInt(this.domElement.style.zIndex,10)+1);var c=i.getDOMObjectPosition(this.domElement);this.div=m.createElement("div");var e=this.div.style;e.position="absolute";e.left="0px";e.top="0px";e.width=c.width+"px";e.height=c.height+"px";e.zIndex=d;"undefined"!=typeof b&&""!==b&&(this.div.title=b);0!==c.width&&0!==c.height&&(this.sized=
+!0);this.domElement&&(this.domElement.appendChild(this.div),this.div.innerHTML=this.getHTML(c.width,c.height).replace(/&/g,"&amp;"))},positionElement:function(){var a=i.getDOMObjectPosition(this.domElement),b=this.div.style;b.position="absolute";b.width=a.width+"px";b.height=a.height+"px";0!==a.width&&0!==a.height&&(this.sized=!0,b=this.div.childNodes[0],b.width=a.width,b.height=a.height)},getHTML:function(a,b){var d="",c="id="+this.id+"&width="+a+"&height="+b;if(navigator.userAgent.match(/MSIE/))var e=
+location.href.match(/^https/i)?"https://":"http://",d=d+('<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="'+e+'download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=10,0,0,0" width="'+a+'" height="'+b+'" id="'+this.movieId+'" align="middle"><param name="allowScriptAccess" value="always" /><param name="allowFullScreen" value="false" /><param name="movie" value="'+i.moviePath+'" /><param name="loop" value="false" /><param name="menu" value="false" /><param name="quality" value="best" /><param name="bgcolor" value="#ffffff" /><param name="flashvars" value="'+
+c+'"/><param name="wmode" value="transparent"/></object>');else d+='<embed id="'+this.movieId+'" src="'+i.moviePath+'" loop="false" menu="false" quality="best" bgcolor="#ffffff" width="'+a+'" height="'+b+'" name="'+this.movieId+'" align="middle" allowScriptAccess="always" allowFullScreen="false" type="application/x-shockwave-flash" pluginspage="http://www.macromedia.com/go/getflashplayer" flashvars="'+c+'" wmode="transparent" />';return d},hide:function(){this.div&&(this.div.style.left="-2000px")},
+show:function(){this.reposition()},destroy:function(){var a=this;this.domElement&&this.div&&(g(this.div).remove(),this.div=this.domElement=null,g.each(i.clients,function(b,d){d===a&&delete i.clients[b]}))},reposition:function(a){a&&((this.domElement=i.$(a))||this.hide());if(this.domElement&&this.div){var a=i.getDOMObjectPosition(this.domElement),b=this.div.style;b.left=""+a.left+"px";b.top=""+a.top+"px"}},clearText:function(){this.clipText="";this.ready&&this.movie.clearText()},appendText:function(a){this.clipText+=
+a;this.ready&&this.movie.appendText(a)},setText:function(a){this.clipText=a;this.ready&&this.movie.setText(a)},setFileName:function(a){this.fileName=a;this.ready&&this.movie.setFileName(a)},setSheetData:function(a){this.ready&&this.movie.setSheetData(JSON.stringify(a))},setAction:function(a){this.action=a;this.ready&&this.movie.setAction(a)},addEventListener:function(a,b){a=a.toString().toLowerCase().replace(/^on/,"");this.handlers[a]||(this.handlers[a]=[]);this.handlers[a].push(b)},setHandCursor:function(a){this.handCursorEnabled=
+a;this.ready&&this.movie.setHandCursor(a)},setCSSEffects:function(a){this.cssEffects=!!a},receiveEvent:function(a,b){var d,a=a.toString().toLowerCase().replace(/^on/,"");switch(a){case "load":this.movie=m.getElementById(this.movieId);if(!this.movie){d=this;setTimeout(function(){d.receiveEvent("load",null)},1);return}if(!this.ready&&navigator.userAgent.match(/Firefox/)&&navigator.userAgent.match(/Windows/)){d=this;setTimeout(function(){d.receiveEvent("load",null)},100);this.ready=!0;return}this.ready=
+!0;this.movie.clearText();this.movie.appendText(this.clipText);this.movie.setFileName(this.fileName);this.movie.setAction(this.action);this.movie.setHandCursor(this.handCursorEnabled);break;case "mouseover":this.domElement&&this.cssEffects&&this.recoverActive&&this.domElement.addClass("active");break;case "mouseout":this.domElement&&this.cssEffects&&(this.recoverActive=!1,this.domElement.hasClass("active")&&(this.domElement.removeClass("active"),this.recoverActive=!0));break;case "mousedown":this.domElement&&
+this.cssEffects&&this.domElement.addClass("active");break;case "mouseup":this.domElement&&this.cssEffects&&(this.domElement.removeClass("active"),this.recoverActive=!1)}if(this.handlers[a])for(var c=0,e=this.handlers[a].length;c<e;c++){var f=this.handlers[a][c];if("function"==typeof f)f(this,b);else if("object"==typeof f&&2==f.length)f[0][f[1]](this,b);else if("string"==typeof f)j[f](this,b)}}};i.hasFlash=function(){try{if(new ActiveXObject("ShockwaveFlash.ShockwaveFlash"))return!0}catch(a){if(navigator.mimeTypes&&
+navigator.mimeTypes["application/x-shockwave-flash"]!==p&&navigator.mimeTypes["application/x-shockwave-flash"].enabledPlugin)return!0}return!1};j.ZeroClipboard_TableTools=i;var y=function(a,b){b.attr("id");b.parents("html").length?a.glue(b[0],""):setTimeout(function(){y(a,b)},500)},D=function(a){var b="Sheet1";a.sheetName&&(b=a.sheetName.replace(/[\[\]\*\/\\\?\:]/g,""));return b},t=function(a,b){var d=b.match(/[\s\S]{1,8192}/g)||[];a.clearText();for(var c=0,e=d.length;c<e;c++)a.appendText(d[c])},
+z=function(a){return a.newline?a.newline:navigator.userAgent.match(/Windows/)?"\r\n":"\n"},A=function(a,b){for(var d=z(b),c=a.buttons.exportData(b.exportOptions),e=b.fieldBoundary,f=b.fieldSeparator,g=RegExp(e,"g"),i=b.escapeChar!==p?b.escapeChar:"\\",j=function(a){for(var b="",c=0,d=a.length;c<d;c++)0<c&&(b+=f),b+=e?e+(""+a[c]).replace(g,i+e)+e:a[c];return b},m=b.header?j(c.header)+d:"",o=b.footer&&c.footer?d+j(c.footer):"",n=[],l=0,h=c.body.length;l<h;l++)n.push(j(c.body[l]));return{str:m+n.join(d)+
+o,rows:n.length}},u={available:function(){return i.hasFlash()},init:function(a,b,d){i.moviePath=h.Buttons.swfPath;var c=new i.Client;c.setHandCursor(!0);c.addEventListener("mouseDown",function(){d._fromFlash=!0;a.button(b[0]).trigger();d._fromFlash=!1});y(c,b);d._flash=c},destroy:function(a,b,d){d._flash.destroy()},fieldSeparator:",",fieldBoundary:'"',exportOptions:{},title:"*",messageTop:"*",messageBottom:"*",filename:"*",extension:".csv",header:!0,footer:!1},v="",v="undefined"===typeof j.XMLSerializer?
+new function(){this.serializeToString=function(a){return a.xml}}:new XMLSerializer,r,q={"_rels/.rels":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',"xl/_rels/workbook.xml.rels":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
+"[Content_Types].xml":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml" /><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" /><Default Extension="jpeg" ContentType="image/jpeg" /><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" /><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" /><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml" /></Types>',
+"xl/workbook.xml":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><fileVersion appName="xl" lastEdited="5" lowestEdited="5" rupBuild="24816"/><workbookPr showInkAnnotation="0" autoCompressPictures="0"/><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="25600" windowHeight="19020" tabRatio="500"/></bookViews><sheets><sheet name="" sheetId="1" r:id="rId1"/></sheets></workbook>',
+"xl/worksheets/sheet1.xml":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac"><sheetData/><mergeCells count="0"/></worksheet>',"xl/styles.xml":'<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac"><numFmts count="6"><numFmt numFmtId="164" formatCode="#,##0.00_- [$$-45C]"/><numFmt numFmtId="165" formatCode="&quot;£&quot;#,##0.00"/><numFmt numFmtId="166" formatCode="[$€-2] #,##0.00"/><numFmt numFmtId="167" formatCode="0.0%"/><numFmt numFmtId="168" formatCode="#,##0;(#,##0)"/><numFmt numFmtId="169" formatCode="#,##0.00;(#,##0.00)"/></numFmts><fonts count="5" x14ac:knownFonts="1"><font><sz val="11" /><name val="Calibri" /></font><font><sz val="11" /><name val="Calibri" /><color rgb="FFFFFFFF" /></font><font><sz val="11" /><name val="Calibri" /><b /></font><font><sz val="11" /><name val="Calibri" /><i /></font><font><sz val="11" /><name val="Calibri" /><u /></font></fonts><fills count="6"><fill><patternFill patternType="none" /></fill><fill><patternFill patternType="none" /></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9" /><bgColor indexed="64" /></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD99795" /><bgColor indexed="64" /></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="ffc6efce" /><bgColor indexed="64" /></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="ffc6cfef" /><bgColor indexed="64" /></patternFill></fill></fills><borders count="2"><border><left /><right /><top /><bottom /><diagonal /></border><border diagonalUp="false" diagonalDown="false"><left style="thin"><color auto="1" /></left><right style="thin"><color auto="1" /></right><top style="thin"><color auto="1" /></top><bottom style="thin"><color auto="1" /></bottom><diagonal /></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" /></cellStyleXfs><cellXfs count="61"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="left"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="fill"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment textRotation="90"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="9"   fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="167" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="168" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="169" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="3" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0" /></cellStyles><dxfs count="0" /><tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleMedium4" /></styleSheet>'},
+B=[{match:/^\-?\d+\.\d%$/,style:60,fmt:function(a){return a/100}},{match:/^\-?\d+\.?\d*%$/,style:56,fmt:function(a){return a/100}},{match:/^\-?\$[\d,]+.?\d*$/,style:57},{match:/^\-?£[\d,]+.?\d*$/,style:58},{match:/^\-?€[\d,]+.?\d*$/,style:59},{match:/^\([\d,]+\)$/,style:61,fmt:function(a){return-1*a.replace(/[\(\)]/g,"")}},{match:/^\([\d,]+\.\d{2}\)$/,style:62,fmt:function(a){return-1*a.replace(/[\(\)]/g,"")}},{match:/^[\d,]+$/,style:63},{match:/^[\d,]+\.\d{2}$/,style:64}];h.Buttons.swfPath="//cdn.datatables.net/buttons/"+
+h.Buttons.version+"/swf/flashExport.swf";h.Api.register("buttons.resize()",function(){g.each(i.clients,function(a,b){b.domElement!==p&&b.domElement.parentNode&&b.positionElement()})});h.ext.buttons.copyFlash=g.extend({},u,{className:"buttons-copy buttons-flash",text:function(a){return a.i18n("buttons.copy","Copy")},action:function(a,b,d,c){if(c._fromFlash){this.processing(!0);var a=c._flash,e=A(b,c),d=b.buttons.exportInfo(c),f=z(c),e=e.str;d.title&&(e=d.title+f+f+e);d.messageTop&&(e=d.messageTop+
+f+f+e);d.messageBottom&&(e=e+f+f+d.messageBottom);c.customize&&(e=c.customize(e,c,b));a.setAction("copy");t(a,e);this.processing(!1);b.buttons.info(b.i18n("buttons.copyTitle","Copy to clipboard"),b.i18n("buttons.copySuccess",{_:"Copied %d rows to clipboard",1:"Copied 1 row to clipboard"},data.rows),3E3)}},fieldSeparator:"\t",fieldBoundary:""});h.ext.buttons.csvFlash=g.extend({},u,{className:"buttons-csv buttons-flash",text:function(a){return a.i18n("buttons.csv","CSV")},action:function(a,b,d,c){var a=
+c._flash,e=A(b,c),d=b.buttons.exportInfo(c),b=c.customize?c.customize(e.str,c,b):e.str;a.setAction("csv");a.setFileName(d.filename);t(a,b)},escapeChar:'"'});h.ext.buttons.excelFlash=g.extend({},u,{className:"buttons-excel buttons-flash",text:function(a){return a.i18n("buttons.excel","Excel")},action:function(a,b,d,c){this.processing(!0);var a=c._flash,e=0,f=g.parseXML(q["xl/worksheets/sheet1.xml"]),i=f.getElementsByTagName("sheetData")[0],d={_rels:{".rels":g.parseXML(q["_rels/.rels"])},xl:{_rels:{"workbook.xml.rels":g.parseXML(q["xl/_rels/workbook.xml.rels"])},
+"workbook.xml":g.parseXML(q["xl/workbook.xml"]),"styles.xml":g.parseXML(q["xl/styles.xml"]),worksheets:{"sheet1.xml":f}},"[Content_Types].xml":g.parseXML(q["[Content_Types].xml"])},k=b.buttons.exportData(c.exportOptions),j,m,h=function(a){j=e+1;m=o(f,"row",{attr:{r:j}});for(var b=0,d=a.length;b<d;b++){var g=w(b)+""+j,h=null;if(null===a[b]||a[b]===p||""===a[b])if(!0===c.createEmptyCells)a[b]="";else continue;a[b]="function"===typeof a[b].trim?a[b].trim():a[b];for(var k=0,n=B.length;k<n;k++){var l=
+B[k];if(a[b].match&&!a[b].match(/^0\d+/)&&a[b].match(l.match)){h=a[b].replace(/[^\d\.\-]/g,"");l.fmt&&(h=l.fmt(h));h=o(f,"c",{attr:{r:g,s:l.style},children:[o(f,"v",{text:h})]});break}}h||("number"===typeof a[b]||a[b].match&&a[b].match(/^-?\d+(\.\d+)?$/)&&!a[b].match(/^0\d+/)?h=o(f,"c",{attr:{t:"n",r:g},children:[o(f,"v",{text:a[b]})]}):(l=!a[b].replace?a[b]:a[b].replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g,""),h=o(f,"c",{attr:{t:"inlineStr",r:g},children:{row:o(f,"is",{children:{row:o(f,"t",
+{text:l})}})}})));m.appendChild(h)}i.appendChild(m);e++};g("sheets sheet",d.xl["workbook.xml"]).attr("name",D(c));c.customizeData&&c.customizeData(k);var n=function(a,b){var c=g("mergeCells",f);c[0].appendChild(o(f,"mergeCell",{attr:{ref:"A"+a+":"+w(b)+a}}));c.attr("count",c.attr("count")+1);g("row:eq("+(a-1)+") c",f).attr("s","51")},l=b.buttons.exportInfo(c);l.title&&(h([l.title],e),n(e,k.header.length-1));l.messageTop&&(h([l.messageTop],e),n(e,k.header.length-1));c.header&&(h(k.header,e),g("row:last c",
+f).attr("s","2"));for(var s=0,r=k.body.length;s<r;s++)h(k.body[s],e);c.footer&&k.footer&&(h(k.footer,e),g("row:last c",f).attr("s","2"));l.messageBottom&&(h([l.messageBottom],e),n(e,k.header.length-1));h=o(f,"cols");g("worksheet",f).prepend(h);n=0;for(s=k.header.length;n<s;n++)h.appendChild(o(f,"col",{attr:{min:n+1,max:n+1,width:C(k,n),customWidth:1}}));c.customize&&c.customize(d,c,b);x(d);a.setAction("excel");a.setFileName(l.filename);a.setSheetData(d);t(a,"");this.processing(!1)},extension:".xlsx",
+createEmptyCells:!1});h.ext.buttons.pdfFlash=g.extend({},u,{className:"buttons-pdf buttons-flash",text:function(a){return a.i18n("buttons.pdf","PDF")},action:function(a,b,d,c){this.processing(!0);var a=c._flash,d=b.buttons.exportData(c.exportOptions),e=b.buttons.exportInfo(c),f=b.table().node().offsetWidth,g=b.columns(c.columns).indexes().map(function(a){return b.column(a).header().offsetWidth/f});a.setAction("pdf");a.setFileName(e.filename);t(a,JSON.stringify({title:e.title||"",messageTop:e.messageTop||
+"",messageBottom:e.messageBottom||"",colWidth:g.toArray(),orientation:c.orientation,size:c.pageSize,header:c.header?d.header:null,footer:c.footer?d.footer:null,body:d.body}));this.processing(!1)},extension:".pdf",orientation:"portrait",pageSize:"A4",newline:"\n"});return h.Buttons});
+
+/*!
+ * HTML5 export buttons for Buttons and DataTables.
+ * 2016 SpryMedia Ltd - datatables.net/license
+ *
+ * FileSaver.js (1.3.3) - MIT license
+ * Copyright © 2016 Eli Grey - http://eligrey.com
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net', 'datatables.net-buttons'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $, jszip, pdfmake) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			if ( ! $.fn.dataTable.Buttons ) {
+				require('datatables.net-buttons')(root, $);
+			}
+
+			return factory( $, root, root.document, jszip, pdfmake );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, jszip, pdfmake, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+// Allow the constructor to pass in JSZip and PDFMake from external requires.
+// Otherwise, use globally defined variables, if they are available.
+function _jsZip () {
+	return jszip || window.JSZip;
+}
+function _pdfMake () {
+	return pdfmake || window.pdfMake;
+}
+
+DataTable.Buttons.pdfMake = function (_) {
+	if ( ! _ ) {
+		return _pdfMake();
+	}
+	pdfmake = _;
+}
+
+DataTable.Buttons.jszip = function (_) {
+	if ( ! _ ) {
+		return _jsZip();
+	}
+	jszip = _;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * FileSaver.js dependency
+ */
+
+/*jslint bitwise: true, indent: 4, laxbreak: true, laxcomma: true, smarttabs: true, plusplus: true */
+
+var _saveAs = (function(view) {
+	"use strict";
+	// IE <10 is explicitly unsupported
+	if (typeof view === "undefined" || typeof navigator !== "undefined" && /MSIE [1-9]\./.test(navigator.userAgent)) {
+		return;
+	}
+	var
+		  doc = view.document
+		  // only get URL when necessary in case Blob.js hasn't overridden it yet
+		, get_URL = function() {
+			return view.URL || view.webkitURL || view;
+		}
+		, save_link = doc.createElementNS("http://www.w3.org/1999/xhtml", "a")
+		, can_use_save_link = "download" in save_link
+		, click = function(node) {
+			var event = new MouseEvent("click");
+			node.dispatchEvent(event);
+		}
+		, is_safari = /constructor/i.test(view.HTMLElement) || view.safari
+		, is_chrome_ios =/CriOS\/[\d]+/.test(navigator.userAgent)
+		, throw_outside = function(ex) {
+			(view.setImmediate || view.setTimeout)(function() {
+				throw ex;
+			}, 0);
+		}
+		, force_saveable_type = "application/octet-stream"
+		// the Blob API is fundamentally broken as there is no "downloadfinished" event to subscribe to
+		, arbitrary_revoke_timeout = 1000 * 40 // in ms
+		, revoke = function(file) {
+			var revoker = function() {
+				if (typeof file === "string") { // file is an object URL
+					get_URL().revokeObjectURL(file);
+				} else { // file is a File
+					file.remove();
+				}
+			};
+			setTimeout(revoker, arbitrary_revoke_timeout);
+		}
+		, dispatch = function(filesaver, event_types, event) {
+			event_types = [].concat(event_types);
+			var i = event_types.length;
+			while (i--) {
+				var listener = filesaver["on" + event_types[i]];
+				if (typeof listener === "function") {
+					try {
+						listener.call(filesaver, event || filesaver);
+					} catch (ex) {
+						throw_outside(ex);
+					}
+				}
+			}
+		}
+		, auto_bom = function(blob) {
+			// prepend BOM for UTF-8 XML and text/* types (including HTML)
+			// note: your browser will automatically convert UTF-16 U+FEFF to EF BB BF
+			if (/^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(blob.type)) {
+				return new Blob([String.fromCharCode(0xFEFF), blob], {type: blob.type});
+			}
+			return blob;
+		}
+		, FileSaver = function(blob, name, no_auto_bom) {
+			if (!no_auto_bom) {
+				blob = auto_bom(blob);
+			}
+			// First try a.download, then web filesystem, then object URLs
+			var
+				  filesaver = this
+				, type = blob.type
+				, force = type === force_saveable_type
+				, object_url
+				, dispatch_all = function() {
+					dispatch(filesaver, "writestart progress write writeend".split(" "));
+				}
+				// on any filesys errors revert to saving with object URLs
+				, fs_error = function() {
+					if ((is_chrome_ios || (force && is_safari)) && view.FileReader) {
+						// Safari doesn't allow downloading of blob urls
+						var reader = new FileReader();
+						reader.onloadend = function() {
+							var url = is_chrome_ios ? reader.result : reader.result.replace(/^data:[^;]*;/, 'data:attachment/file;');
+							var popup = view.open(url, '_blank');
+							if(!popup) view.location.href = url;
+							url=undefined; // release reference before dispatching
+							filesaver.readyState = filesaver.DONE;
+							dispatch_all();
+						};
+						reader.readAsDataURL(blob);
+						filesaver.readyState = filesaver.INIT;
+						return;
+					}
+					// don't create more object URLs than needed
+					if (!object_url) {
+						object_url = get_URL().createObjectURL(blob);
+					}
+					if (force) {
+						view.location.href = object_url;
+					} else {
+						var opened = view.open(object_url, "_blank");
+						if (!opened) {
+							// Apple does not allow window.open, see https://developer.apple.com/library/safari/documentation/Tools/Conceptual/SafariExtensionGuide/WorkingwithWindowsandTabs/WorkingwithWindowsandTabs.html
+							view.location.href = object_url;
+						}
+					}
+					filesaver.readyState = filesaver.DONE;
+					dispatch_all();
+					revoke(object_url);
+				}
+			;
+			filesaver.readyState = filesaver.INIT;
+
+			if (can_use_save_link) {
+				object_url = get_URL().createObjectURL(blob);
+				setTimeout(function() {
+					save_link.href = object_url;
+					save_link.download = name;
+					click(save_link);
+					dispatch_all();
+					revoke(object_url);
+					filesaver.readyState = filesaver.DONE;
+				});
+				return;
+			}
+
+			fs_error();
+		}
+		, FS_proto = FileSaver.prototype
+		, saveAs = function(blob, name, no_auto_bom) {
+			return new FileSaver(blob, name || blob.name || "download", no_auto_bom);
+		}
+	;
+	// IE 10+ (native saveAs)
+	if (typeof navigator !== "undefined" && navigator.msSaveOrOpenBlob) {
+		return function(blob, name, no_auto_bom) {
+			name = name || blob.name || "download";
+
+			if (!no_auto_bom) {
+				blob = auto_bom(blob);
+			}
+			return navigator.msSaveOrOpenBlob(blob, name);
+		};
+	}
+
+	FS_proto.abort = function(){};
+	FS_proto.readyState = FS_proto.INIT = 0;
+	FS_proto.WRITING = 1;
+	FS_proto.DONE = 2;
+
+	FS_proto.error =
+	FS_proto.onwritestart =
+	FS_proto.onprogress =
+	FS_proto.onwrite =
+	FS_proto.onabort =
+	FS_proto.onerror =
+	FS_proto.onwriteend =
+		null;
+
+	return saveAs;
+}(
+	   typeof self !== "undefined" && self
+	|| typeof window !== "undefined" && window
+	|| this.content
+));
+
+
+// Expose file saver on the DataTables API. Can't attach to `DataTables.Buttons`
+// since this file can be loaded before Button's core!
+DataTable.fileSave = _saveAs;
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Local (private) functions
+ */
+
+/**
+ * Get the sheet name for Excel exports.
+ *
+ * @param {object}	config Button configuration
+ */
+var _sheetname = function ( config )
+{
+	var sheetName = 'Sheet1';
+
+	if ( config.sheetName ) {
+		sheetName = config.sheetName.replace(/[\[\]\*\/\\\?\:]/g, '');
+	}
+
+	return sheetName;
+};
+
+/**
+ * Get the newline character(s)
+ *
+ * @param {object}	config Button configuration
+ * @return {string}				Newline character
+ */
+var _newLine = function ( config )
+{
+	return config.newline ?
+		config.newline :
+		navigator.userAgent.match(/Windows/) ?
+			'\r\n' :
+			'\n';
+};
+
+/**
+ * Combine the data from the `buttons.exportData` method into a string that
+ * will be used in the export file.
+ *
+ * @param	{DataTable.Api} dt		 DataTables API instance
+ * @param	{object}				config Button configuration
+ * @return {object}							 The data to export
+ */
+var _exportData = function ( dt, config )
+{
+	var newLine = _newLine( config );
+	var data = dt.buttons.exportData( config.exportOptions );
+	var boundary = config.fieldBoundary;
+	var separator = config.fieldSeparator;
+	var reBoundary = new RegExp( boundary, 'g' );
+	var escapeChar = config.escapeChar !== undefined ?
+		config.escapeChar :
+		'\\';
+	var join = function ( a ) {
+		var s = '';
+
+		// If there is a field boundary, then we might need to escape it in
+		// the source data
+		for ( var i=0, ien=a.length ; i<ien ; i++ ) {
+			if ( i > 0 ) {
+				s += separator;
+			}
+
+			s += boundary ?
+				boundary + ('' + a[i]).replace( reBoundary, escapeChar+boundary ) + boundary :
+				a[i];
+		}
+
+		return s;
+	};
+
+	var header = config.header ? join( data.header )+newLine : '';
+	var footer = config.footer && data.footer ? newLine+join( data.footer ) : '';
+	var body = [];
+
+	for ( var i=0, ien=data.body.length ; i<ien ; i++ ) {
+		body.push( join( data.body[i] ) );
+	}
+
+	return {
+		str: header + body.join( newLine ) + footer,
+		rows: body.length
+	};
+};
+
+/**
+ * Older versions of Safari (prior to tech preview 18) don't support the
+ * download option required.
+ *
+ * @return {Boolean} `true` if old Safari
+ */
+var _isDuffSafari = function ()
+{
+	var safari = navigator.userAgent.indexOf('Safari') !== -1 &&
+		navigator.userAgent.indexOf('Chrome') === -1 &&
+		navigator.userAgent.indexOf('Opera') === -1;
+
+	if ( ! safari ) {
+		return false;
+	}
+
+	var version = navigator.userAgent.match( /AppleWebKit\/(\d+\.\d+)/ );
+	if ( version && version.length > 1 && version[1]*1 < 603.1 ) {
+		return true;
+	}
+
+	return false;
+};
+
+/**
+ * Convert from numeric position to letter for column names in Excel
+ * @param  {int} n Column number
+ * @return {string} Column letter(s) name
+ */
+function createCellPos( n ){
+	var ordA = 'A'.charCodeAt(0);
+	var ordZ = 'Z'.charCodeAt(0);
+	var len = ordZ - ordA + 1;
+	var s = "";
+
+	while( n >= 0 ) {
+		s = String.fromCharCode(n % len + ordA) + s;
+		n = Math.floor(n / len) - 1;
+	}
+
+	return s;
+}
+
+try {
+	var _serialiser = new XMLSerializer();
+	var _ieExcel;
+}
+catch (t) {}
+
+/**
+ * Recursively add XML files from an object's structure to a ZIP file. This
+ * allows the XSLX file to be easily defined with an object's structure matching
+ * the files structure.
+ *
+ * @param {JSZip} zip ZIP package
+ * @param {object} obj Object to add (recursive)
+ */
+function _addToZip( zip, obj ) {
+	if ( _ieExcel === undefined ) {
+		// Detect if we are dealing with IE's _awful_ serialiser by seeing if it
+		// drop attributes
+		_ieExcel = _serialiser
+			.serializeToString(
+				( new window.DOMParser() ).parseFromString( excelStrings['xl/worksheets/sheet1.xml'], 'text/xml' )
+			)
+			.indexOf( 'xmlns:r' ) === -1;
+	}
+
+	$.each( obj, function ( name, val ) {
+		if ( $.isPlainObject( val ) ) {
+			var newDir = zip.folder( name );
+			_addToZip( newDir, val );
+		}
+		else {
+			if ( _ieExcel ) {
+				// IE's XML serialiser will drop some name space attributes from
+				// from the root node, so we need to save them. Do this by
+				// replacing the namespace nodes with a regular attribute that
+				// we convert back when serialised. Edge does not have this
+				// issue
+				var worksheet = val.childNodes[0];
+				var i, ien;
+				var attrs = [];
+
+				for ( i=worksheet.attributes.length-1 ; i>=0 ; i-- ) {
+					var attrName = worksheet.attributes[i].nodeName;
+					var attrValue = worksheet.attributes[i].nodeValue;
+
+					if ( attrName.indexOf( ':' ) !== -1 ) {
+						attrs.push( { name: attrName, value: attrValue } );
+
+						worksheet.removeAttribute( attrName );
+					}
+				}
+
+				for ( i=0, ien=attrs.length ; i<ien ; i++ ) {
+					var attr = val.createAttribute( attrs[i].name.replace( ':', '_dt_b_namespace_token_' ) );
+					attr.value = attrs[i].value;
+					worksheet.setAttributeNode( attr );
+				}
+			}
+
+			var str = _serialiser.serializeToString(val);
+
+			// Fix IE's XML
+			if ( _ieExcel ) {
+				// IE doesn't include the XML declaration
+				if ( str.indexOf( '<?xml' ) === -1 ) {
+					str = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+str;
+				}
+
+				// Return namespace attributes to being as such
+				str = str.replace( /_dt_b_namespace_token_/g, ':' );
+
+				// Remove testing name space that IE puts into the space preserve attr
+				str = str.replace( /xmlns:NS[\d]+="" NS[\d]+:/g, '' );
+			}
+
+			// Safari, IE and Edge will put empty name space attributes onto
+			// various elements making them useless. This strips them out
+			str = str.replace( /<([^<>]*?) xmlns=""([^<>]*?)>/g, '<$1 $2>' );
+
+			zip.file( name, str );
+		}
+	} );
+}
+
+/**
+ * Create an XML node and add any children, attributes, etc without needing to
+ * be verbose in the DOM.
+ *
+ * @param  {object} doc      XML document
+ * @param  {string} nodeName Node name
+ * @param  {object} opts     Options - can be `attr` (attributes), `children`
+ *   (child nodes) and `text` (text content)
+ * @return {node}            Created node
+ */
+function _createNode( doc, nodeName, opts ) {
+	var tempNode = doc.createElement( nodeName );
+
+	if ( opts ) {
+		if ( opts.attr ) {
+			$(tempNode).attr( opts.attr );
+		}
+
+		if ( opts.children ) {
+			$.each( opts.children, function ( key, value ) {
+				tempNode.appendChild( value );
+			} );
+		}
+
+		if ( opts.text !== null && opts.text !== undefined ) {
+			tempNode.appendChild( doc.createTextNode( opts.text ) );
+		}
+	}
+
+	return tempNode;
+}
+
+/**
+ * Get the width for an Excel column based on the contents of that column
+ * @param  {object} data Data for export
+ * @param  {int}    col  Column index
+ * @return {int}         Column width
+ */
+function _excelColWidth( data, col ) {
+	var max = data.header[col].length;
+	var len, lineSplit, str;
+
+	if ( data.footer && data.footer[col].length > max ) {
+		max = data.footer[col].length;
+	}
+
+	for ( var i=0, ien=data.body.length ; i<ien ; i++ ) {
+		var point = data.body[i][col];
+		str = point !== null && point !== undefined ?
+			point.toString() :
+			'';
+
+		// If there is a newline character, workout the width of the column
+		// based on the longest line in the string
+		if ( str.indexOf('\n') !== -1 ) {
+			lineSplit = str.split('\n');
+			lineSplit.sort( function (a, b) {
+				return b.length - a.length;
+			} );
+
+			len = lineSplit[0].length;
+		}
+		else {
+			len = str.length;
+		}
+
+		if ( len > max ) {
+			max = len;
+		}
+
+		// Max width rather than having potentially massive column widths
+		if ( max > 40 ) {
+			return 54; // 40 * 1.35
+		}
+	}
+
+	max *= 1.35;
+
+	// And a min width
+	return max > 6 ? max : 6;
+}
+
+// Excel - Pre-defined strings to build a basic XLSX file
+var excelStrings = {
+	"_rels/.rels":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+			'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+		'</Relationships>',
+
+	"xl/_rels/workbook.xml.rels":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+			'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+			'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+		'</Relationships>',
+
+	"[Content_Types].xml":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+			'<Default Extension="xml" ContentType="application/xml" />'+
+			'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />'+
+			'<Default Extension="jpeg" ContentType="image/jpeg" />'+
+			'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" />'+
+			'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" />'+
+			'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml" />'+
+		'</Types>',
+
+	"xl/workbook.xml":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+			'<fileVersion appName="xl" lastEdited="5" lowestEdited="5" rupBuild="24816"/>'+
+			'<workbookPr showInkAnnotation="0" autoCompressPictures="0"/>'+
+			'<bookViews>'+
+				'<workbookView xWindow="0" yWindow="0" windowWidth="25600" windowHeight="19020" tabRatio="500"/>'+
+			'</bookViews>'+
+			'<sheets>'+
+				'<sheet name="Sheet1" sheetId="1" r:id="rId1"/>'+
+			'</sheets>'+
+			'<definedNames/>'+
+		'</workbook>',
+
+	"xl/worksheets/sheet1.xml":
+		'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+		'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">'+
+			'<sheetData/>'+
+			'<mergeCells count="0"/>'+
+		'</worksheet>',
+
+	"xl/styles.xml":
+		'<?xml version="1.0" encoding="UTF-8"?>'+
+		'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">'+
+			'<numFmts count="6">'+
+				'<numFmt numFmtId="164" formatCode="#,##0.00_-\ [$$-45C]"/>'+
+				'<numFmt numFmtId="165" formatCode="&quot;£&quot;#,##0.00"/>'+
+				'<numFmt numFmtId="166" formatCode="[$€-2]\ #,##0.00"/>'+
+				'<numFmt numFmtId="167" formatCode="0.0%"/>'+
+				'<numFmt numFmtId="168" formatCode="#,##0;(#,##0)"/>'+
+				'<numFmt numFmtId="169" formatCode="#,##0.00;(#,##0.00)"/>'+
+			'</numFmts>'+
+			'<fonts count="5" x14ac:knownFonts="1">'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<color rgb="FFFFFFFF" />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<b />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<i />'+
+				'</font>'+
+				'<font>'+
+					'<sz val="11" />'+
+					'<name val="Calibri" />'+
+					'<u />'+
+				'</font>'+
+			'</fonts>'+
+			'<fills count="6">'+
+				'<fill>'+
+					'<patternFill patternType="none" />'+
+				'</fill>'+
+				'<fill>'+ // Excel appears to use this as a dotted background regardless of values but
+					'<patternFill patternType="none" />'+ // to be valid to the schema, use a patternFill
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="FFD9D9D9" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="FFD99795" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="ffc6efce" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+				'<fill>'+
+					'<patternFill patternType="solid">'+
+						'<fgColor rgb="ffc6cfef" />'+
+						'<bgColor indexed="64" />'+
+					'</patternFill>'+
+				'</fill>'+
+			'</fills>'+
+			'<borders count="2">'+
+				'<border>'+
+					'<left />'+
+					'<right />'+
+					'<top />'+
+					'<bottom />'+
+					'<diagonal />'+
+				'</border>'+
+				'<border diagonalUp="false" diagonalDown="false">'+
+					'<left style="thin">'+
+						'<color auto="1" />'+
+					'</left>'+
+					'<right style="thin">'+
+						'<color auto="1" />'+
+					'</right>'+
+					'<top style="thin">'+
+						'<color auto="1" />'+
+					'</top>'+
+					'<bottom style="thin">'+
+						'<color auto="1" />'+
+					'</bottom>'+
+					'<diagonal />'+
+				'</border>'+
+			'</borders>'+
+			'<cellStyleXfs count="1">'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" />'+
+			'</cellStyleXfs>'+
+			'<cellXfs count="68">'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="1" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="2" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="3" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="4" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="left"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="center"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="right"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment horizontal="fill"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment textRotation="90"/>'+
+				'</xf>'+
+				'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1">'+
+					'<alignment wrapText="1"/>'+
+				'</xf>'+
+				'<xf numFmtId="9"   fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="165" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="166" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="167" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="168" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="169" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="3" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="4" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="1" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="2" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+				'<xf numFmtId="14" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/>'+
+			'</cellXfs>'+
+			'<cellStyles count="1">'+
+				'<cellStyle name="Normal" xfId="0" builtinId="0" />'+
+			'</cellStyles>'+
+			'<dxfs count="0" />'+
+			'<tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleMedium4" />'+
+		'</styleSheet>'
+};
+// Note we could use 3 `for` loops for the styles, but when gzipped there is
+// virtually no difference in size, since the above can be easily compressed
+
+// Pattern matching for special number formats. Perhaps this should be exposed
+// via an API in future?
+// Ref: section 3.8.30 - built in formatters in open spreadsheet
+//   https://www.ecma-international.org/news/TC45_current_work/Office%20Open%20XML%20Part%204%20-%20Markup%20Language%20Reference.pdf
+var _excelSpecials = [
+	{ match: /^\-?\d+\.\d%$/,               style: 60, fmt: function (d) { return d/100; } }, // Precent with d.p.
+	{ match: /^\-?\d+\.?\d*%$/,             style: 56, fmt: function (d) { return d/100; } }, // Percent
+	{ match: /^\-?\$[\d,]+.?\d*$/,          style: 57 }, // Dollars
+	{ match: /^\-?£[\d,]+.?\d*$/,           style: 58 }, // Pounds
+	{ match: /^\-?€[\d,]+.?\d*$/,           style: 59 }, // Euros
+	{ match: /^\-?\d+$/,                    style: 65 }, // Numbers without thousand separators
+	{ match: /^\-?\d+\.\d{2}$/,             style: 66 }, // Numbers 2 d.p. without thousands separators
+	{ match: /^\([\d,]+\)$/,                style: 61, fmt: function (d) { return -1 * d.replace(/[\(\)]/g, ''); } },  // Negative numbers indicated by brackets
+	{ match: /^\([\d,]+\.\d{2}\)$/,         style: 62, fmt: function (d) { return -1 * d.replace(/[\(\)]/g, ''); } },  // Negative numbers indicated by brackets - 2d.p.
+	{ match: /^\-?[\d,]+$/,                 style: 63 }, // Numbers with thousand separators
+	{ match: /^\-?[\d,]+\.\d{2}$/,          style: 64 },
+	{ match: /^[\d]{4}\-[\d]{2}\-[\d]{2}$/, style: 67, fmt: function (d) {return Math.round(25569 + (Date.parse(d) / (86400 * 1000)));}} //Date yyyy-mm-dd
+];
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Buttons
+ */
+
+//
+// Copy to clipboard
+//
+DataTable.ext.buttons.copyHtml5 = {
+	className: 'buttons-copy buttons-html5',
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.copy', 'Copy' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		this.processing( true );
+
+		var that = this;
+		var exportData = _exportData( dt, config );
+		var info = dt.buttons.exportInfo( config );
+		var newline = _newLine(config);
+		var output = exportData.str;
+		var hiddenDiv = $('<div/>')
+			.css( {
+				height: 1,
+				width: 1,
+				overflow: 'hidden',
+				position: 'fixed',
+				top: 0,
+				left: 0
+			} );
+
+		if ( info.title ) {
+			output = info.title + newline + newline + output;
+		}
+
+		if ( info.messageTop ) {
+			output = info.messageTop + newline + newline + output;
+		}
+
+		if ( info.messageBottom ) {
+			output = output + newline + newline + info.messageBottom;
+		}
+
+		if ( config.customize ) {
+			output = config.customize( output, config, dt );
+		}
+
+		var textarea = $('<textarea readonly/>')
+			.val( output )
+			.appendTo( hiddenDiv );
+
+		// For browsers that support the copy execCommand, try to use it
+		if ( document.queryCommandSupported('copy') ) {
+			hiddenDiv.appendTo( dt.table().container() );
+			textarea[0].focus();
+			textarea[0].select();
+
+			try {
+				var successful = document.execCommand( 'copy' );
+				hiddenDiv.remove();
+
+				if (successful) {
+					dt.buttons.info(
+						dt.i18n( 'buttons.copyTitle', 'Copy to clipboard' ),
+						dt.i18n( 'buttons.copySuccess', {
+							1: 'Copied one row to clipboard',
+							_: 'Copied %d rows to clipboard'
+						}, exportData.rows ),
+						2000
+					);
+
+					this.processing( false );
+					return;
+				}
+			}
+			catch (t) {}
+		}
+
+		// Otherwise we show the text box and instruct the user to use it
+		var message = $('<span>'+dt.i18n( 'buttons.copyKeys',
+				'Press <i>ctrl</i> or <i>\u2318</i> + <i>C</i> to copy the table data<br>to your system clipboard.<br><br>'+
+				'To cancel, click this message or press escape.' )+'</span>'
+			)
+			.append( hiddenDiv );
+
+		dt.buttons.info( dt.i18n( 'buttons.copyTitle', 'Copy to clipboard' ), message, 0 );
+
+		// Select the text so when the user activates their system clipboard
+		// it will copy that text
+		textarea[0].focus();
+		textarea[0].select();
+
+		// Event to hide the message when the user is done
+		var container = $(message).closest('.dt-button-info');
+		var close = function () {
+			container.off( 'click.buttons-copy' );
+			$(document).off( '.buttons-copy' );
+			dt.buttons.info( false );
+		};
+
+		container.on( 'click.buttons-copy', close );
+		$(document)
+			.on( 'keydown.buttons-copy', function (e) {
+				if ( e.keyCode === 27 ) { // esc
+					close();
+					that.processing( false );
+				}
+			} )
+			.on( 'copy.buttons-copy cut.buttons-copy', function () {
+				close();
+				that.processing( false );
+			} );
+	},
+
+	exportOptions: {},
+
+	fieldSeparator: '\t',
+
+	fieldBoundary: '',
+
+	header: true,
+
+	footer: false,
+
+	title: '*',
+
+	messageTop: '*',
+
+	messageBottom: '*'
+};
+
+//
+// CSV export
+//
+DataTable.ext.buttons.csvHtml5 = {
+	bom: false,
+
+	className: 'buttons-csv buttons-html5',
+
+	available: function () {
+		return window.FileReader !== undefined && window.Blob;
+	},
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.csv', 'CSV' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		this.processing( true );
+
+		// Set the text
+		var output = _exportData( dt, config ).str;
+		var info = dt.buttons.exportInfo(config);
+		var charset = config.charset;
+
+		if ( config.customize ) {
+			output = config.customize( output, config, dt );
+		}
+
+		if ( charset !== false ) {
+			if ( ! charset ) {
+				charset = document.characterSet || document.charset;
+			}
+
+			if ( charset ) {
+				charset = ';charset='+charset;
+			}
+		}
+		else {
+			charset = '';
+		}
+
+		if ( config.bom ) {
+			output = String.fromCharCode(0xFEFF) + output;
+		}
+
+		_saveAs(
+			new Blob( [output], {type: 'text/csv'+charset} ),
+			info.filename,
+			true
+		);
+
+		this.processing( false );
+	},
+
+	filename: '*',
+
+	extension: '.csv',
+
+	exportOptions: {},
+
+	fieldSeparator: ',',
+
+	fieldBoundary: '"',
+
+	escapeChar: '"',
+
+	charset: null,
+
+	header: true,
+
+	footer: false
+};
+
+//
+// Excel (xlsx) export
+//
+DataTable.ext.buttons.excelHtml5 = {
+	className: 'buttons-excel buttons-html5',
+
+	available: function () {
+		return window.FileReader !== undefined && _jsZip() !== undefined && ! _isDuffSafari() && _serialiser;
+	},
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.excel', 'Excel' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		this.processing( true );
+
+		var that = this;
+		var rowPos = 0;
+		var dataStartRow, dataEndRow;
+		var getXml = function ( type ) {
+			var str = excelStrings[ type ];
+
+			//str = str.replace( /xmlns:/g, 'xmlns_' ).replace( /mc:/g, 'mc_' );
+
+			return $.parseXML( str );
+		};
+		var rels = getXml('xl/worksheets/sheet1.xml');
+		var relsGet = rels.getElementsByTagName( "sheetData" )[0];
+
+		var xlsx = {
+			_rels: {
+				".rels": getXml('_rels/.rels')
+			},
+			xl: {
+				_rels: {
+					"workbook.xml.rels": getXml('xl/_rels/workbook.xml.rels')
+				},
+				"workbook.xml": getXml('xl/workbook.xml'),
+				"styles.xml": getXml('xl/styles.xml'),
+				"worksheets": {
+					"sheet1.xml": rels
+				}
+
+			},
+			"[Content_Types].xml": getXml('[Content_Types].xml')
+		};
+
+		var data = dt.buttons.exportData( config.exportOptions );
+		var currentRow, rowNode;
+		var addRow = function ( row ) {
+			currentRow = rowPos+1;
+			rowNode = _createNode( rels, "row", { attr: {r:currentRow} } );
+
+			for ( var i=0, ien=row.length ; i<ien ; i++ ) {
+				// Concat both the Cell Columns as a letter and the Row of the cell.
+				var cellId = createCellPos(i) + '' + currentRow;
+				var cell = null;
+
+				// For null, undefined of blank cell, continue so it doesn't create the _createNode
+				if ( row[i] === null || row[i] === undefined || row[i] === '' ) {
+					if ( config.createEmptyCells === true ) {
+						row[i] = '';
+					}
+					else {
+						continue;
+					}
+				}
+
+				var originalContent = row[i];
+				row[i] = typeof row[i].trim === 'function'
+					? row[i].trim()
+					: row[i];
+
+				// Special number formatting options
+				for ( var j=0, jen=_excelSpecials.length ; j<jen ; j++ ) {
+					var special = _excelSpecials[j];
+
+					// TODO Need to provide the ability for the specials to say
+					// if they are returning a string, since at the moment it is
+					// assumed to be a number
+					if ( row[i].match && ! row[i].match(/^0\d+/) && row[i].match( special.match ) ) {
+						var val = row[i].replace(/[^\d\.\-]/g, '');
+
+						if ( special.fmt ) {
+							val = special.fmt( val );
+						}
+
+						cell = _createNode( rels, 'c', {
+							attr: {
+								r: cellId,
+								s: special.style
+							},
+							children: [
+								_createNode( rels, 'v', { text: val } )
+							]
+						} );
+
+						break;
+					}
+				}
+
+				if ( ! cell ) {
+					if ( typeof row[i] === 'number' || (
+						row[i].match &&
+						row[i].match(/^-?\d+(\.\d+)?$/) &&
+						! row[i].match(/^0\d+/) )
+					) {
+						// Detect numbers - don't match numbers with leading zeros
+						// or a negative anywhere but the start
+						cell = _createNode( rels, 'c', {
+							attr: {
+								t: 'n',
+								r: cellId
+							},
+							children: [
+								_createNode( rels, 'v', { text: row[i] } )
+							]
+						} );
+					}
+					else {
+						// String output - replace non standard characters for text output
+						var text = ! originalContent.replace ?
+							originalContent :
+							originalContent.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+
+						cell = _createNode( rels, 'c', {
+							attr: {
+								t: 'inlineStr',
+								r: cellId
+							},
+							children:{
+								row: _createNode( rels, 'is', {
+									children: {
+										row: _createNode( rels, 't', {
+											text: text,
+											attr: {
+												'xml:space': 'preserve'
+											}
+										} )
+									}
+								} )
+							}
+						} );
+					}
+				}
+
+				rowNode.appendChild( cell );
+			}
+
+			relsGet.appendChild(rowNode);
+			rowPos++;
+		};
+
+		if ( config.customizeData ) {
+			config.customizeData( data );
+		}
+
+		var mergeCells = function ( row, colspan ) {
+			var mergeCells = $('mergeCells', rels);
+
+			mergeCells[0].appendChild( _createNode( rels, 'mergeCell', {
+				attr: {
+					ref: 'A'+row+':'+createCellPos(colspan)+row
+				}
+			} ) );
+			mergeCells.attr( 'count', parseFloat(mergeCells.attr( 'count' ))+1 );
+			$('row:eq('+(row-1)+') c', rels).attr( 's', '51' ); // centre
+		};
+
+		// Title and top messages
+		var exportInfo = dt.buttons.exportInfo( config );
+		if ( exportInfo.title ) {
+			addRow( [exportInfo.title], rowPos );
+			mergeCells( rowPos, data.header.length-1 );
+		}
+
+		if ( exportInfo.messageTop ) {
+			addRow( [exportInfo.messageTop], rowPos );
+			mergeCells( rowPos, data.header.length-1 );
+		}
+
+
+		// Table itself
+		if ( config.header ) {
+			addRow( data.header, rowPos );
+			$('row:last c', rels).attr( 's', '2' ); // bold
+		}
+
+		dataStartRow = rowPos;
+
+		for ( var n=0, ie=data.body.length ; n<ie ; n++ ) {
+			addRow( data.body[n], rowPos );
+		}
+
+		dataEndRow = rowPos;
+
+		if ( config.footer && data.footer ) {
+			addRow( data.footer, rowPos);
+			$('row:last c', rels).attr( 's', '2' ); // bold
+		}
+
+		// Below the table
+		if ( exportInfo.messageBottom ) {
+			addRow( [exportInfo.messageBottom], rowPos );
+			mergeCells( rowPos, data.header.length-1 );
+		}
+
+		// Set column widths
+		var cols = _createNode( rels, 'cols' );
+		$('worksheet', rels).prepend( cols );
+
+		for ( var i=0, ien=data.header.length ; i<ien ; i++ ) {
+			cols.appendChild( _createNode( rels, 'col', {
+				attr: {
+					min: i+1,
+					max: i+1,
+					width: _excelColWidth( data, i ),
+					customWidth: 1
+				}
+			} ) );
+		}
+
+		// Workbook modifications
+		var workbook = xlsx.xl['workbook.xml'];
+
+		$( 'sheets sheet', workbook ).attr( 'name', _sheetname( config ) );
+
+		// Auto filter for columns
+		if ( config.autoFilter ) {
+			$('mergeCells', rels).before( _createNode( rels, 'autoFilter', {
+				attr: {
+					ref: 'A'+dataStartRow+':'+createCellPos(data.header.length-1)+dataEndRow
+				}
+			} ) );
+
+			$('definedNames', workbook).append( _createNode( workbook, 'definedName', {
+				attr: {
+					name: '_xlnm._FilterDatabase',
+					localSheetId: '0',
+					hidden: 1
+				},
+				text: _sheetname(config)+'!$A$'+dataStartRow+':'+createCellPos(data.header.length-1)+dataEndRow
+			} ) );
+		}
+
+		// Let the developer customise the document if they want to
+		if ( config.customize ) {
+			config.customize( xlsx, config, dt );
+		}
+
+		// Excel doesn't like an empty mergeCells tag
+		if ( $('mergeCells', rels).children().length === 0 ) {
+			$('mergeCells', rels).remove();
+		}
+
+		var jszip = _jsZip();
+		var zip = new jszip();
+		var zipConfig = {
+			type: 'blob',
+			mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		};
+
+		_addToZip( zip, xlsx );
+
+		if ( zip.generateAsync ) {
+			// JSZip 3+
+			zip
+				.generateAsync( zipConfig )
+				.then( function ( blob ) {
+					_saveAs( blob, exportInfo.filename );
+					that.processing( false );
+				} );
+		}
+		else {
+			// JSZip 2.5
+			_saveAs(
+				zip.generate( zipConfig ),
+				exportInfo.filename
+			);
+			this.processing( false );
+		}
+	},
+
+	filename: '*',
+
+	extension: '.xlsx',
+
+	exportOptions: {},
+
+	header: true,
+
+	footer: false,
+
+	title: '*',
+
+	messageTop: '*',
+
+	messageBottom: '*',
+
+	createEmptyCells: false,
+
+	autoFilter: false,
+
+	sheetName: ''
+};
+
+//
+// PDF export - using pdfMake - http://pdfmake.org
+//
+DataTable.ext.buttons.pdfHtml5 = {
+	className: 'buttons-pdf buttons-html5',
+
+	available: function () {
+		return window.FileReader !== undefined && _pdfMake();
+	},
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.pdf', 'PDF' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		this.processing( true );
+
+		var that = this;
+		var data = dt.buttons.exportData( config.exportOptions );
+		var info = dt.buttons.exportInfo( config );
+		var rows = [];
+
+		if ( config.header ) {
+			rows.push( $.map( data.header, function ( d ) {
+				return {
+					text: typeof d === 'string' ? d : d+'',
+					style: 'tableHeader'
+				};
+			} ) );
+		}
+
+		for ( var i=0, ien=data.body.length ; i<ien ; i++ ) {
+			rows.push( $.map( data.body[i], function ( d ) {
+				if ( d === null || d === undefined ) {
+					d = '';
+				}
+				return {
+					text: typeof d === 'string' ? d : d+'',
+					style: i % 2 ? 'tableBodyEven' : 'tableBodyOdd'
+				};
+			} ) );
+		}
+
+		if ( config.footer && data.footer) {
+			rows.push( $.map( data.footer, function ( d ) {
+				return {
+					text: typeof d === 'string' ? d : d+'',
+					style: 'tableFooter'
+				};
+			} ) );
+		}
+
+		var doc = {
+			pageSize: config.pageSize,
+			pageOrientation: config.orientation,
+			content: [
+				{
+					table: {
+						headerRows: 1,
+						body: rows
+					},
+					layout: 'noBorders'
+				}
+			],
+			styles: {
+				tableHeader: {
+					bold: true,
+					fontSize: 11,
+					color: 'white',
+					fillColor: '#2d4154',
+					alignment: 'center'
+				},
+				tableBodyEven: {},
+				tableBodyOdd: {
+					fillColor: '#f3f3f3'
+				},
+				tableFooter: {
+					bold: true,
+					fontSize: 11,
+					color: 'white',
+					fillColor: '#2d4154'
+				},
+				title: {
+					alignment: 'center',
+					fontSize: 15
+				},
+				message: {}
+			},
+			defaultStyle: {
+				fontSize: 10
+			}
+		};
+
+		if ( info.messageTop ) {
+			doc.content.unshift( {
+				text: info.messageTop,
+				style: 'message',
+				margin: [ 0, 0, 0, 12 ]
+			} );
+		}
+
+		if ( info.messageBottom ) {
+			doc.content.push( {
+				text: info.messageBottom,
+				style: 'message',
+				margin: [ 0, 0, 0, 12 ]
+			} );
+		}
+
+		if ( info.title ) {
+			doc.content.unshift( {
+				text: info.title,
+				style: 'title',
+				margin: [ 0, 0, 0, 12 ]
+			} );
+		}
+
+		if ( config.customize ) {
+			config.customize( doc, config, dt );
+		}
+
+		var pdf = _pdfMake().createPdf( doc );
+
+		if ( config.download === 'open' && ! _isDuffSafari() ) {
+			pdf.open();
+		}
+		else {
+			pdf.download( info.filename );
+		}
+
+		this.processing( false );
+	},
+
+	title: '*',
+
+	filename: '*',
+
+	extension: '.pdf',
+
+	exportOptions: {},
+
+	orientation: 'portrait',
+
+	pageSize: 'A4',
+
+	header: true,
+
+	footer: false,
+
+	messageTop: '*',
+
+	messageBottom: '*',
+
+	customize: null,
+
+	download: 'download'
+};
+
+
+return DataTable.Buttons;
+}));
+
+(function(h){"function"===typeof define&&define.amd?define(["jquery","datatables.net","datatables.net-buttons"],function(f){return h(f,window,document)}):"object"===typeof exports?module.exports=function(f,j,v,q){f||(f=window);if(!j||!j.fn.dataTable)j=require("datatables.net")(f,j).$;j.fn.dataTable.Buttons||require("datatables.net-buttons")(f,j);return h(j,f,f.document,v,q)}:h(jQuery,window,document)})(function(h,f,j,v,q,r){function w(a){for(var c="";0<=a;)c=String.fromCharCode(a%26+65)+c,a=Math.floor(a/
+26)-1;return c}function A(a,c){x===r&&(x=-1===z.serializeToString((new f.DOMParser).parseFromString(B["xl/worksheets/sheet1.xml"],"text/xml")).indexOf("xmlns:r"));h.each(c,function(c,b){if(h.isPlainObject(b)){var e=a.folder(c);A(e,b)}else{if(x){var e=b.childNodes[0],g,k,i=[];for(g=e.attributes.length-1;0<=g;g--){k=e.attributes[g].nodeName;var f=e.attributes[g].nodeValue;-1!==k.indexOf(":")&&(i.push({name:k,value:f}),e.removeAttribute(k))}g=0;for(k=i.length;g<k;g++)f=b.createAttribute(i[g].name.replace(":",
+"_dt_b_namespace_token_")),f.value=i[g].value,e.setAttributeNode(f)}e=z.serializeToString(b);x&&(-1===e.indexOf("<?xml")&&(e='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+e),e=e.replace(/_dt_b_namespace_token_/g,":"),e=e.replace(/xmlns:NS[\d]+="" NS[\d]+:/g,""));e=e.replace(/<([^<>]*?) xmlns=""([^<>]*?)>/g,"<$1 $2>");a.file(c,e)}})}function o(a,c,d){var b=a.createElement(c);d&&(d.attr&&h(b).attr(d.attr),d.children&&h.each(d.children,function(a,c){b.appendChild(c)}),null!==d.text&&d.text!==
+r&&b.appendChild(a.createTextNode(d.text)));return b}function L(a,c){var d=a.header[c].length,b;a.footer&&a.footer[c].length>d&&(d=a.footer[c].length);for(var e=0,g=a.body.length;e<g;e++)if(b=a.body[e][c],b=null!==b&&b!==r?b.toString():"",-1!==b.indexOf("\n")?(b=b.split("\n"),b.sort(function(a,b){return b.length-a.length}),b=b[0].length):b=b.length,b>d&&(d=b),40<d)return 54;d*=1.35;return 6<d?d:6}var p=h.fn.dataTable;p.Buttons.pdfMake=function(a){if(!a)return q||f.pdfMake;q=a};p.Buttons.jszip=function(a){if(!a)return v||
+f.JSZip;v=a};var u;var l="undefined"!==typeof self&&self||"undefined"!==typeof f&&f||this.content;if("undefined"===typeof l||"undefined"!==typeof navigator&&/MSIE [1-9]\./.test(navigator.userAgent))u=void 0;else{var y=l.document.createElementNS("http://www.w3.org/1999/xhtml","a"),M="download"in y,N=/constructor/i.test(l.HTMLElement)||l.safari,C=/CriOS\/[\d]+/.test(navigator.userAgent),O=function(a){(l.setImmediate||l.setTimeout)(function(){throw a;},0)},D=function(a){setTimeout(function(){"string"===
+typeof a?(l.URL||l.webkitURL||l).revokeObjectURL(a):a.remove()},4E4)},E=function(a){return/^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(a.type)?new Blob([String.fromCharCode(65279),a],{type:a.type}):a},F=function(a,c,d){d||(a=E(a));var b=this,d="application/octet-stream"===a.type,e,g=function(){for(var a=["writestart","progress","write","writeend"],a=[].concat(a),c=a.length;c--;){var d=b["on"+a[c]];if("function"===typeof d)try{d.call(b,b)}catch(e){O(e)}}};b.readyState=
+b.INIT;if(M)e=(l.URL||l.webkitURL||l).createObjectURL(a),setTimeout(function(){y.href=e;y.download=c;var a=new MouseEvent("click");y.dispatchEvent(a);g();D(e);b.readyState=b.DONE});else if((C||d&&N)&&l.FileReader){var k=new FileReader;k.onloadend=function(){var a=C?k.result:k.result.replace(/^data:[^;]*;/,"data:attachment/file;");l.open(a,"_blank")||(l.location.href=a);b.readyState=b.DONE;g()};k.readAsDataURL(a);b.readyState=b.INIT}else e||(e=(l.URL||l.webkitURL||l).createObjectURL(a)),d?l.location.href=
+e:l.open(e,"_blank")||(l.location.href=e),b.readyState=b.DONE,g(),D(e)},n=F.prototype;"undefined"!==typeof navigator&&navigator.msSaveOrOpenBlob?u=function(a,c,d){c=c||a.name||"download";d||(a=E(a));return navigator.msSaveOrOpenBlob(a,c)}:(n.abort=function(){},n.readyState=n.INIT=0,n.WRITING=1,n.DONE=2,n.error=n.onwritestart=n.onprogress=n.onwrite=n.onabort=n.onerror=n.onwriteend=null,u=function(a,c,d){return new F(a,c||a.name||"download",d)})}p.fileSave=u;var G=function(a){var c="Sheet1";a.sheetName&&
+(c=a.sheetName.replace(/[\[\]\*\/\\\?\:]/g,""));return c},H=function(a){return a.newline?a.newline:navigator.userAgent.match(/Windows/)?"\r\n":"\n"},I=function(a,c){for(var d=H(c),b=a.buttons.exportData(c.exportOptions),e=c.fieldBoundary,g=c.fieldSeparator,k=RegExp(e,"g"),i=c.escapeChar!==r?c.escapeChar:"\\",h=function(a){for(var b="",c=0,d=a.length;c<d;c++)0<c&&(b+=g),b+=e?e+(""+a[c]).replace(k,i+e)+e:a[c];return b},f=c.header?h(b.header)+d:"",l=c.footer&&b.footer?d+h(b.footer):"",j=[],m=0,o=b.body.length;m<
+o;m++)j.push(h(b.body[m]));return{str:f+j.join(d)+l,rows:j.length}},J=function(){if(!(-1!==navigator.userAgent.indexOf("Safari")&&-1===navigator.userAgent.indexOf("Chrome")&&-1===navigator.userAgent.indexOf("Opera")))return!1;var a=navigator.userAgent.match(/AppleWebKit\/(\d+\.\d+)/);return a&&1<a.length&&603.1>1*a[1]?!0:!1};try{var z=new XMLSerializer,x}catch(P){}var B={"_rels/.rels":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+"xl/_rels/workbook.xml.rels":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',"[Content_Types].xml":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml" /><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" /><Default Extension="jpeg" ContentType="image/jpeg" /><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" /><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" /><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml" /></Types>',
+"xl/workbook.xml":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><fileVersion appName="xl" lastEdited="5" lowestEdited="5" rupBuild="24816"/><workbookPr showInkAnnotation="0" autoCompressPictures="0"/><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="25600" windowHeight="19020" tabRatio="500"/></bookViews><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets><definedNames/></workbook>',
+"xl/worksheets/sheet1.xml":'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac"><sheetData/><mergeCells count="0"/></worksheet>',"xl/styles.xml":'<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x14ac" xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac"><numFmts count="6"><numFmt numFmtId="164" formatCode="#,##0.00_- [$$-45C]"/><numFmt numFmtId="165" formatCode="&quot;£&quot;#,##0.00"/><numFmt numFmtId="166" formatCode="[$€-2] #,##0.00"/><numFmt numFmtId="167" formatCode="0.0%"/><numFmt numFmtId="168" formatCode="#,##0;(#,##0)"/><numFmt numFmtId="169" formatCode="#,##0.00;(#,##0.00)"/></numFmts><fonts count="5" x14ac:knownFonts="1"><font><sz val="11" /><name val="Calibri" /></font><font><sz val="11" /><name val="Calibri" /><color rgb="FFFFFFFF" /></font><font><sz val="11" /><name val="Calibri" /><b /></font><font><sz val="11" /><name val="Calibri" /><i /></font><font><sz val="11" /><name val="Calibri" /><u /></font></fonts><fills count="6"><fill><patternFill patternType="none" /></fill><fill><patternFill patternType="none" /></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9" /><bgColor indexed="64" /></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD99795" /><bgColor indexed="64" /></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="ffc6efce" /><bgColor indexed="64" /></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="ffc6cfef" /><bgColor indexed="64" /></patternFill></fill></fills><borders count="2"><border><left /><right /><top /><bottom /><diagonal /></border><border diagonalUp="false" diagonalDown="false"><left style="thin"><color auto="1" /></left><right style="thin"><color auto="1" /></right><top style="thin"><color auto="1" /></top><bottom style="thin"><color auto="1" /></bottom><diagonal /></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" /></cellStyleXfs><cellXfs count="68"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="2" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="3" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="4" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="5" borderId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="left"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment horizontal="fill"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment textRotation="90"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="9"   fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="167" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="168" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="169" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="3" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="1" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="2" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="14" fontId="0" fillId="0" borderId="0" applyFont="1" applyFill="1" applyBorder="1" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0" /></cellStyles><dxfs count="0" /><tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleMedium4" /></styleSheet>'},
+K=[{match:/^\-?\d+\.\d%$/,style:60,fmt:function(a){return a/100}},{match:/^\-?\d+\.?\d*%$/,style:56,fmt:function(a){return a/100}},{match:/^\-?\$[\d,]+.?\d*$/,style:57},{match:/^\-?£[\d,]+.?\d*$/,style:58},{match:/^\-?€[\d,]+.?\d*$/,style:59},{match:/^\-?\d+$/,style:65},{match:/^\-?\d+\.\d{2}$/,style:66},{match:/^\([\d,]+\)$/,style:61,fmt:function(a){return-1*a.replace(/[\(\)]/g,"")}},{match:/^\([\d,]+\.\d{2}\)$/,style:62,fmt:function(a){return-1*a.replace(/[\(\)]/g,"")}},{match:/^\-?[\d,]+$/,style:63},
+{match:/^\-?[\d,]+\.\d{2}$/,style:64},{match:/^[\d]{4}\-[\d]{2}\-[\d]{2}$/,style:67,fmt:function(a){return Math.round(25569+Date.parse(a)/864E5)}}];p.ext.buttons.copyHtml5={className:"buttons-copy buttons-html5",text:function(a){return a.i18n("buttons.copy","Copy")},action:function(a,c,d,b){this.processing(!0);var e=this,a=I(c,b),g=c.buttons.exportInfo(b),k=H(b),i=a.str,d=h("<div/>").css({height:1,width:1,overflow:"hidden",position:"fixed",top:0,left:0});g.title&&(i=g.title+k+k+i);g.messageTop&&(i=
+g.messageTop+k+k+i);g.messageBottom&&(i=i+k+k+g.messageBottom);b.customize&&(i=b.customize(i,b,c));b=h("<textarea readonly/>").val(i).appendTo(d);if(j.queryCommandSupported("copy")){d.appendTo(c.table().container());b[0].focus();b[0].select();try{var f=j.execCommand("copy");d.remove();if(f){c.buttons.info(c.i18n("buttons.copyTitle","Copy to clipboard"),c.i18n("buttons.copySuccess",{1:"Copied one row to clipboard",_:"Copied %d rows to clipboard"},a.rows),2E3);this.processing(!1);return}}catch(l){}}f=
+h("<span>"+c.i18n("buttons.copyKeys","Press <i>ctrl</i> or <i>⌘</i> + <i>C</i> to copy the table data<br>to your system clipboard.<br><br>To cancel, click this message or press escape.")+"</span>").append(d);c.buttons.info(c.i18n("buttons.copyTitle","Copy to clipboard"),f,0);b[0].focus();b[0].select();var o=h(f).closest(".dt-button-info"),n=function(){o.off("click.buttons-copy");h(j).off(".buttons-copy");c.buttons.info(!1)};o.on("click.buttons-copy",n);h(j).on("keydown.buttons-copy",function(a){27===
+a.keyCode&&(n(),e.processing(!1))}).on("copy.buttons-copy cut.buttons-copy",function(){n();e.processing(!1)})},exportOptions:{},fieldSeparator:"\t",fieldBoundary:"",header:!0,footer:!1,title:"*",messageTop:"*",messageBottom:"*"};p.ext.buttons.csvHtml5={bom:!1,className:"buttons-csv buttons-html5",available:function(){return f.FileReader!==r&&f.Blob},text:function(a){return a.i18n("buttons.csv","CSV")},action:function(a,c,d,b){this.processing(!0);var a=I(c,b).str,d=c.buttons.exportInfo(b),e=b.charset;
+b.customize&&(a=b.customize(a,b,c));!1!==e?(e||(e=j.characterSet||j.charset),e&&(e=";charset="+e)):e="";b.bom&&(a=String.fromCharCode(65279)+a);u(new Blob([a],{type:"text/csv"+e}),d.filename,!0);this.processing(!1)},filename:"*",extension:".csv",exportOptions:{},fieldSeparator:",",fieldBoundary:'"',escapeChar:'"',charset:null,header:!0,footer:!1};p.ext.buttons.excelHtml5={className:"buttons-excel buttons-html5",available:function(){return f.FileReader!==r&&(v||f.JSZip)!==r&&!J()&&z},text:function(a){return a.i18n("buttons.excel",
+"Excel")},action:function(a,c,d,b){this.processing(!0);var e=this,g=0,k,a=function(a){return h.parseXML(B[a])},i=a("xl/worksheets/sheet1.xml"),l=i.getElementsByTagName("sheetData")[0],a={_rels:{".rels":a("_rels/.rels")},xl:{_rels:{"workbook.xml.rels":a("xl/_rels/workbook.xml.rels")},"workbook.xml":a("xl/workbook.xml"),"styles.xml":a("xl/styles.xml"),worksheets:{"sheet1.xml":i}},"[Content_Types].xml":a("[Content_Types].xml")},j=c.buttons.exportData(b.exportOptions),n,p,m=function(a){n=g+1;p=o(i,"row",
+{attr:{r:n}});for(var c=0,d=a.length;c<d;c++){var e=w(c)+""+n,f=null;if(null===a[c]||a[c]===r||""===a[c])if(!0===b.createEmptyCells)a[c]="";else continue;var h=a[c];a[c]="function"===typeof a[c].trim?a[c].trim():a[c];for(var j=0,k=K.length;j<k;j++){var m=K[j];if(a[c].match&&!a[c].match(/^0\d+/)&&a[c].match(m.match)){f=a[c].replace(/[^\d\.\-]/g,"");m.fmt&&(f=m.fmt(f));f=o(i,"c",{attr:{r:e,s:m.style},children:[o(i,"v",{text:f})]});break}}f||("number"===typeof a[c]||a[c].match&&a[c].match(/^-?\d+(\.\d+)?$/)&&
+!a[c].match(/^0\d+/)?f=o(i,"c",{attr:{t:"n",r:e},children:[o(i,"v",{text:a[c]})]}):(h=!h.replace?h:h.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g,""),f=o(i,"c",{attr:{t:"inlineStr",r:e},children:{row:o(i,"is",{children:{row:o(i,"t",{text:h,attr:{"xml:space":"preserve"}})}})}})));p.appendChild(f)}l.appendChild(p);g++};b.customizeData&&b.customizeData(j);var s=function(a,c){var b=h("mergeCells",i);b[0].appendChild(o(i,"mergeCell",{attr:{ref:"A"+a+":"+w(c)+a}}));b.attr("count",parseFloat(b.attr("count"))+
+1);h("row:eq("+(a-1)+") c",i).attr("s","51")},t=c.buttons.exportInfo(b);t.title&&(m([t.title],g),s(g,j.header.length-1));t.messageTop&&(m([t.messageTop],g),s(g,j.header.length-1));b.header&&(m(j.header,g),h("row:last c",i).attr("s","2"));d=g;k=0;for(var q=j.body.length;k<q;k++)m(j.body[k],g);k=g;b.footer&&j.footer&&(m(j.footer,g),h("row:last c",i).attr("s","2"));t.messageBottom&&(m([t.messageBottom],g),s(g,j.header.length-1));m=o(i,"cols");h("worksheet",i).prepend(m);s=0;for(q=j.header.length;s<q;s++)m.appendChild(o(i,
+"col",{attr:{min:s+1,max:s+1,width:L(j,s),customWidth:1}}));m=a.xl["workbook.xml"];h("sheets sheet",m).attr("name",G(b));b.autoFilter&&(h("mergeCells",i).before(o(i,"autoFilter",{attr:{ref:"A"+d+":"+w(j.header.length-1)+k}})),h("definedNames",m).append(o(m,"definedName",{attr:{name:"_xlnm._FilterDatabase",localSheetId:"0",hidden:1},text:G(b)+"!$A$"+d+":"+w(j.header.length-1)+k})));b.customize&&b.customize(a,b,c);0===h("mergeCells",i).children().length&&h("mergeCells",i).remove();c=new (v||f.JSZip);
+d={type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"};A(c,a);c.generateAsync?c.generateAsync(d).then(function(a){u(a,t.filename);e.processing(false)}):(u(c.generate(d),t.filename),this.processing(!1))},filename:"*",extension:".xlsx",exportOptions:{},header:!0,footer:!1,title:"*",messageTop:"*",messageBottom:"*",createEmptyCells:!1,autoFilter:!1,sheetName:""};p.ext.buttons.pdfHtml5={className:"buttons-pdf buttons-html5",available:function(){return f.FileReader!==
+r&&(q||f.pdfMake)},text:function(a){return a.i18n("buttons.pdf","PDF")},action:function(a,c,d,b){this.processing(!0);var d=c.buttons.exportData(b.exportOptions),a=c.buttons.exportInfo(b),e=[];b.header&&e.push(h.map(d.header,function(a){return{text:"string"===typeof a?a:a+"",style:"tableHeader"}}));for(var g=0,j=d.body.length;g<j;g++)e.push(h.map(d.body[g],function(a){if(null===a||a===r)a="";return{text:"string"===typeof a?a:a+"",style:g%2?"tableBodyEven":"tableBodyOdd"}}));b.footer&&d.footer&&e.push(h.map(d.footer,
+function(a){return{text:"string"===typeof a?a:a+"",style:"tableFooter"}}));d={pageSize:b.pageSize,pageOrientation:b.orientation,content:[{table:{headerRows:1,body:e},layout:"noBorders"}],styles:{tableHeader:{bold:!0,fontSize:11,color:"white",fillColor:"#2d4154",alignment:"center"},tableBodyEven:{},tableBodyOdd:{fillColor:"#f3f3f3"},tableFooter:{bold:!0,fontSize:11,color:"white",fillColor:"#2d4154"},title:{alignment:"center",fontSize:15},message:{}},defaultStyle:{fontSize:10}};a.messageTop&&d.content.unshift({text:a.messageTop,
+style:"message",margin:[0,0,0,12]});a.messageBottom&&d.content.push({text:a.messageBottom,style:"message",margin:[0,0,0,12]});a.title&&d.content.unshift({text:a.title,style:"title",margin:[0,0,0,12]});b.customize&&b.customize(d,b,c);c=(q||f.pdfMake).createPdf(d);"open"===b.download&&!J()?c.open():c.download(a.filename);this.processing(!1)},title:"*",filename:"*",extension:".pdf",exportOptions:{},orientation:"portrait",pageSize:"A4",header:!0,footer:!1,messageTop:"*",messageBottom:"*",customize:null,
+download:"download"};return p.Buttons});
+
+/*!
+ * Print button for Buttons and DataTables.
+ * 2016 SpryMedia Ltd - datatables.net/license
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net', 'datatables.net-buttons'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			if ( ! $.fn.dataTable.Buttons ) {
+				require('datatables.net-buttons')(root, $);
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+var _link = document.createElement( 'a' );
+
+/**
+ * Clone link and style tags, taking into account the need to change the source
+ * path.
+ *
+ * @param  {node}     el Element to convert
+ */
+var _styleToAbs = function( el ) {
+	var url;
+	var clone = $(el).clone()[0];
+	var linkHost;
+
+	if ( clone.nodeName.toLowerCase() === 'link' ) {
+		clone.href = _relToAbs( clone.href );
+	}
+
+	return clone.outerHTML;
+};
+
+/**
+ * Convert a URL from a relative to an absolute address so it will work
+ * correctly in the popup window which has no base URL.
+ *
+ * @param  {string} href URL
+ */
+var _relToAbs = function( href ) {
+	// Assign to a link on the original page so the browser will do all the
+	// hard work of figuring out where the file actually is
+	_link.href = href;
+	var linkHost = _link.host;
+
+	// IE doesn't have a trailing slash on the host
+	// Chrome has it on the pathname
+	if ( linkHost.indexOf('/') === -1 && _link.pathname.indexOf('/') !== 0) {
+		linkHost += '/';
+	}
+
+	return _link.protocol+"//"+linkHost+_link.pathname+_link.search;
+};
+
+
+DataTable.ext.buttons.print = {
+	className: 'buttons-print',
+
+	text: function ( dt ) {
+		return dt.i18n( 'buttons.print', 'Print' );
+	},
+
+	action: function ( e, dt, button, config ) {
+		var data = dt.buttons.exportData(
+			$.extend( {decodeEntities: false}, config.exportOptions ) // XSS protection
+		);
+		var exportInfo = dt.buttons.exportInfo( config );
+		var columnClasses = dt
+			.columns( config.exportOptions.columns )
+			.flatten()
+			.map( function (idx) {
+				return dt.settings()[0].aoColumns[dt.column(idx).index()].sClass;
+			} )
+			.toArray();
+
+		var addRow = function ( d, tag ) {
+			var str = '<tr>';
+
+			for ( var i=0, ien=d.length ; i<ien ; i++ ) {
+				// null and undefined aren't useful in the print output
+				var dataOut = d[i] === null || d[i] === undefined ?
+					'' :
+					d[i];
+				var classAttr = columnClasses[i] ?
+					'class="'+columnClasses[i]+'"' :
+					'';
+
+				str += '<'+tag+' '+classAttr+'>'+dataOut+'</'+tag+'>';
+			}
+
+			return str + '</tr>';
+		};
+
+		// Construct a table for printing
+		var html = '<table class="'+dt.table().node().className+'">';
+
+		if ( config.header ) {
+			html += '<thead>'+ addRow( data.header, 'th' ) +'</thead>';
+		}
+
+		html += '<tbody>';
+		for ( var i=0, ien=data.body.length ; i<ien ; i++ ) {
+			html += addRow( data.body[i], 'td' );
+		}
+		html += '</tbody>';
+
+		if ( config.footer && data.footer ) {
+			html += '<tfoot>'+ addRow( data.footer, 'th' ) +'</tfoot>';
+		}
+		html += '</table>';
+
+		// Open a new window for the printable table
+		var win = window.open( '', '' );
+
+		if (! win) {
+			dt.buttons.info(
+				dt.i18n( 'buttons.printErrorTitle', 'Unable to open print view' ),
+				dt.i18n( 'buttons.printErrorMsg', 'Please allow popups in your browser for this site to be able to view the print view.' ),
+				5000
+			);
+
+			return;
+		}
+
+		win.document.close();
+
+		// Inject the title and also a copy of the style and link tags from this
+		// document so the table can retain its base styling. Note that we have
+		// to use string manipulation as IE won't allow elements to be created
+		// in the host document and then appended to the new window.
+		var head = '<title>'+exportInfo.title+'</title>';
+		$('style, link').each( function () {
+			head += _styleToAbs( this );
+		} );
+
+		try {
+			win.document.head.innerHTML = head; // Work around for Edge
+		}
+		catch (e) {
+			$(win.document.head).html( head ); // Old IE
+		}
+
+		// Inject the table and other surrounding information
+		win.document.body.innerHTML =
+			'<h1>'+exportInfo.title+'</h1>'+
+			'<div>'+(exportInfo.messageTop || '')+'</div>'+
+			html+
+			'<div>'+(exportInfo.messageBottom || '')+'</div>';
+
+		$(win.document.body).addClass('dt-print-view');
+
+		$('img', win.document.body).each( function ( i, img ) {
+			img.setAttribute( 'src', _relToAbs( img.getAttribute('src') ) );
+		} );
+
+		if ( config.customize ) {
+			config.customize( win, config, dt );
+		}
+
+		// Allow stylesheets time to load
+		var autoPrint = function () {
+			if ( config.autoPrint ) {
+				win.print(); // blocking - so close will not
+				win.close(); // execute until this is done
+			}
+		};
+
+		if ( navigator.userAgent.match(/Trident\/\d.\d/) ) { // IE needs to call this without a setTimeout
+			autoPrint();
+		}
+		else {
+			win.setTimeout( autoPrint, 1000 );
+		}
+	},
+
+	title: '*',
+
+	messageTop: '*',
+
+	messageBottom: '*',
+
+	exportOptions: {},
+
+	header: true,
+
+	footer: false,
+
+	autoPrint: true,
+
+	customize: null
+};
+
+
+return DataTable.Buttons;
+}));
+
+(function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net","datatables.net-buttons"],function(f){return c(f,window,document)}):"object"===typeof exports?module.exports=function(f,b){f||(f=window);if(!b||!b.fn.dataTable)b=require("datatables.net")(f,b).$;b.fn.dataTable.Buttons||require("datatables.net-buttons")(f,b);return c(b,f,f.document)}:c(jQuery,window,document)})(function(c,f,b,o){var j=c.fn.dataTable,h=b.createElement("a"),n=function(a){h.href=a;a=h.host;-1===a.indexOf("/")&&
+0!==h.pathname.indexOf("/")&&(a+="/");return h.protocol+"//"+a+h.pathname+h.search};j.ext.buttons.print={className:"buttons-print",text:function(a){return a.i18n("buttons.print","Print")},action:function(a,g,b,i){var a=g.buttons.exportData(c.extend({decodeEntities:!1},i.exportOptions)),b=g.buttons.exportInfo(i),h=g.columns(i.exportOptions.columns).flatten().map(function(a){return g.settings()[0].aoColumns[g.column(a).index()].sClass}).toArray(),l=function(a,b){for(var d="<tr>",c=0,e=a.length;c<e;c++)d+=
+"<"+b+" "+(h[c]?'class="'+h[c]+'"':"")+">"+(null===a[c]||a[c]===o?"":a[c])+"</"+b+">";return d+"</tr>"},d='<table class="'+g.table().node().className+'">';i.header&&(d+="<thead>"+l(a.header,"th")+"</thead>");for(var d=d+"<tbody>",m=0,j=a.body.length;m<j;m++)d+=l(a.body[m],"td");d+="</tbody>";i.footer&&a.footer&&(d+="<tfoot>"+l(a.footer,"th")+"</tfoot>");var d=d+"</table>",e=f.open("","");if(e){e.document.close();var k="<title>"+b.title+"</title>";c("style, link").each(function(){var a=k,b=c(this).clone()[0];
+"link"===b.nodeName.toLowerCase()&&(b.href=n(b.href));k=a+b.outerHTML});try{e.document.head.innerHTML=k}catch(p){c(e.document.head).html(k)}e.document.body.innerHTML="<h1>"+b.title+"</h1><div>"+(b.messageTop||"")+"</div>"+d+"<div>"+(b.messageBottom||"")+"</div>";c(e.document.body).addClass("dt-print-view");c("img",e.document.body).each(function(a,b){b.setAttribute("src",n(b.getAttribute("src")))});i.customize&&i.customize(e,i,g);a=function(){i.autoPrint&&(e.print(),e.close())};navigator.userAgent.match(/Trident\/\d.\d/)?
+a():e.setTimeout(a,1E3)}else g.buttons.info(g.i18n("buttons.printErrorTitle","Unable to open print view"),g.i18n("buttons.printErrorMsg","Please allow popups in your browser for this site to be able to view the print view."),5E3)},title:"*",messageTop:"*",messageBottom:"*",exportOptions:{},header:!0,footer:!1,autoPrint:!0,customize:null};return j.Buttons});
 
 /*! Bootstrap integration for DataTables' Buttons
  * ©2016 SpryMedia Ltd - datatables.net/license
@@ -77272,6 +84138,1733 @@ return DateTime;
 
 }));
 
+/*! FixedColumns 3.3.3
+ * ©2010-2021 SpryMedia Ltd - datatables.net/license
+ */
+
+/**
+ * @summary     FixedColumns
+ * @description Freeze columns in place on a scrolling DataTable
+ * @version     3.3.3
+ * @file        dataTables.fixedColumns.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     www.sprymedia.co.uk/contact
+ * @copyright   Copyright 2010-2021 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+var _firefoxScroll;
+
+/**
+ * When making use of DataTables' x-axis scrolling feature, you may wish to
+ * fix the left most column in place. This plug-in for DataTables provides
+ * exactly this option (note for non-scrolling tables, please use the
+ * FixedHeader plug-in, which can fix headers and footers). Key
+ * features include:
+ *
+ * * Freezes the left or right most columns to the side of the table
+ * * Option to freeze two or more columns
+ * * Full integration with DataTables' scrolling options
+ * * Speed - FixedColumns is fast in its operation
+ *
+ *  @class
+ *  @constructor
+ *  @global
+ *  @param {object} dt DataTables instance. With DataTables 1.10 this can also
+ *    be a jQuery collection, a jQuery selector, DataTables API instance or
+ *    settings object.
+ *  @param {object} [init={}] Configuration object for FixedColumns. Options are
+ *    defined by {@link FixedColumns.defaults}
+ *
+ *  @requires jQuery 1.7+
+ *  @requires DataTables 1.8.0+
+ *
+ *  @example
+ *      var table = $('#example').dataTable( {
+ *        "scrollX": "100%"
+ *      } );
+ *      new $.fn.dataTable.fixedColumns( table );
+ */
+var FixedColumns = function ( dt, init ) {
+	var that = this;
+
+	/* Sanity check - you just know it will happen */
+	if ( ! ( this instanceof FixedColumns ) ) {
+		alert( "FixedColumns warning: FixedColumns must be initialised with the 'new' keyword." );
+		return;
+	}
+
+	if ( init === undefined || init === true ) {
+		init = {};
+	}
+
+	// Use the DataTables Hungarian notation mapping method, if it exists to
+	// provide forwards compatibility for camel case variables
+	var camelToHungarian = $.fn.dataTable.camelToHungarian;
+	if ( camelToHungarian ) {
+		camelToHungarian( FixedColumns.defaults, FixedColumns.defaults, true );
+		camelToHungarian( FixedColumns.defaults, init );
+	}
+
+	// v1.10 allows the settings object to be got form a number of sources
+	var dtSettings = new $.fn.dataTable.Api( dt ).settings()[0];
+
+	/**
+	 * Settings object which contains customisable information for FixedColumns instance
+	 * @namespace
+	 * @extends FixedColumns.defaults
+	 * @private
+	 */
+	this.s = {
+		/**
+		 * DataTables settings objects
+		 *  @type     object
+		 *  @default  Obtained from DataTables instance
+		 */
+		"dt": dtSettings,
+
+		/**
+		 * Number of columns in the DataTable - stored for quick access
+		 *  @type     int
+		 *  @default  Obtained from DataTables instance
+		 */
+		"iTableColumns": dtSettings.aoColumns.length,
+
+		/**
+		 * Original outer widths of the columns as rendered by DataTables - used to calculate
+		 * the FixedColumns grid bounding box
+		 *  @type     array.<int>
+		 *  @default  []
+		 */
+		"aiOuterWidths": [],
+
+		/**
+		 * Original inner widths of the columns as rendered by DataTables - used to apply widths
+		 * to the columns
+		 *  @type     array.<int>
+		 *  @default  []
+		 */
+		"aiInnerWidths": [],
+
+
+		/**
+		 * Is the document layout right-to-left
+		 * @type boolean
+		 */
+		rtl: $(dtSettings.nTable).css('direction') === 'rtl'
+	};
+
+
+	/**
+	 * DOM elements used by the class instance
+	 * @namespace
+	 * @private
+	 *
+	 */
+	this.dom = {
+		/**
+		 * DataTables scrolling element
+		 *  @type     node
+		 *  @default  null
+		 */
+		"scroller": null,
+
+		/**
+		 * DataTables header table
+		 *  @type     node
+		 *  @default  null
+		 */
+		"header": null,
+
+		/**
+		 * DataTables body table
+		 *  @type     node
+		 *  @default  null
+		 */
+		"body": null,
+
+		/**
+		 * DataTables footer table
+		 *  @type     node
+		 *  @default  null
+		 */
+		"footer": null,
+
+		/**
+		 * Display grid elements
+		 * @namespace
+		 */
+		"grid": {
+			/**
+			 * Grid wrapper. This is the container element for the 3x3 grid
+			 *  @type     node
+			 *  @default  null
+			 */
+			"wrapper": null,
+
+			/**
+			 * DataTables scrolling element. This element is the DataTables
+			 * component in the display grid (making up the main table - i.e.
+			 * not the fixed columns).
+			 *  @type     node
+			 *  @default  null
+			 */
+			"dt": null,
+
+			/**
+			 * Left fixed column grid components
+			 * @namespace
+			 */
+			"left": {
+				"wrapper": null,
+				"head": null,
+				"body": null,
+				"foot": null
+			},
+
+			/**
+			 * Right fixed column grid components
+			 * @namespace
+			 */
+			"right": {
+				"wrapper": null,
+				"head": null,
+				"body": null,
+				"foot": null
+			}
+		},
+
+		/**
+		 * Cloned table nodes
+		 * @namespace
+		 */
+		"clone": {
+			/**
+			 * Left column cloned table nodes
+			 * @namespace
+			 */
+			"left": {
+				/**
+				 * Cloned header table
+				 *  @type     node
+				 *  @default  null
+				 */
+				"header": null,
+
+				/**
+				 * Cloned body table
+				 *  @type     node
+				 *  @default  null
+				 */
+				"body": null,
+
+				/**
+				 * Cloned footer table
+				 *  @type     node
+				 *  @default  null
+				 */
+				"footer": null
+			},
+
+			/**
+			 * Right column cloned table nodes
+			 * @namespace
+			 */
+			"right": {
+				/**
+				 * Cloned header table
+				 *  @type     node
+				 *  @default  null
+				 */
+				"header": null,
+
+				/**
+				 * Cloned body table
+				 *  @type     node
+				 *  @default  null
+				 */
+				"body": null,
+
+				/**
+				 * Cloned footer table
+				 *  @type     node
+				 *  @default  null
+				 */
+				"footer": null
+			}
+		}
+	};
+
+	if ( dtSettings._oFixedColumns ) {
+		throw 'FixedColumns already initialised on this table';
+	}
+
+	/* Attach the instance to the DataTables instance so it can be accessed easily */
+	dtSettings._oFixedColumns = this;
+
+	/* Let's do it */
+	if ( ! dtSettings._bInitComplete )
+	{
+		dtSettings.oApi._fnCallbackReg( dtSettings, 'aoInitComplete', function () {
+			that._fnConstruct( init );
+		}, 'FixedColumns' );
+	}
+	else
+	{
+		this._fnConstruct( init );
+	}
+};
+
+
+
+$.extend( FixedColumns.prototype , {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Public methods
+	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+	/**
+	 * Update the fixed columns - including headers and footers. Note that FixedColumns will
+	 * automatically update the display whenever the host DataTable redraws.
+	 *  @returns {void}
+	 *  @example
+	 *      var table = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      var fc = new $.fn.dataTable.fixedColumns( table );
+	 *
+	 *      // at some later point when the table has been manipulated....
+	 *      fc.fnUpdate();
+	 */
+	"fnUpdate": function ()
+	{
+		this._fnDraw( true );
+	},
+
+
+	/**
+	 * Recalculate the resizes of the 3x3 grid that FixedColumns uses for display of the table.
+	 * This is useful if you update the width of the table container. Note that FixedColumns will
+	 * perform this function automatically when the window.resize event is fired.
+	 *  @returns {void}
+	 *  @example
+	 *      var table = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      var fc = new $.fn.dataTable.fixedColumns( table );
+	 *
+	 *      // Resize the table container and then have FixedColumns adjust its layout....
+	 *      $('#content').width( 1200 );
+	 *      fc.fnRedrawLayout();
+	 */
+	"fnRedrawLayout": function ()
+	{
+		this._fnColCalc();
+		this._fnGridLayout();
+		this.fnUpdate();
+	},
+
+
+	/**
+	 * Mark a row such that it's height should be recalculated when using 'semiauto' row
+	 * height matching. This function will have no effect when 'none' or 'auto' row height
+	 * matching is used.
+	 *  @param   {Node} nTr TR element that should have it's height recalculated
+	 *  @returns {void}
+	 *  @example
+	 *      var table = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      var fc = new $.fn.dataTable.fixedColumns( table );
+	 *
+	 *      // manipulate the table - mark the row as needing an update then update the table
+	 *      // this allows the redraw performed by DataTables fnUpdate to recalculate the row
+	 *      // height
+	 *      fc.fnRecalculateHeight();
+	 *      table.fnUpdate( $('#example tbody tr:eq(0)')[0], ["insert date", 1, 2, 3 ... ]);
+	 */
+	"fnRecalculateHeight": function ( nTr )
+	{
+		delete nTr._DTTC_iHeight;
+		nTr.style.height = 'auto';
+	},
+
+
+	/**
+	 * Set the height of a given row - provides cross browser compatibility
+	 *  @param   {Node} nTarget TR element that should have it's height recalculated
+	 *  @param   {int} iHeight Height in pixels to set
+	 *  @returns {void}
+	 *  @example
+	 *      var table = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      var fc = new $.fn.dataTable.fixedColumns( table );
+	 *
+	 *      // You may want to do this after manipulating a row in the fixed column
+	 *      fc.fnSetRowHeight( $('#example tbody tr:eq(0)')[0], 50 );
+	 */
+	"fnSetRowHeight": function ( nTarget, iHeight )
+	{
+		nTarget.style.height = iHeight+"px";
+	},
+
+
+	/**
+	 * Get data index information about a row or cell in the table body.
+	 * This function is functionally identical to fnGetPosition in DataTables,
+	 * taking the same parameter (TH, TD or TR node) and returning exactly the
+	 * the same information (data index information). THe difference between
+	 * the two is that this method takes into account the fixed columns in the
+	 * table, so you can pass in nodes from the master table, or the cloned
+	 * tables and get the index position for the data in the main table.
+	 *  @param {node} node TR, TH or TD element to get the information about
+	 *  @returns {int} If nNode is given as a TR, then a single index is
+	 *    returned, or if given as a cell, an array of [row index, column index
+	 *    (visible), column index (all)] is given.
+	 */
+	"fnGetPosition": function ( node )
+	{
+		var idx;
+		var inst = this.s.dt.oInstance;
+
+		if ( ! $(node).parents('.DTFC_Cloned').length )
+		{
+			// Not in a cloned table
+			return inst.fnGetPosition( node );
+		}
+		else
+		{
+			// Its in the cloned table, so need to look up position
+			if ( node.nodeName.toLowerCase() === 'tr' ) {
+				idx = $(node).index();
+				return inst.fnGetPosition( $('tr', this.s.dt.nTBody)[ idx ] );
+			}
+			else
+			{
+				var colIdx = $(node).index();
+				idx = $(node.parentNode).index();
+				var row = inst.fnGetPosition( $('tr', this.s.dt.nTBody)[ idx ] );
+
+				return [
+					row,
+					colIdx,
+					inst.oApi._fnVisibleToColumnIndex( this.s.dt, colIdx )
+				];
+			}
+		}
+	},
+
+	fnToFixedNode: function ( rowIdx, colIdx )
+	{
+		var found;
+
+		if ( colIdx < this.s.iLeftColumns ) {
+			found = $(this.dom.clone.left.body).find('[data-dt-row='+rowIdx+'][data-dt-column='+colIdx+']');
+		}
+		else if ( colIdx >= this.s.iRightColumns ) {
+			found = $(this.dom.clone.right.body).find('[data-dt-row='+rowIdx+'][data-dt-column='+colIdx+']');
+		}
+
+		if ( found && found.length ) {
+			return found[0];
+		}
+
+		// Fallback - non-fixed node
+		var table = new $.fn.dataTable.Api(this.s.dt);
+		return table.cell(rowIdx, colIdx).node();
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods (they are of course public in JS, but recommended as private)
+	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+	/**
+	 * Initialisation for FixedColumns
+	 *  @param   {Object} oInit User settings for initialisation
+	 *  @returns {void}
+	 *  @private
+	 */
+	"_fnConstruct": function ( oInit )
+	{
+		var i, iLen, iWidth,
+			that = this;
+
+		/* Sanity checking */
+		if ( typeof this.s.dt.oInstance.fnVersionCheck != 'function' ||
+		     this.s.dt.oInstance.fnVersionCheck( '1.8.0' ) !== true )
+		{
+			alert( "FixedColumns "+FixedColumns.VERSION+" required DataTables 1.8.0 or later. "+
+				"Please upgrade your DataTables installation" );
+			return;
+		}
+
+		if ( this.s.dt.oScroll.sX === "" )
+		{
+			this.s.dt.oInstance.oApi._fnLog( this.s.dt, 1, "FixedColumns is not needed (no "+
+				"x-scrolling in DataTables enabled), so no action will be taken. Use 'FixedHeader' for "+
+				"column fixing when scrolling is not enabled" );
+			return;
+		}
+
+		/* Apply the settings from the user / defaults */
+		this.s = $.extend( true, this.s, FixedColumns.defaults, oInit );
+
+		/* Set up the DOM as we need it and cache nodes */
+		var classes = this.s.dt.oClasses;
+		this.dom.grid.dt = $(this.s.dt.nTable).parents('div.'+classes.sScrollWrapper)[0];
+		this.dom.scroller = $('div.'+classes.sScrollBody, this.dom.grid.dt )[0];
+
+		/* Set up the DOM that we want for the fixed column layout grid */
+		this._fnColCalc();
+		this._fnGridSetup();
+
+		/* Event handlers */
+		var mouseController;
+		var mouseDown = false;
+
+		// When the mouse is down (drag scroll) the mouse controller cannot
+		// change, as the browser keeps the original element as the scrolling one
+		$(this.s.dt.nTableWrapper).on( 'mousedown.DTFC', function (e) {
+			if ( e.button === 0 ) {
+				mouseDown = true;
+
+				$(document).one( 'mouseup', function () {
+					mouseDown = false;
+				} );
+			}
+		} );
+
+		// When the body is scrolled - scroll the left and right columns
+		$(this.dom.scroller)
+			.on( 'mouseover.DTFC touchstart.DTFC', function () {
+				if ( ! mouseDown ) {
+					mouseController = 'main';
+				}
+			} )
+			.on( 'scroll.DTFC', function (e) {
+				if ( ! mouseController && e.originalEvent ) {
+					mouseController = 'main';
+				}
+
+				if ( mouseController === 'main' || mouseController === 'key' ) {
+					if ( that.s.iLeftColumns > 0 ) {
+						that.dom.grid.left.liner.scrollTop = that.dom.scroller.scrollTop;
+					}
+					if ( that.s.iRightColumns > 0 ) {
+						that.dom.grid.right.liner.scrollTop = that.dom.scroller.scrollTop;
+					}
+				}
+			} );
+
+		var wheelType = 'onwheel' in document.createElement('div') ?
+			'wheel.DTFC' :
+			'mousewheel.DTFC';
+
+		if ( that.s.iLeftColumns > 0 ) {
+			// When scrolling the left column, scroll the body and right column
+			$(that.dom.grid.left.liner)
+				.on( 'mouseover.DTFC touchstart.DTFC', function () {
+					if ( ! mouseDown && mouseController !== 'key' ) {
+						mouseController = 'left';
+					}
+				} )
+				.on( 'scroll.DTFC', function ( e ) {
+					if ( ! mouseController && e.originalEvent ) {
+						mouseController = 'left';
+					}
+
+					if ( mouseController === 'left' ) {
+						that.dom.scroller.scrollTop = that.dom.grid.left.liner.scrollTop;
+						if ( that.s.iRightColumns > 0 ) {
+							that.dom.grid.right.liner.scrollTop = that.dom.grid.left.liner.scrollTop;
+						}
+					}
+				} )
+				.on( wheelType, function(e) {
+					mouseController = 'left';
+
+					// Pass horizontal scrolling through
+					var xDelta = e.type === 'wheel' ?
+						-e.originalEvent.deltaX :
+						e.originalEvent.wheelDeltaX;
+					that.dom.scroller.scrollLeft -= xDelta;
+				} );
+
+			// Header will not trigger scroll on left column, but might on `main` (sorting)
+			$(that.dom.grid.left.head).on( 'mouseover.DTFC touchstart.DTFC', function () {
+				mouseController = 'main';
+			});
+		}
+
+		if ( that.s.iRightColumns > 0 ) {
+			// When scrolling the right column, scroll the body and the left column
+			$(that.dom.grid.right.liner)
+				.on( 'mouseover.DTFC touchstart.DTFC', function () {
+					if ( ! mouseDown && mouseController !== 'key' ) {
+						mouseController = 'right';
+					}
+				} )
+				.on( 'scroll.DTFC', function ( e ) {
+					if ( ! mouseController && e.originalEvent ) {
+						mouseController = 'right';
+					}
+
+					if ( mouseController === 'right' ) {
+						that.dom.scroller.scrollTop = that.dom.grid.right.liner.scrollTop;
+						if ( that.s.iLeftColumns > 0 ) {
+							that.dom.grid.left.liner.scrollTop = that.dom.grid.right.liner.scrollTop;
+						}
+					}
+				} )
+				.on( wheelType, function(e) {
+					mouseController = 'right';
+
+					// Pass horizontal scrolling through
+					var xDelta = e.type === 'wheel' ?
+						-e.originalEvent.deltaX :
+						e.originalEvent.wheelDeltaX;
+					that.dom.scroller.scrollLeft -= xDelta;
+				} );
+
+			$(that.dom.grid.right.head).on( 'mouseover.DTFC touchstart.DTFC', function () {
+				mouseController = 'main';
+			});
+		}
+
+		$(window).on( 'resize.DTFC', function () {
+			that._fnGridLayout.call( that );
+		} );
+
+		var bFirstDraw = true;
+		var jqTable = $(this.s.dt.nTable);
+
+		jqTable
+			.on( 'draw.dt.DTFC', function () {
+				that._fnColCalc();
+				that._fnDraw.call( that, bFirstDraw );
+				bFirstDraw = false;
+			} )
+			.on('key-focus.dt.DTFC', function () {
+				// KeyTable navigation needs to be main focused
+				mouseController = 'key';
+			})
+			.on( 'column-sizing.dt.DTFC', function () {
+				that._fnColCalc();
+				that._fnGridLayout( that );
+			} )
+			.on( 'column-visibility.dt.DTFC', function ( e, settings, column, vis, recalc ) {
+				if ( recalc === undefined || recalc ) {
+					that._fnColCalc();
+					that._fnGridLayout( that );
+					that._fnDraw( true );
+				}
+			} )
+			.on( 'select.dt.DTFC deselect.dt.DTFC', function ( e, dt, type, indexes ) {
+				if ( e.namespace === 'dt' ) {
+					that._fnDraw( false );
+				}
+			} )
+			.on( 'position.dts.dt.DTFC', function (e, tableTop) {
+				// Sync up with Scroller
+				if (that.dom.grid.left.body) {
+					$(that.dom.grid.left.body).find('table').eq(0).css('top', tableTop);
+				}
+
+				if (that.dom.grid.right.body) {
+					$(that.dom.grid.right.body).find('table').eq(0).css('top', tableTop);
+				}
+			} )
+			.on( 'destroy.dt.DTFC', function () {
+				jqTable.off( '.DTFC' );
+
+				$(that.dom.scroller).off( '.DTFC' );
+				$(window).off( '.DTFC' );
+				$(that.s.dt.nTableWrapper).off( '.DTFC' );
+
+				$(that.dom.grid.left.liner).off( '.DTFC '+wheelType );
+				$(that.dom.grid.left.wrapper).remove();
+
+				$(that.dom.grid.right.liner).off( '.DTFC '+wheelType );
+				$(that.dom.grid.right.wrapper).remove();
+			} );
+
+		/* Get things right to start with - note that due to adjusting the columns, there must be
+		 * another redraw of the main table. It doesn't need to be a full redraw however.
+		 */
+		this._fnGridLayout();
+		this.s.dt.oInstance.fnDraw(false);
+	},
+
+
+	/**
+	 * Calculate the column widths for the grid layout
+	 *  @returns {void}
+	 *  @private
+	 */
+	"_fnColCalc": function ()
+	{
+		var that = this;
+		var iLeftWidth = 0;
+		var iRightWidth = 0;
+
+		this.s.aiInnerWidths = [];
+		this.s.aiOuterWidths = [];
+
+		$.each( this.s.dt.aoColumns, function (i, col) {
+			var th = $(col.nTh);
+			var border;
+
+			if ( ! th.filter(':visible').length ) {
+				that.s.aiInnerWidths.push( 0 );
+				that.s.aiOuterWidths.push( 0 );
+			}
+			else
+			{
+				// Inner width is used to assign widths to cells
+				// Outer width is used to calculate the container
+				var iWidth = th.outerWidth();
+
+				// When working with the left most-cell, need to add on the
+				// table's border to the outerWidth, since we need to take
+				// account of it, but it isn't in any cell
+				if ( that.s.aiOuterWidths.length === 0 ) {
+					border = $(that.s.dt.nTable).css('border-left-width');
+					iWidth += typeof border === 'string' && border.indexOf('px') === -1 ?
+						1 :
+						parseInt( border, 10 );
+				}
+
+				// Likewise with the final column on the right
+				if ( that.s.aiOuterWidths.length === that.s.dt.aoColumns.length-1 ) {
+					border = $(that.s.dt.nTable).css('border-right-width');
+					iWidth += typeof border === 'string' && border.indexOf('px') === -1 ?
+						1 :
+						parseInt( border, 10 );
+				}
+
+				that.s.aiOuterWidths.push( iWidth );
+				that.s.aiInnerWidths.push( th.width() );
+
+				if ( i < that.s.iLeftColumns )
+				{
+					iLeftWidth += iWidth;
+				}
+
+				if ( that.s.iTableColumns-that.s.iRightColumns <= i )
+				{
+					iRightWidth += iWidth;
+				}
+			}
+		} );
+
+		this.s.iLeftWidth = iLeftWidth;
+		this.s.iRightWidth = iRightWidth;
+	},
+
+
+	/**
+	 * Set up the DOM for the fixed column. The way the layout works is to create a 1x3 grid
+	 * for the left column, the DataTable (for which we just reuse the scrolling element DataTable
+	 * puts into the DOM) and the right column. In each of he two fixed column elements there is a
+	 * grouping wrapper element and then a head, body and footer wrapper. In each of these we then
+	 * place the cloned header, body or footer tables. This effectively gives as 3x3 grid structure.
+	 *  @returns {void}
+	 *  @private
+	 */
+	"_fnGridSetup": function ()
+	{
+		var that = this;
+		var oOverflow = this._fnDTOverflow();
+		var block;
+
+		this.dom.body = this.s.dt.nTable;
+		this.dom.header = this.s.dt.nTHead.parentNode;
+		this.dom.header.parentNode.parentNode.style.position = "relative";
+
+		var nSWrapper =
+			$('<div class="DTFC_ScrollWrapper" style="position:relative; clear:both;">'+
+				'<div class="DTFC_LeftWrapper" style="position:absolute; top:0; left:0;" aria-hidden="true">'+
+					'<div class="DTFC_LeftHeadWrapper" style="position:relative; top:0; left:0; overflow:hidden;"></div>'+
+					'<div class="DTFC_LeftBodyWrapper" style="position:relative; top:0; left:0; height:0; overflow:hidden;">'+
+						'<div class="DTFC_LeftBodyLiner" style="position:relative; top:0; left:0; overflow-y:scroll;"></div>'+
+					'</div>'+
+					'<div class="DTFC_LeftFootWrapper" style="position:relative; top:0; left:0; overflow:hidden;"></div>'+
+				'</div>'+
+				'<div class="DTFC_RightWrapper" style="position:absolute; top:0; right:0;" aria-hidden="true">'+
+					'<div class="DTFC_RightHeadWrapper" style="position:relative; top:0; left:0;">'+
+						'<div class="DTFC_RightHeadBlocker DTFC_Blocker" style="position:absolute; top:0; bottom:0;"></div>'+
+					'</div>'+
+					'<div class="DTFC_RightBodyWrapper" style="position:relative; top:0; left:0; height:0; overflow:hidden;">'+
+						'<div class="DTFC_RightBodyLiner" style="position:relative; top:0; left:0; overflow-y:scroll;"></div>'+
+					'</div>'+
+					'<div class="DTFC_RightFootWrapper" style="position:relative; top:0; left:0;">'+
+						'<div class="DTFC_RightFootBlocker DTFC_Blocker" style="position:absolute; top:0; bottom:0;"></div>'+
+					'</div>'+
+				'</div>'+
+			'</div>')[0];
+		var nLeft = nSWrapper.childNodes[0];
+		var nRight = nSWrapper.childNodes[1];
+
+		this.dom.grid.dt.parentNode.insertBefore( nSWrapper, this.dom.grid.dt );
+		nSWrapper.appendChild( this.dom.grid.dt );
+
+		this.dom.grid.wrapper = nSWrapper;
+
+		if ( this.s.iLeftColumns > 0 )
+		{
+			this.dom.grid.left.wrapper = nLeft;
+			this.dom.grid.left.head = nLeft.childNodes[0];
+			this.dom.grid.left.body = nLeft.childNodes[1];
+			this.dom.grid.left.liner = $('div.DTFC_LeftBodyLiner', nSWrapper)[0];
+
+			nSWrapper.appendChild( nLeft );
+		}
+
+		if ( this.s.iRightColumns > 0 )
+		{
+			this.dom.grid.right.wrapper = nRight;
+			this.dom.grid.right.head = nRight.childNodes[0];
+			this.dom.grid.right.body = nRight.childNodes[1];
+			this.dom.grid.right.liner = $('div.DTFC_RightBodyLiner', nSWrapper)[0];
+
+			nRight.style.right = oOverflow.bar+"px";
+
+			block = $('div.DTFC_RightHeadBlocker', nSWrapper)[0];
+			block.style.width = oOverflow.bar+"px";
+			block.style.right = -oOverflow.bar+"px";
+			this.dom.grid.right.headBlock = block;
+
+			block = $('div.DTFC_RightFootBlocker', nSWrapper)[0];
+			block.style.width = oOverflow.bar+"px";
+			block.style.right = -oOverflow.bar+"px";
+			this.dom.grid.right.footBlock = block;
+
+			nSWrapper.appendChild( nRight );
+		}
+
+		if ( this.s.dt.nTFoot )
+		{
+			this.dom.footer = this.s.dt.nTFoot.parentNode;
+			if ( this.s.iLeftColumns > 0 )
+			{
+				this.dom.grid.left.foot = nLeft.childNodes[2];
+			}
+			if ( this.s.iRightColumns > 0 )
+			{
+				this.dom.grid.right.foot = nRight.childNodes[2];
+			}
+		}
+
+		// RTL support - swap the position of the left and right columns (#48)
+		if ( this.s.rtl ) {
+			$('div.DTFC_RightHeadBlocker', nSWrapper).css( {
+				left: -oOverflow.bar+'px',
+				right: ''
+			} );
+		}
+	},
+
+
+	/**
+	 * Style and position the grid used for the FixedColumns layout
+	 *  @returns {void}
+	 *  @private
+	 */
+	"_fnGridLayout": function ()
+	{
+		var that = this;
+		var oGrid = this.dom.grid;
+		var iWidth = $(oGrid.wrapper).width();
+		var iBodyHeight = this.s.dt.nTable.parentNode.offsetHeight;
+		var iFullHeight = this.s.dt.nTable.parentNode.parentNode.offsetHeight;
+		var oOverflow = this._fnDTOverflow();
+		var iLeftWidth = this.s.iLeftWidth;
+		var iRightWidth = this.s.iRightWidth;
+		var rtl = $(this.dom.body).css('direction') === 'rtl';
+		var wrapper;
+		var scrollbarAdjust = function ( node, width ) {
+			if ( ! oOverflow.bar ) {
+				// If there is no scrollbar (Macs) we need to hide the auto scrollbar
+				node.style.width = (width+20)+"px";
+				node.style.paddingRight = "20px";
+				node.style.boxSizing = "border-box";
+			}
+			else if ( that._firefoxScrollError() ) {
+				// See the above function for why this is required
+				if ( $(node).height() > 34 ) {
+					node.style.width = (width+oOverflow.bar)+"px";
+				}
+			}
+			else {
+				// Otherwise just overflow by the scrollbar
+				node.style.width = (width+oOverflow.bar)+"px";
+			}
+		};
+
+		// When x scrolling - don't paint the fixed columns over the x scrollbar
+		if ( oOverflow.x )
+		{
+			iBodyHeight -= oOverflow.bar;
+		}
+
+		oGrid.wrapper.style.height = iFullHeight+"px";
+
+		if ( this.s.iLeftColumns > 0 )
+		{
+			wrapper = oGrid.left.wrapper;
+			wrapper.style.width = iLeftWidth+'px';
+			wrapper.style.height = '1px';
+
+			// Swap the position of the left and right columns for rtl (#48)
+			// This is always up against the edge, scrollbar on the far side
+			if ( rtl ) {
+				wrapper.style.left = '';
+				wrapper.style.right = 0;
+			}
+			else {
+				wrapper.style.left = 0;
+				wrapper.style.right = '';
+			}
+
+			oGrid.left.body.style.height = iBodyHeight+"px";
+			if ( oGrid.left.foot ) {
+				oGrid.left.foot.style.top = (oOverflow.x ? oOverflow.bar : 0)+"px"; // shift footer for scrollbar
+			}
+
+			scrollbarAdjust( oGrid.left.liner, iLeftWidth );
+			oGrid.left.liner.style.height = iBodyHeight+"px";
+			oGrid.left.liner.style.maxHeight = iBodyHeight+"px";
+		}
+
+		if ( this.s.iRightColumns > 0 )
+		{
+			wrapper = oGrid.right.wrapper;
+			wrapper.style.width = iRightWidth+'px';
+			wrapper.style.height = '1px';
+
+			// Need to take account of the vertical scrollbar
+			if ( this.s.rtl ) {
+				wrapper.style.left = oOverflow.y ? oOverflow.bar+'px' : 0;
+				wrapper.style.right = '';
+			}
+			else {
+				wrapper.style.left = '';
+				wrapper.style.right = oOverflow.y ? oOverflow.bar+'px' : 0;
+			}
+
+			oGrid.right.body.style.height = iBodyHeight+"px";
+			if ( oGrid.right.foot ) {
+				oGrid.right.foot.style.top = (oOverflow.x ? oOverflow.bar : 0)+"px";
+			}
+
+			scrollbarAdjust( oGrid.right.liner, iRightWidth );
+			oGrid.right.liner.style.height = iBodyHeight+"px";
+			oGrid.right.liner.style.maxHeight = iBodyHeight+"px";
+
+			oGrid.right.headBlock.style.display = oOverflow.y ? 'block' : 'none';
+			oGrid.right.footBlock.style.display = oOverflow.y ? 'block' : 'none';
+		}
+	},
+
+
+	/**
+	 * Get information about the DataTable's scrolling state - specifically if the table is scrolling
+	 * on either the x or y axis, and also the scrollbar width.
+	 *  @returns {object} Information about the DataTables scrolling state with the properties:
+	 *    'x', 'y' and 'bar'
+	 *  @private
+	 */
+	"_fnDTOverflow": function ()
+	{
+		var nTable = this.s.dt.nTable;
+		var nTableScrollBody = nTable.parentNode;
+		var out = {
+			"x": false,
+			"y": false,
+			"bar": this.s.dt.oScroll.iBarWidth
+		};
+
+		if ( nTable.offsetWidth > nTableScrollBody.clientWidth )
+		{
+			out.x = true;
+		}
+
+		if ( nTable.offsetHeight > nTableScrollBody.clientHeight )
+		{
+			out.y = true;
+		}
+
+		return out;
+	},
+
+
+	/**
+	 * Clone and position the fixed columns
+	 *  @returns {void}
+	 *  @param   {Boolean} bAll Indicate if the header and footer should be updated as well (true)
+	 *  @private
+	 */
+	"_fnDraw": function ( bAll )
+	{
+		this._fnGridLayout();
+		this._fnCloneLeft( bAll );
+		this._fnCloneRight( bAll );
+
+		$(this.dom.scroller).trigger('scroll');
+
+		/* Draw callback function */
+		if ( this.s.fnDrawCallback !== null )
+		{
+			this.s.fnDrawCallback.call( this, this.dom.clone.left, this.dom.clone.right );
+		}
+
+		/* Event triggering */
+		$(this).trigger( 'draw.dtfc', {
+			"leftClone": this.dom.clone.left,
+			"rightClone": this.dom.clone.right
+		} );
+	},
+
+
+	/**
+	 * Clone the right columns
+	 *  @returns {void}
+	 *  @param   {Boolean} bAll Indicate if the header and footer should be updated as well (true)
+	 *  @private
+	 */
+	"_fnCloneRight": function ( bAll )
+	{
+		if ( this.s.iRightColumns <= 0 ) {
+			return;
+		}
+
+		var that = this,
+			i, jq,
+			aiColumns = [];
+
+		for ( i=this.s.iTableColumns-this.s.iRightColumns ; i<this.s.iTableColumns ; i++ ) {
+			if ( this.s.dt.aoColumns[i].bVisible ) {
+				aiColumns.push( i );
+			}
+		}
+
+		this._fnClone( this.dom.clone.right, this.dom.grid.right, aiColumns, bAll );
+	},
+
+
+	/**
+	 * Clone the left columns
+	 *  @returns {void}
+	 *  @param   {Boolean} bAll Indicate if the header and footer should be updated as well (true)
+	 *  @private
+	 */
+	"_fnCloneLeft": function ( bAll )
+	{
+		if ( this.s.iLeftColumns <= 0 ) {
+			return;
+		}
+
+		var that = this,
+			i, jq,
+			aiColumns = [];
+
+		for ( i=0 ; i<this.s.iLeftColumns ; i++ ) {
+			if ( this.s.dt.aoColumns[i].bVisible ) {
+				aiColumns.push( i );
+			}
+		}
+
+		this._fnClone( this.dom.clone.left, this.dom.grid.left, aiColumns, bAll );
+	},
+
+
+	/**
+	 * Make a copy of the layout object for a header or footer element from DataTables. Note that
+	 * this method will clone the nodes in the layout object.
+	 *  @returns {Array} Copy of the layout array
+	 *  @param   {Object} aoOriginal Layout array from DataTables (aoHeader or aoFooter)
+	 *  @param   {Object} aiColumns Columns to copy
+	 *  @param   {boolean} events Copy cell events or not
+	 *  @private
+	 */
+	"_fnCopyLayout": function ( aoOriginal, aiColumns, events )
+	{
+		var aReturn = [];
+		var aClones = [];
+		var aCloned = [];
+
+		for ( var i=0, iLen=aoOriginal.length ; i<iLen ; i++ )
+		{
+			var aRow = [];
+			aRow.nTr = $(aoOriginal[i].nTr).clone(events, false)[0];
+
+			for ( var j=0, jLen=this.s.iTableColumns ; j<jLen ; j++ )
+			{
+				if ( $.inArray( j, aiColumns ) === -1 )
+				{
+					continue;
+				}
+
+				var iCloned = $.inArray( aoOriginal[i][j].cell, aCloned );
+				if ( iCloned === -1 )
+				{
+					var nClone = $(aoOriginal[i][j].cell).clone(events, false)[0];
+					aClones.push( nClone );
+					aCloned.push( aoOriginal[i][j].cell );
+
+					aRow.push( {
+						"cell": nClone,
+						"unique": aoOriginal[i][j].unique
+					} );
+				}
+				else
+				{
+					aRow.push( {
+						"cell": aClones[ iCloned ],
+						"unique": aoOriginal[i][j].unique
+					} );
+				}
+			}
+
+			aReturn.push( aRow );
+		}
+
+		return aReturn;
+	},
+
+
+	/**
+	 * Clone the DataTable nodes and place them in the DOM (sized correctly)
+	 *  @returns {void}
+	 *  @param   {Object} oClone Object containing the header, footer and body cloned DOM elements
+	 *  @param   {Object} oGrid Grid object containing the display grid elements for the cloned
+	 *                    column (left or right)
+	 *  @param   {Array} aiColumns Column indexes which should be operated on from the DataTable
+	 *  @param   {Boolean} bAll Indicate if the header and footer should be updated as well (true)
+	 *  @private
+	 */
+	"_fnClone": function ( oClone, oGrid, aiColumns, bAll )
+	{
+		var that = this,
+			i, iLen, j, jLen, jq, nTarget, iColumn, nClone, iIndex, aoCloneLayout,
+			jqCloneThead, aoFixedHeader,
+			dt = this.s.dt;
+
+		/*
+		 * Header
+		 */
+		if ( bAll )
+		{
+			$(oClone.header).remove();
+
+			oClone.header = $(this.dom.header).clone(true, false)[0];
+			oClone.header.className += " DTFC_Cloned";
+			oClone.header.style.width = "100%";
+			oGrid.head.appendChild( oClone.header );
+
+			/* Copy the DataTables layout cache for the header for our floating column */
+			aoCloneLayout = this._fnCopyLayout( dt.aoHeader, aiColumns, true );
+			jqCloneThead = $('>thead', oClone.header);
+			jqCloneThead.empty();
+
+			/* Add the created cloned TR elements to the table */
+			for ( i=0, iLen=aoCloneLayout.length ; i<iLen ; i++ )
+			{
+				jqCloneThead[0].appendChild( aoCloneLayout[i].nTr );
+			}
+
+			/* Use the handy _fnDrawHead function in DataTables to do the rowspan/colspan
+			 * calculations for us
+			 */
+			dt.oApi._fnDrawHead( dt, aoCloneLayout, true );
+		}
+		else
+		{
+			/* To ensure that we copy cell classes exactly, regardless of colspan, multiple rows
+			 * etc, we make a copy of the header from the DataTable again, but don't insert the
+			 * cloned cells, just copy the classes across. To get the matching layout for the
+			 * fixed component, we use the DataTables _fnDetectHeader method, allowing 1:1 mapping
+			 */
+			aoCloneLayout = this._fnCopyLayout( dt.aoHeader, aiColumns, false );
+			aoFixedHeader=[];
+
+			dt.oApi._fnDetectHeader( aoFixedHeader, $('>thead', oClone.header)[0] );
+
+			for ( i=0, iLen=aoCloneLayout.length ; i<iLen ; i++ )
+			{
+				for ( j=0, jLen=aoCloneLayout[i].length ; j<jLen ; j++ )
+				{
+					aoFixedHeader[i][j].cell.className = aoCloneLayout[i][j].cell.className;
+
+					// If jQuery UI theming is used we need to copy those elements as well
+					$('span.DataTables_sort_icon', aoFixedHeader[i][j].cell).each( function () {
+						this.className = $('span.DataTables_sort_icon', aoCloneLayout[i][j].cell)[0].className;
+					} );
+				}
+			}
+		}
+		this._fnEqualiseHeights( 'thead', this.dom.header, oClone.header );
+
+		/*
+		 * Body
+		 */
+		if ( this.s.sHeightMatch == 'auto' )
+		{
+			/* Remove any heights which have been applied already and let the browser figure it out */
+			$('>tbody>tr', that.dom.body).css('height', 'auto');
+		}
+
+		if ( oClone.body !== null )
+		{
+			$(oClone.body).remove();
+			oClone.body = null;
+		}
+
+		oClone.body = $(this.dom.body).clone(true)[0];
+		oClone.body.className += " DTFC_Cloned";
+		oClone.body.style.paddingBottom = dt.oScroll.iBarWidth+"px";
+		oClone.body.style.marginBottom = (dt.oScroll.iBarWidth*2)+"px"; /* For IE */
+		if ( oClone.body.getAttribute('id') !== null )
+		{
+			oClone.body.removeAttribute('id');
+		}
+
+		$('>thead>tr', oClone.body).empty();
+		$('>tfoot', oClone.body).remove();
+
+		var nBody = $('tbody', oClone.body)[0];
+		$(nBody).empty();
+		if ( dt.aiDisplay.length > 0 )
+		{
+			/* Copy the DataTables' header elements to force the column width in exactly the
+			 * same way that DataTables does it - have the header element, apply the width and
+			 * colapse it down
+			 */
+			var nInnerThead = $('>thead>tr', oClone.body)[0];
+			for ( iIndex=0 ; iIndex<aiColumns.length ; iIndex++ )
+			{
+				iColumn = aiColumns[iIndex];
+
+				nClone = $(dt.aoColumns[iColumn].nTh).clone(true)[0];
+				nClone.innerHTML = "";
+
+				var oStyle = nClone.style;
+				oStyle.paddingTop = "0";
+				oStyle.paddingBottom = "0";
+				oStyle.borderTopWidth = "0";
+				oStyle.borderBottomWidth = "0";
+				oStyle.height = 0;
+				oStyle.width = that.s.aiInnerWidths[iColumn]+"px";
+
+				nInnerThead.appendChild( nClone );
+			}
+
+			/* Add in the tbody elements, cloning form the master table */
+			$('>tbody>tr', that.dom.body).each( function (z) {
+				var i = that.s.dt.oFeatures.bServerSide===false ?
+					that.s.dt.aiDisplay[ that.s.dt._iDisplayStart+z ] : z;
+				var aTds = that.s.dt.aoData[ i ].anCells || $(this).children('td, th');
+
+				var n = this.cloneNode(false);
+				n.removeAttribute('id');
+				n.setAttribute( 'data-dt-row', i );
+
+				for ( iIndex=0 ; iIndex<aiColumns.length ; iIndex++ )
+				{
+					iColumn = aiColumns[iIndex];
+
+					if ( aTds.length > 0 )
+					{
+						nClone = $( aTds[iColumn] ).clone(true, true)[0];
+						nClone.removeAttribute( 'id' );
+						nClone.setAttribute( 'data-dt-row', i );
+						nClone.setAttribute( 'data-dt-column', iColumn );
+						n.appendChild( nClone );
+					}
+				}
+				nBody.appendChild( n );
+			} );
+		}
+		else
+		{
+			$('>tbody>tr', that.dom.body).each( function (z) {
+				nClone = this.cloneNode(true);
+				nClone.className += ' DTFC_NoData';
+				$('td', nClone).html('');
+				nBody.appendChild( nClone );
+			} );
+		}
+
+		oClone.body.style.width = "100%";
+		oClone.body.style.margin = "0";
+		oClone.body.style.padding = "0";
+
+		// Interop with Scroller - need to use a height forcing element in the
+		// scrolling area in the same way that Scroller does in the body scroll.
+		if ( dt.oScroller !== undefined )
+		{
+			var scrollerForcer = dt.oScroller.dom.force;
+
+			if ( ! oGrid.forcer ) {
+				oGrid.forcer = scrollerForcer.cloneNode( true );
+				oGrid.liner.appendChild( oGrid.forcer );
+			}
+			else {
+				oGrid.forcer.style.height = scrollerForcer.style.height;
+			}
+		}
+
+		oGrid.liner.appendChild( oClone.body );
+
+		this._fnEqualiseHeights( 'tbody', that.dom.body, oClone.body );
+
+		/*
+		 * Footer
+		 */
+		if ( dt.nTFoot !== null )
+		{
+			if ( bAll )
+			{
+				if ( oClone.footer !== null )
+				{
+					oClone.footer.parentNode.removeChild( oClone.footer );
+				}
+				oClone.footer = $(this.dom.footer).clone(true, true)[0];
+				oClone.footer.className += " DTFC_Cloned";
+				oClone.footer.style.width = "100%";
+				oGrid.foot.appendChild( oClone.footer );
+
+				/* Copy the footer just like we do for the header */
+				aoCloneLayout = this._fnCopyLayout( dt.aoFooter, aiColumns, true );
+				var jqCloneTfoot = $('>tfoot', oClone.footer);
+				jqCloneTfoot.empty();
+
+				for ( i=0, iLen=aoCloneLayout.length ; i<iLen ; i++ )
+				{
+					jqCloneTfoot[0].appendChild( aoCloneLayout[i].nTr );
+				}
+				dt.oApi._fnDrawHead( dt, aoCloneLayout, true );
+			}
+			else
+			{
+				aoCloneLayout = this._fnCopyLayout( dt.aoFooter, aiColumns, false );
+				var aoCurrFooter=[];
+
+				dt.oApi._fnDetectHeader( aoCurrFooter, $('>tfoot', oClone.footer)[0] );
+
+				for ( i=0, iLen=aoCloneLayout.length ; i<iLen ; i++ )
+				{
+					for ( j=0, jLen=aoCloneLayout[i].length ; j<jLen ; j++ )
+					{
+						aoCurrFooter[i][j].cell.className = aoCloneLayout[i][j].cell.className;
+					}
+				}
+			}
+			this._fnEqualiseHeights( 'tfoot', this.dom.footer, oClone.footer );
+		}
+
+		/* Equalise the column widths between the header footer and body - body get's priority */
+		var anUnique = dt.oApi._fnGetUniqueThs( dt, $('>thead', oClone.header)[0] );
+		$(anUnique).each( function (i) {
+			iColumn = aiColumns[i];
+			this.style.width = that.s.aiInnerWidths[iColumn]+"px";
+		} );
+
+		if ( that.s.dt.nTFoot !== null )
+		{
+			anUnique = dt.oApi._fnGetUniqueThs( dt, $('>tfoot', oClone.footer)[0] );
+			$(anUnique).each( function (i) {
+				iColumn = aiColumns[i];
+				this.style.width = that.s.aiInnerWidths[iColumn]+"px";
+			} );
+		}
+	},
+
+
+	/**
+	 * From a given table node (THEAD etc), get a list of TR direct child elements
+	 *  @param   {Node} nIn Table element to search for TR elements (THEAD, TBODY or TFOOT element)
+	 *  @returns {Array} List of TR elements found
+	 *  @private
+	 */
+	"_fnGetTrNodes": function ( nIn )
+	{
+		var aOut = [];
+		for ( var i=0, iLen=nIn.childNodes.length ; i<iLen ; i++ )
+		{
+			if ( nIn.childNodes[i].nodeName.toUpperCase() == "TR" )
+			{
+				aOut.push( nIn.childNodes[i] );
+			}
+		}
+		return aOut;
+	},
+
+
+	/**
+	 * Equalise the heights of the rows in a given table node in a cross browser way
+	 *  @returns {void}
+	 *  @param   {String} nodeName Node type - thead, tbody or tfoot
+	 *  @param   {Node} original Original node to take the heights from
+	 *  @param   {Node} clone Copy the heights to
+	 *  @private
+	 */
+	"_fnEqualiseHeights": function ( nodeName, original, clone )
+	{
+		if ( this.s.sHeightMatch == 'none' && nodeName !== 'thead' && nodeName !== 'tfoot' )
+		{
+			return;
+		}
+
+		var that = this,
+			i, iLen, iHeight, iHeight2, iHeightOriginal, iHeightClone,
+			rootOriginal = original.getElementsByTagName(nodeName)[0],
+			rootClone    = clone.getElementsByTagName(nodeName)[0],
+			jqBoxHack    = $('>'+nodeName+'>tr:eq(0)', original).children(':first'),
+			iBoxHack     = jqBoxHack.outerHeight() - jqBoxHack.height(),
+			anOriginal   = this._fnGetTrNodes( rootOriginal ),
+			anClone      = this._fnGetTrNodes( rootClone ),
+			heights      = [];
+
+		for ( i=0, iLen=anClone.length ; i<iLen ; i++ )
+		{
+			iHeightOriginal = anOriginal[i].offsetHeight;
+			iHeightClone = anClone[i].offsetHeight;
+			iHeight = iHeightClone > iHeightOriginal ? iHeightClone : iHeightOriginal;
+
+			if ( this.s.sHeightMatch == 'semiauto' )
+			{
+				anOriginal[i]._DTTC_iHeight = iHeight;
+			}
+
+			heights.push( iHeight );
+		}
+
+		for ( i=0, iLen=anClone.length ; i<iLen ; i++ )
+		{
+			anClone[i].style.height = heights[i]+"px";
+			anOriginal[i].style.height = heights[i]+"px";
+		}
+	},
+
+	/**
+	 * Determine if the UA suffers from Firefox's overflow:scroll scrollbars
+	 * not being shown bug.
+	 *
+	 * Firefox doesn't draw scrollbars, even if it is told to using
+	 * overflow:scroll, if the div is less than 34px height. See bugs 292284 and
+	 * 781885. Using UA detection here since this is particularly hard to detect
+	 * using objects - its a straight up rendering error in Firefox.
+	 *
+	 * @return {boolean} True if Firefox error is present, false otherwise
+	 */
+	_firefoxScrollError: function () {
+		if ( _firefoxScroll === undefined ) {
+			var test = $('<div/>')
+				.css( {
+					position: 'absolute',
+					top: 0,
+					left: 0,
+					height: 10,
+					width: 50,
+					overflow: 'scroll'
+				} )
+				.appendTo( 'body' );
+
+			// Make sure this doesn't apply on Macs with 0 width scrollbars
+			_firefoxScroll = (
+				test[0].clientWidth === test[0].offsetWidth && this._fnDTOverflow().bar !== 0
+			);
+
+			test.remove();
+		}
+
+		return _firefoxScroll;
+	}
+} );
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Statics
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/**
+ * FixedColumns default settings for initialisation
+ *  @name FixedColumns.defaults
+ *  @namespace
+ *  @static
+ */
+FixedColumns.defaults = /** @lends FixedColumns.defaults */{
+	/**
+	 * Number of left hand columns to fix in position
+	 *  @type     int
+	 *  @default  1
+	 *  @static
+	 *  @example
+	 *      var  = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      new $.fn.dataTable.fixedColumns( table, {
+	 *          "leftColumns": 2
+	 *      } );
+	 */
+	"iLeftColumns": 1,
+
+	/**
+	 * Number of right hand columns to fix in position
+	 *  @type     int
+	 *  @default  0
+	 *  @static
+	 *  @example
+	 *      var table = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      new $.fn.dataTable.fixedColumns( table, {
+	 *          "rightColumns": 1
+	 *      } );
+	 */
+	"iRightColumns": 0,
+
+	/**
+	 * Draw callback function which is called when FixedColumns has redrawn the fixed assets
+	 *  @type     function(object, object):void
+	 *  @default  null
+	 *  @static
+	 *  @example
+	 *      var table = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      new $.fn.dataTable.fixedColumns( table, {
+	 *          "drawCallback": function () {
+	 *	            alert( "FixedColumns redraw" );
+	 *	        }
+	 *      } );
+	 */
+	"fnDrawCallback": null,
+
+	/**
+	 * Height matching algorthim to use. This can be "none" which will result in no height
+	 * matching being applied by FixedColumns (height matching could be forced by CSS in this
+	 * case), "semiauto" whereby the height calculation will be performed once, and the result
+	 * cached to be used again (fnRecalculateHeight can be used to force recalculation), or
+	 * "auto" when height matching is performed on every draw (slowest but must accurate)
+	 *  @type     string
+	 *  @default  semiauto
+	 *  @static
+	 *  @example
+	 *      var table = $('#example').dataTable( {
+	 *          "scrollX": "100%"
+	 *      } );
+	 *      new $.fn.dataTable.fixedColumns( table, {
+	 *          "heightMatch": "auto"
+	 *      } );
+	 */
+	"sHeightMatch": "semiauto"
+};
+
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Constants
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/**
+ * FixedColumns version
+ *  @name      FixedColumns.version
+ *  @type      String
+ *  @default   See code
+ *  @static
+ */
+FixedColumns.version = "3.3.3";
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables API integration
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+DataTable.Api.register( 'fixedColumns()', function () {
+	return this;
+} );
+
+DataTable.Api.register( 'fixedColumns().update()', function () {
+	return this.iterator( 'table', function ( ctx ) {
+		if ( ctx._oFixedColumns ) {
+			ctx._oFixedColumns.fnUpdate();
+		}
+	} );
+} );
+
+DataTable.Api.register( 'fixedColumns().relayout()', function () {
+	return this.iterator( 'table', function ( ctx ) {
+		if ( ctx._oFixedColumns ) {
+			ctx._oFixedColumns.fnRedrawLayout();
+		}
+	} );
+} );
+
+DataTable.Api.register( 'rows().recalcHeight()', function () {
+	return this.iterator( 'row', function ( ctx, idx ) {
+		if ( ctx._oFixedColumns ) {
+			ctx._oFixedColumns.fnRecalculateHeight( this.row(idx).node() );
+		}
+	} );
+} );
+
+DataTable.Api.register( 'fixedColumns().rowIndex()', function ( row ) {
+	row = $(row);
+
+	return row.parents('.DTFC_Cloned').length ?
+		this.rows( { page: 'current' } ).indexes()[ row.index() ] :
+		this.row( row ).index();
+} );
+
+DataTable.Api.register( 'fixedColumns().cellIndex()', function ( cell ) {
+	cell = $(cell);
+
+	if ( cell.parents('.DTFC_Cloned').length ) {
+		var rowClonedIdx = cell.parent().index();
+		var rowIdx = this.rows( { page: 'current' } ).indexes()[ rowClonedIdx ];
+		var columnIdx;
+
+		if ( cell.parents('.DTFC_LeftWrapper').length ) {
+			columnIdx = cell.index();
+		}
+		else {
+			var columns = this.columns().flatten().length;
+			columnIdx = columns - this.context[0]._oFixedColumns.s.iRightColumns + cell.index();
+		}
+
+		return {
+			row: rowIdx,
+			column: this.column.index( 'toData', columnIdx ),
+			columnVisible: columnIdx
+		};
+	}
+	else {
+		return this.cell( cell ).index();
+	}
+} );
+
+DataTable.Api.registerPlural( 'cells().fixedNodes()', 'cell().fixedNode()', function () {
+	return this.iterator( 'cell', function ( settings, row, column ) {
+		return settings._oFixedColumns
+			? settings._oFixedColumns.fnToFixedNode( row, column )
+			: this.cell(row, column).node();
+	}, 1 );
+} );
+
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Initialisation
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on( 'init.dt.fixedColumns', function (e, settings) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var init = settings.oInit.fixedColumns;
+	var defaults = DataTable.defaults.fixedColumns;
+
+	if ( init || defaults ) {
+		var opts = $.extend( {}, init, defaults );
+
+		if ( init !== false ) {
+			new FixedColumns( settings, opts );
+		}
+	}
+} );
+
+
+
+// Make FixedColumns accessible from the DataTables instance
+$.fn.dataTable.FixedColumns = FixedColumns;
+$.fn.DataTable.FixedColumns = FixedColumns;
+
+return FixedColumns;
+}));
+
+/*!
+ FixedColumns 3.3.3
+ ©2010-2021 SpryMedia Ltd - datatables.net/license
+*/
+(function(d){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(p){return d(p,window,document)}):"object"===typeof exports?module.exports=function(p,r){p||(p=window);if(!r||!r.fn.dataTable)r=require("datatables.net")(p,r).$;return d(r,p,p.document)}:d(jQuery,window,document)})(function(d,p,r,t){var s=d.fn.dataTable,u,m=function(a,b){var c=this;if(this instanceof m){if(b===t||!0===b)b={};var e=d.fn.dataTable.camelToHungarian;e&&(e(m.defaults,m.defaults,!0),e(m.defaults,
+b));e=(new d.fn.dataTable.Api(a)).settings()[0];this.s={dt:e,iTableColumns:e.aoColumns.length,aiOuterWidths:[],aiInnerWidths:[],rtl:"rtl"===d(e.nTable).css("direction")};this.dom={scroller:null,header:null,body:null,footer:null,grid:{wrapper:null,dt:null,left:{wrapper:null,head:null,body:null,foot:null},right:{wrapper:null,head:null,body:null,foot:null}},clone:{left:{header:null,body:null,footer:null},right:{header:null,body:null,footer:null}}};if(e._oFixedColumns)throw"FixedColumns already initialised on this table";
+e._oFixedColumns=this;e._bInitComplete?this._fnConstruct(b):e.oApi._fnCallbackReg(e,"aoInitComplete",function(){c._fnConstruct(b)},"FixedColumns")}else alert("FixedColumns warning: FixedColumns must be initialised with the 'new' keyword.")};d.extend(m.prototype,{fnUpdate:function(){this._fnDraw(!0)},fnRedrawLayout:function(){this._fnColCalc();this._fnGridLayout();this.fnUpdate()},fnRecalculateHeight:function(a){delete a._DTTC_iHeight;a.style.height="auto"},fnSetRowHeight:function(a,b){a.style.height=
+b+"px"},fnGetPosition:function(a){var b=this.s.dt.oInstance;if(d(a).parents(".DTFC_Cloned").length){if("tr"===a.nodeName.toLowerCase())return a=d(a).index(),b.fnGetPosition(d("tr",this.s.dt.nTBody)[a]);var c=d(a).index(),a=d(a.parentNode).index();return[b.fnGetPosition(d("tr",this.s.dt.nTBody)[a]),c,b.oApi._fnVisibleToColumnIndex(this.s.dt,c)]}return b.fnGetPosition(a)},fnToFixedNode:function(a,b){var c;b<this.s.iLeftColumns?c=d(this.dom.clone.left.body).find("[data-dt-row="+a+"][data-dt-column="+
+b+"]"):b>=this.s.iRightColumns&&(c=d(this.dom.clone.right.body).find("[data-dt-row="+a+"][data-dt-column="+b+"]"));return c&&c.length?c[0]:(new d.fn.dataTable.Api(this.s.dt)).cell(a,b).node()},_fnConstruct:function(a){var b=this;if("function"!=typeof this.s.dt.oInstance.fnVersionCheck||!0!==this.s.dt.oInstance.fnVersionCheck("1.8.0"))alert("FixedColumns "+m.VERSION+" required DataTables 1.8.0 or later. Please upgrade your DataTables installation");else if(""===this.s.dt.oScroll.sX)this.s.dt.oInstance.oApi._fnLog(this.s.dt,
+1,"FixedColumns is not needed (no x-scrolling in DataTables enabled), so no action will be taken. Use 'FixedHeader' for column fixing when scrolling is not enabled");else{this.s=d.extend(!0,this.s,m.defaults,a);a=this.s.dt.oClasses;this.dom.grid.dt=d(this.s.dt.nTable).parents("div."+a.sScrollWrapper)[0];this.dom.scroller=d("div."+a.sScrollBody,this.dom.grid.dt)[0];this._fnColCalc();this._fnGridSetup();var c,e=!1;d(this.s.dt.nTableWrapper).on("mousedown.DTFC",function(a){0===a.button&&(e=!0,d(r).one("mouseup",
+function(){e=!1}))});d(this.dom.scroller).on("mouseover.DTFC touchstart.DTFC",function(){e||(c="main")}).on("scroll.DTFC",function(a){!c&&a.originalEvent&&(c="main");if("main"===c||"key"===c)if(0<b.s.iLeftColumns&&(b.dom.grid.left.liner.scrollTop=b.dom.scroller.scrollTop),0<b.s.iRightColumns)b.dom.grid.right.liner.scrollTop=b.dom.scroller.scrollTop});var f="onwheel"in r.createElement("div")?"wheel.DTFC":"mousewheel.DTFC";0<b.s.iLeftColumns&&(d(b.dom.grid.left.liner).on("mouseover.DTFC touchstart.DTFC",
+function(){!e&&"key"!==c&&(c="left")}).on("scroll.DTFC",function(a){!c&&a.originalEvent&&(c="left");"left"===c&&(b.dom.scroller.scrollTop=b.dom.grid.left.liner.scrollTop,0<b.s.iRightColumns&&(b.dom.grid.right.liner.scrollTop=b.dom.grid.left.liner.scrollTop))}).on(f,function(a){c="left";b.dom.scroller.scrollLeft-="wheel"===a.type?-a.originalEvent.deltaX:a.originalEvent.wheelDeltaX}),d(b.dom.grid.left.head).on("mouseover.DTFC touchstart.DTFC",function(){c="main"}));0<b.s.iRightColumns&&(d(b.dom.grid.right.liner).on("mouseover.DTFC touchstart.DTFC",
+function(){!e&&c!=="key"&&(c="right")}).on("scroll.DTFC",function(a){!c&&a.originalEvent&&(c="right");if(c==="right"){b.dom.scroller.scrollTop=b.dom.grid.right.liner.scrollTop;if(b.s.iLeftColumns>0)b.dom.grid.left.liner.scrollTop=b.dom.grid.right.liner.scrollTop}}).on(f,function(a){c="right";b.dom.scroller.scrollLeft=b.dom.scroller.scrollLeft-(a.type==="wheel"?-a.originalEvent.deltaX:a.originalEvent.wheelDeltaX)}),d(b.dom.grid.right.head).on("mouseover.DTFC touchstart.DTFC",function(){c="main"}));
+d(p).on("resize.DTFC",function(){b._fnGridLayout.call(b)});var g=!0,h=d(this.s.dt.nTable);h.on("draw.dt.DTFC",function(){b._fnColCalc();b._fnDraw.call(b,g);g=false}).on("key-focus.dt.DTFC",function(){c="key"}).on("column-sizing.dt.DTFC",function(){b._fnColCalc();b._fnGridLayout(b)}).on("column-visibility.dt.DTFC",function(a,c,d,e,f){if(f===t||f){b._fnColCalc();b._fnGridLayout(b);b._fnDraw(true)}}).on("select.dt.DTFC deselect.dt.DTFC",function(a){a.namespace==="dt"&&b._fnDraw(false)}).on("position.dts.dt.DTFC",
+function(a,c){b.dom.grid.left.body&&d(b.dom.grid.left.body).find("table").eq(0).css("top",c);b.dom.grid.right.body&&d(b.dom.grid.right.body).find("table").eq(0).css("top",c)}).on("destroy.dt.DTFC",function(){h.off(".DTFC");d(b.dom.scroller).off(".DTFC");d(p).off(".DTFC");d(b.s.dt.nTableWrapper).off(".DTFC");d(b.dom.grid.left.liner).off(".DTFC "+f);d(b.dom.grid.left.wrapper).remove();d(b.dom.grid.right.liner).off(".DTFC "+f);d(b.dom.grid.right.wrapper).remove()});this._fnGridLayout();this.s.dt.oInstance.fnDraw(!1)}},
+_fnColCalc:function(){var a=this,b=0,c=0;this.s.aiInnerWidths=[];this.s.aiOuterWidths=[];d.each(this.s.dt.aoColumns,function(e,f){var g=d(f.nTh),h;if(g.filter(":visible").length){var i=g.outerWidth();0===a.s.aiOuterWidths.length&&(h=d(a.s.dt.nTable).css("border-left-width"),i+="string"===typeof h&&-1===h.indexOf("px")?1:parseInt(h,10));a.s.aiOuterWidths.length===a.s.dt.aoColumns.length-1&&(h=d(a.s.dt.nTable).css("border-right-width"),i+="string"===typeof h&&-1===h.indexOf("px")?1:parseInt(h,10));
+a.s.aiOuterWidths.push(i);a.s.aiInnerWidths.push(g.width());e<a.s.iLeftColumns&&(b+=i);a.s.iTableColumns-a.s.iRightColumns<=e&&(c+=i)}else a.s.aiInnerWidths.push(0),a.s.aiOuterWidths.push(0)});this.s.iLeftWidth=b;this.s.iRightWidth=c},_fnGridSetup:function(){var a=this._fnDTOverflow(),b;this.dom.body=this.s.dt.nTable;this.dom.header=this.s.dt.nTHead.parentNode;this.dom.header.parentNode.parentNode.style.position="relative";var c=d('<div class="DTFC_ScrollWrapper" style="position:relative; clear:both;"><div class="DTFC_LeftWrapper" style="position:absolute; top:0; left:0;" aria-hidden="true"><div class="DTFC_LeftHeadWrapper" style="position:relative; top:0; left:0; overflow:hidden;"></div><div class="DTFC_LeftBodyWrapper" style="position:relative; top:0; left:0; height:0; overflow:hidden;"><div class="DTFC_LeftBodyLiner" style="position:relative; top:0; left:0; overflow-y:scroll;"></div></div><div class="DTFC_LeftFootWrapper" style="position:relative; top:0; left:0; overflow:hidden;"></div></div><div class="DTFC_RightWrapper" style="position:absolute; top:0; right:0;" aria-hidden="true"><div class="DTFC_RightHeadWrapper" style="position:relative; top:0; left:0;"><div class="DTFC_RightHeadBlocker DTFC_Blocker" style="position:absolute; top:0; bottom:0;"></div></div><div class="DTFC_RightBodyWrapper" style="position:relative; top:0; left:0; height:0; overflow:hidden;"><div class="DTFC_RightBodyLiner" style="position:relative; top:0; left:0; overflow-y:scroll;"></div></div><div class="DTFC_RightFootWrapper" style="position:relative; top:0; left:0;"><div class="DTFC_RightFootBlocker DTFC_Blocker" style="position:absolute; top:0; bottom:0;"></div></div></div></div>')[0],
+e=c.childNodes[0],f=c.childNodes[1];this.dom.grid.dt.parentNode.insertBefore(c,this.dom.grid.dt);c.appendChild(this.dom.grid.dt);this.dom.grid.wrapper=c;0<this.s.iLeftColumns&&(this.dom.grid.left.wrapper=e,this.dom.grid.left.head=e.childNodes[0],this.dom.grid.left.body=e.childNodes[1],this.dom.grid.left.liner=d("div.DTFC_LeftBodyLiner",c)[0],c.appendChild(e));0<this.s.iRightColumns&&(this.dom.grid.right.wrapper=f,this.dom.grid.right.head=f.childNodes[0],this.dom.grid.right.body=f.childNodes[1],this.dom.grid.right.liner=
+d("div.DTFC_RightBodyLiner",c)[0],f.style.right=a.bar+"px",b=d("div.DTFC_RightHeadBlocker",c)[0],b.style.width=a.bar+"px",b.style.right=-a.bar+"px",this.dom.grid.right.headBlock=b,b=d("div.DTFC_RightFootBlocker",c)[0],b.style.width=a.bar+"px",b.style.right=-a.bar+"px",this.dom.grid.right.footBlock=b,c.appendChild(f));if(this.s.dt.nTFoot&&(this.dom.footer=this.s.dt.nTFoot.parentNode,0<this.s.iLeftColumns&&(this.dom.grid.left.foot=e.childNodes[2]),0<this.s.iRightColumns))this.dom.grid.right.foot=f.childNodes[2];
+this.s.rtl&&d("div.DTFC_RightHeadBlocker",c).css({left:-a.bar+"px",right:""})},_fnGridLayout:function(){var a=this,b=this.dom.grid;d(b.wrapper).width();var c=this.s.dt.nTable.parentNode.offsetHeight,e=this.s.dt.nTable.parentNode.parentNode.offsetHeight,f=this._fnDTOverflow(),g=this.s.iLeftWidth,h=this.s.iRightWidth,i="rtl"===d(this.dom.body).css("direction"),j=function(b,c){f.bar?a._firefoxScrollError()?34<d(b).height()&&(b.style.width=c+f.bar+"px"):b.style.width=c+f.bar+"px":(b.style.width=c+20+
+"px",b.style.paddingRight="20px",b.style.boxSizing="border-box")};f.x&&(c-=f.bar);b.wrapper.style.height=e+"px";0<this.s.iLeftColumns&&(e=b.left.wrapper,e.style.width=g+"px",e.style.height="1px",i?(e.style.left="",e.style.right=0):(e.style.left=0,e.style.right=""),b.left.body.style.height=c+"px",b.left.foot&&(b.left.foot.style.top=(f.x?f.bar:0)+"px"),j(b.left.liner,g),b.left.liner.style.height=c+"px",b.left.liner.style.maxHeight=c+"px");0<this.s.iRightColumns&&(e=b.right.wrapper,e.style.width=h+"px",
+e.style.height="1px",this.s.rtl?(e.style.left=f.y?f.bar+"px":0,e.style.right=""):(e.style.left="",e.style.right=f.y?f.bar+"px":0),b.right.body.style.height=c+"px",b.right.foot&&(b.right.foot.style.top=(f.x?f.bar:0)+"px"),j(b.right.liner,h),b.right.liner.style.height=c+"px",b.right.liner.style.maxHeight=c+"px",b.right.headBlock.style.display=f.y?"block":"none",b.right.footBlock.style.display=f.y?"block":"none")},_fnDTOverflow:function(){var a=this.s.dt.nTable,b=a.parentNode,c={x:!1,y:!1,bar:this.s.dt.oScroll.iBarWidth};
+a.offsetWidth>b.clientWidth&&(c.x=!0);a.offsetHeight>b.clientHeight&&(c.y=!0);return c},_fnDraw:function(a){this._fnGridLayout();this._fnCloneLeft(a);this._fnCloneRight(a);d(this.dom.scroller).trigger("scroll");null!==this.s.fnDrawCallback&&this.s.fnDrawCallback.call(this,this.dom.clone.left,this.dom.clone.right);d(this).trigger("draw.dtfc",{leftClone:this.dom.clone.left,rightClone:this.dom.clone.right})},_fnCloneRight:function(a){if(!(0>=this.s.iRightColumns)){var b,c=[];for(b=this.s.iTableColumns-
+this.s.iRightColumns;b<this.s.iTableColumns;b++)this.s.dt.aoColumns[b].bVisible&&c.push(b);this._fnClone(this.dom.clone.right,this.dom.grid.right,c,a)}},_fnCloneLeft:function(a){if(!(0>=this.s.iLeftColumns)){var b,c=[];for(b=0;b<this.s.iLeftColumns;b++)this.s.dt.aoColumns[b].bVisible&&c.push(b);this._fnClone(this.dom.clone.left,this.dom.grid.left,c,a)}},_fnCopyLayout:function(a,b,c){for(var e=[],f=[],g=[],h=0,i=a.length;h<i;h++){var j=[];j.nTr=d(a[h].nTr).clone(c,!1)[0];for(var l=0,o=this.s.iTableColumns;l<
+o;l++)if(-1!==d.inArray(l,b)){var q=d.inArray(a[h][l].cell,g);-1===q?(q=d(a[h][l].cell).clone(c,!1)[0],f.push(q),g.push(a[h][l].cell),j.push({cell:q,unique:a[h][l].unique})):j.push({cell:f[q],unique:a[h][l].unique})}e.push(j)}return e},_fnClone:function(a,b,c,e){var f=this,g,h,i,j,l,o,q,n,m,k=this.s.dt;if(e){d(a.header).remove();a.header=d(this.dom.header).clone(!0,!1)[0];a.header.className+=" DTFC_Cloned";a.header.style.width="100%";b.head.appendChild(a.header);n=this._fnCopyLayout(k.aoHeader,c,
+!0);j=d(">thead",a.header);j.empty();g=0;for(h=n.length;g<h;g++)j[0].appendChild(n[g].nTr);k.oApi._fnDrawHead(k,n,!0)}else{n=this._fnCopyLayout(k.aoHeader,c,!1);m=[];k.oApi._fnDetectHeader(m,d(">thead",a.header)[0]);g=0;for(h=n.length;g<h;g++){i=0;for(j=n[g].length;i<j;i++)m[g][i].cell.className=n[g][i].cell.className,d("span.DataTables_sort_icon",m[g][i].cell).each(function(){this.className=d("span.DataTables_sort_icon",n[g][i].cell)[0].className})}}this._fnEqualiseHeights("thead",this.dom.header,
+a.header);"auto"==this.s.sHeightMatch&&d(">tbody>tr",f.dom.body).css("height","auto");null!==a.body&&(d(a.body).remove(),a.body=null);a.body=d(this.dom.body).clone(!0)[0];a.body.className+=" DTFC_Cloned";a.body.style.paddingBottom=k.oScroll.iBarWidth+"px";a.body.style.marginBottom=2*k.oScroll.iBarWidth+"px";null!==a.body.getAttribute("id")&&a.body.removeAttribute("id");d(">thead>tr",a.body).empty();d(">tfoot",a.body).remove();var p=d("tbody",a.body)[0];d(p).empty();if(0<k.aiDisplay.length){h=d(">thead>tr",
+a.body)[0];for(q=0;q<c.length;q++)l=c[q],o=d(k.aoColumns[l].nTh).clone(!0)[0],o.innerHTML="",j=o.style,j.paddingTop="0",j.paddingBottom="0",j.borderTopWidth="0",j.borderBottomWidth="0",j.height=0,j.width=f.s.aiInnerWidths[l]+"px",h.appendChild(o);d(">tbody>tr",f.dom.body).each(function(a){var a=f.s.dt.oFeatures.bServerSide===false?f.s.dt.aiDisplay[f.s.dt._iDisplayStart+a]:a,b=f.s.dt.aoData[a].anCells||d(this).children("td, th"),e=this.cloneNode(false);e.removeAttribute("id");e.setAttribute("data-dt-row",
+a);for(q=0;q<c.length;q++){l=c[q];if(b.length>0){o=d(b[l]).clone(true,true)[0];o.removeAttribute("id");o.setAttribute("data-dt-row",a);o.setAttribute("data-dt-column",l);e.appendChild(o)}}p.appendChild(e)})}else d(">tbody>tr",f.dom.body).each(function(){o=this.cloneNode(true);o.className=o.className+" DTFC_NoData";d("td",o).html("");p.appendChild(o)});a.body.style.width="100%";a.body.style.margin="0";a.body.style.padding="0";k.oScroller!==t&&(h=k.oScroller.dom.force,b.forcer?b.forcer.style.height=
+h.style.height:(b.forcer=h.cloneNode(!0),b.liner.appendChild(b.forcer)));b.liner.appendChild(a.body);this._fnEqualiseHeights("tbody",f.dom.body,a.body);if(null!==k.nTFoot){if(e){null!==a.footer&&a.footer.parentNode.removeChild(a.footer);a.footer=d(this.dom.footer).clone(!0,!0)[0];a.footer.className+=" DTFC_Cloned";a.footer.style.width="100%";b.foot.appendChild(a.footer);n=this._fnCopyLayout(k.aoFooter,c,!0);b=d(">tfoot",a.footer);b.empty();g=0;for(h=n.length;g<h;g++)b[0].appendChild(n[g].nTr);k.oApi._fnDrawHead(k,
+n,!0)}else{n=this._fnCopyLayout(k.aoFooter,c,!1);b=[];k.oApi._fnDetectHeader(b,d(">tfoot",a.footer)[0]);g=0;for(h=n.length;g<h;g++){i=0;for(j=n[g].length;i<j;i++)b[g][i].cell.className=n[g][i].cell.className}}this._fnEqualiseHeights("tfoot",this.dom.footer,a.footer)}b=k.oApi._fnGetUniqueThs(k,d(">thead",a.header)[0]);d(b).each(function(a){l=c[a];this.style.width=f.s.aiInnerWidths[l]+"px"});null!==f.s.dt.nTFoot&&(b=k.oApi._fnGetUniqueThs(k,d(">tfoot",a.footer)[0]),d(b).each(function(a){l=c[a];this.style.width=
+f.s.aiInnerWidths[l]+"px"}))},_fnGetTrNodes:function(a){for(var b=[],c=0,d=a.childNodes.length;c<d;c++)"TR"==a.childNodes[c].nodeName.toUpperCase()&&b.push(a.childNodes[c]);return b},_fnEqualiseHeights:function(a,b,c){if(!("none"==this.s.sHeightMatch&&"thead"!==a&&"tfoot"!==a)){var e,f,g=b.getElementsByTagName(a)[0],c=c.getElementsByTagName(a)[0],a=d(">"+a+">tr:eq(0)",b).children(":first");a.outerHeight();a.height();for(var g=this._fnGetTrNodes(g),b=this._fnGetTrNodes(c),h=[],c=0,a=b.length;c<a;c++)e=
+g[c].offsetHeight,f=b[c].offsetHeight,e=f>e?f:e,"semiauto"==this.s.sHeightMatch&&(g[c]._DTTC_iHeight=e),h.push(e);c=0;for(a=b.length;c<a;c++)b[c].style.height=h[c]+"px",g[c].style.height=h[c]+"px"}},_firefoxScrollError:function(){if(u===t){var a=d("<div/>").css({position:"absolute",top:0,left:0,height:10,width:50,overflow:"scroll"}).appendTo("body");u=a[0].clientWidth===a[0].offsetWidth&&0!==this._fnDTOverflow().bar;a.remove()}return u}});m.defaults={iLeftColumns:1,iRightColumns:0,fnDrawCallback:null,
+sHeightMatch:"semiauto"};m.version="3.3.3";s.Api.register("fixedColumns()",function(){return this});s.Api.register("fixedColumns().update()",function(){return this.iterator("table",function(a){a._oFixedColumns&&a._oFixedColumns.fnUpdate()})});s.Api.register("fixedColumns().relayout()",function(){return this.iterator("table",function(a){a._oFixedColumns&&a._oFixedColumns.fnRedrawLayout()})});s.Api.register("rows().recalcHeight()",function(){return this.iterator("row",function(a,b){a._oFixedColumns&&
+a._oFixedColumns.fnRecalculateHeight(this.row(b).node())})});s.Api.register("fixedColumns().rowIndex()",function(a){a=d(a);return a.parents(".DTFC_Cloned").length?this.rows({page:"current"}).indexes()[a.index()]:this.row(a).index()});s.Api.register("fixedColumns().cellIndex()",function(a){a=d(a);if(a.parents(".DTFC_Cloned").length){var b=a.parent().index(),b=this.rows({page:"current"}).indexes()[b],a=a.parents(".DTFC_LeftWrapper").length?a.index():this.columns().flatten().length-this.context[0]._oFixedColumns.s.iRightColumns+
+a.index();return{row:b,column:this.column.index("toData",a),columnVisible:a}}return this.cell(a).index()});s.Api.registerPlural("cells().fixedNodes()","cell().fixedNode()",function(){return this.iterator("cell",function(a,b,c){return a._oFixedColumns?a._oFixedColumns.fnToFixedNode(b,c):this.cell(b,c).node()},1)});d(r).on("init.dt.fixedColumns",function(a,b){if("dt"===a.namespace){var c=b.oInit.fixedColumns,e=s.defaults.fixedColumns;if(c||e)e=d.extend({},c,e),!1!==c&&new m(b,e)}});d.fn.dataTable.FixedColumns=
+m;return d.fn.DataTable.FixedColumns=m});
+
 /*! Bootstrap 4 styling wrapper for FixedColumns
  * ©2018 SpryMedia Ltd - datatables.net/license
  */
@@ -77315,6 +85908,763 @@ return $.fn.dataTable;
  ©2018 SpryMedia Ltd - datatables.net/license
 */
 (function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-fixedcolumns"],function(a){return c(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net-bs4")(a,b).$;b.fn.dataTable.FixedColumns||require("datatables.net-fixedcolumns")(a,b);return c(b,a,a.document)}:c(jQuery,window,document)})(function(c){return c.fn.dataTable});
+
+/*! FixedHeader 3.1.9
+ * ©2009-2021 SpryMedia Ltd - datatables.net/license
+ */
+
+/**
+ * @summary     FixedHeader
+ * @description Fix a table's header or footer, so it is always visible while
+ *              scrolling
+ * @version     3.1.9
+ * @file        dataTables.fixedHeader.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     www.sprymedia.co.uk/contact
+ * @copyright   Copyright 2009-2021 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+var _instCounter = 0;
+
+var FixedHeader = function ( dt, config ) {
+	// Sanity check - you just know it will happen
+	if ( ! (this instanceof FixedHeader) ) {
+		throw "FixedHeader must be initialised with the 'new' keyword.";
+	}
+
+	// Allow a boolean true for defaults
+	if ( config === true ) {
+		config = {};
+	}
+
+	dt = new DataTable.Api( dt );
+
+	this.c = $.extend( true, {}, FixedHeader.defaults, config );
+
+	this.s = {
+		dt: dt,
+		position: {
+			theadTop: 0,
+			tbodyTop: 0,
+			tfootTop: 0,
+			tfootBottom: 0,
+			width: 0,
+			left: 0,
+			tfootHeight: 0,
+			theadHeight: 0,
+			windowHeight: $(window).height(),
+			visible: true
+		},
+		headerMode: null,
+		footerMode: null,
+		autoWidth: dt.settings()[0].oFeatures.bAutoWidth,
+		namespace: '.dtfc'+(_instCounter++),
+		scrollLeft: {
+			header: -1,
+			footer: -1
+		},
+		enable: true
+	};
+
+	this.dom = {
+		floatingHeader: null,
+		thead: $(dt.table().header()),
+		tbody: $(dt.table().body()),
+		tfoot: $(dt.table().footer()),
+		header: {
+			host: null,
+			floating: null,
+			placeholder: null
+		},
+		footer: {
+			host: null,
+			floating: null,
+			placeholder: null
+		}
+	};
+
+	this.dom.header.host = this.dom.thead.parent();
+	this.dom.footer.host = this.dom.tfoot.parent();
+
+	var dtSettings = dt.settings()[0];
+	if ( dtSettings._fixedHeader ) {
+		throw "FixedHeader already initialised on table "+dtSettings.nTable.id;
+	}
+
+	dtSettings._fixedHeader = this;
+
+	this._constructor();
+};
+
+
+/*
+ * Variable: FixedHeader
+ * Purpose:  Prototype for FixedHeader
+ * Scope:    global
+ */
+$.extend( FixedHeader.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * API methods
+	 */
+
+	/**
+	 * Kill off FH and any events
+	 */
+	destroy: function () {
+		this.s.dt.off( '.dtfc' );
+		$(window).off( this.s.namespace );
+
+		if ( this.c.header ) {
+			this._modeChange( 'in-place', 'header', true );
+		}
+
+		if ( this.c.footer && this.dom.tfoot.length ) {
+			this._modeChange( 'in-place', 'footer', true );
+		}
+	},
+
+	/**
+	 * Enable / disable the fixed elements
+	 *
+	 * @param  {boolean} enable `true` to enable, `false` to disable
+	 */
+	enable: function ( enable, update )
+	{
+		this.s.enable = enable;
+
+		if ( update || update === undefined ) {
+			this._positions();
+			this._scroll( true );
+		}
+	},
+
+	/**
+	 * Get enabled status
+	 */
+	enabled: function ()
+	{
+		return this.s.enable;
+	},
+
+	/**
+	 * Set header offset
+	 *
+	 * @param  {int} new value for headerOffset
+	 */
+	headerOffset: function ( offset )
+	{
+		if ( offset !== undefined ) {
+			this.c.headerOffset = offset;
+			this.update();
+		}
+
+		return this.c.headerOffset;
+	},
+
+	/**
+	 * Set footer offset
+	 *
+	 * @param  {int} new value for footerOffset
+	 */
+	footerOffset: function ( offset )
+	{
+		if ( offset !== undefined ) {
+			this.c.footerOffset = offset;
+			this.update();
+		}
+
+		return this.c.footerOffset;
+	},
+
+
+	/**
+	 * Recalculate the position of the fixed elements and force them into place
+	 */
+	update: function ()
+	{
+		var table = this.s.dt.table().node();
+
+		if ( $(table).is(':visible') ) {
+			this.enable( true, false );
+		}
+		else {
+			this.enable( false, false );
+		}
+
+		this._positions();
+		this._scroll( true );
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * FixedHeader constructor - adding the required event listeners and
+	 * simple initialisation
+	 *
+	 * @private
+	 */
+	_constructor: function ()
+	{
+		var that = this;
+		var dt = this.s.dt;
+
+		$(window)
+			.on( 'scroll'+this.s.namespace, function () {
+				that._scroll();
+			} )
+			.on( 'resize'+this.s.namespace, DataTable.util.throttle( function () {
+				that.s.position.windowHeight = $(window).height();
+				that.update();
+			}, 50 ) );
+
+		var autoHeader = $('.fh-fixedHeader');
+		if ( ! this.c.headerOffset && autoHeader.length ) {
+			this.c.headerOffset = autoHeader.outerHeight();
+		}
+
+		var autoFooter = $('.fh-fixedFooter');
+		if ( ! this.c.footerOffset && autoFooter.length ) {
+			this.c.footerOffset = autoFooter.outerHeight();
+		}
+
+		dt.on( 'column-reorder.dt.dtfc column-visibility.dt.dtfc draw.dt.dtfc column-sizing.dt.dtfc responsive-display.dt.dtfc', function () {
+			that.update();
+		} );
+
+		dt.on( 'destroy.dtfc', function () {
+			that.destroy();
+		} );
+
+		this._positions();
+		this._scroll();
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Clone a fixed item to act as a place holder for the original element
+	 * which is moved into a clone of the table element, and moved around the
+	 * document to give the fixed effect.
+	 *
+	 * @param  {string}  item  'header' or 'footer'
+	 * @param  {boolean} force Force the clone to happen, or allow automatic
+	 *   decision (reuse existing if available)
+	 * @private
+	 */
+	_clone: function ( item, force )
+	{
+		var dt = this.s.dt;
+		var itemDom = this.dom[ item ];
+		var itemElement = item === 'header' ?
+			this.dom.thead :
+			this.dom.tfoot;
+
+		if ( ! force && itemDom.floating ) {
+			// existing floating element - reuse it
+			itemDom.floating.removeClass( 'fixedHeader-floating fixedHeader-locked' );
+		}
+		else {
+			if ( itemDom.floating ) {
+				itemDom.placeholder.remove();
+				this._unsize( item );
+				itemDom.floating.children().detach();
+				itemDom.floating.remove();
+			}
+
+			itemDom.floating = $( dt.table().node().cloneNode( false ) )
+				.css( 'table-layout', 'fixed' )
+				.attr( 'aria-hidden', 'true' )
+				.removeAttr( 'id' )
+				.append( itemElement )
+				.appendTo( 'body' );
+
+			// Insert a fake thead/tfoot into the DataTable to stop it jumping around
+			itemDom.placeholder = itemElement.clone( false );
+			itemDom.placeholder
+				.find( '*[id]' )
+				.removeAttr( 'id' );
+
+			itemDom.host.prepend( itemDom.placeholder );
+
+			// Clone widths
+			this._matchWidths( itemDom.placeholder, itemDom.floating );
+		}
+	},
+
+	/**
+	 * Copy widths from the cells in one element to another. This is required
+	 * for the footer as the footer in the main table takes its sizes from the
+	 * header columns. That isn't present in the footer so to have it still
+	 * align correctly, the sizes need to be copied over. It is also required
+	 * for the header when auto width is not enabled
+	 *
+	 * @param  {jQuery} from Copy widths from
+	 * @param  {jQuery} to   Copy widths to
+	 * @private
+	 */
+	_matchWidths: function ( from, to ) {
+		var get = function ( name ) {
+			return $(name, from)
+				.map( function () {
+					return $(this).css('width').replace(/[^\d\.]/g, '') * 1;
+				} ).toArray();
+		};
+
+		var set = function ( name, toWidths ) {
+			$(name, to).each( function ( i ) {
+				$(this).css( {
+					width: toWidths[i],
+					minWidth: toWidths[i]
+				} );
+			} );
+		};
+
+		var thWidths = get( 'th' );
+		var tdWidths = get( 'td' );
+
+		set( 'th', thWidths );
+		set( 'td', tdWidths );
+	},
+
+	/**
+	 * Remove assigned widths from the cells in an element. This is required
+	 * when inserting the footer back into the main table so the size is defined
+	 * by the header columns and also when auto width is disabled in the
+	 * DataTable.
+	 *
+	 * @param  {string} item The `header` or `footer`
+	 * @private
+	 */
+	_unsize: function ( item ) {
+		var el = this.dom[ item ].floating;
+
+		if ( el && (item === 'footer' || (item === 'header' && ! this.s.autoWidth)) ) {
+			$('th, td', el).css( {
+				width: '',
+				minWidth: ''
+			} );
+		}
+		else if ( el && item === 'header' ) {
+			$('th, td', el).css( 'min-width', '' );
+		}
+	},
+
+	/**
+	 * Reposition the floating elements to take account of horizontal page
+	 * scroll
+	 *
+	 * @param  {string} item       The `header` or `footer`
+	 * @param  {int}    scrollLeft Document scrollLeft
+	 * @private
+	 */
+	_horizontal: function ( item, scrollLeft )
+	{
+		var itemDom = this.dom[ item ];
+		var position = this.s.position;
+		var lastScrollLeft = this.s.scrollLeft;
+
+		if ( itemDom.floating && lastScrollLeft[ item ] !== scrollLeft ) {
+			itemDom.floating.css( 'left', position.left - scrollLeft );
+
+			lastScrollLeft[ item ] = scrollLeft;
+		}
+	},
+
+	/**
+	 * Change from one display mode to another. Each fixed item can be in one
+	 * of:
+	 *
+	 * * `in-place` - In the main DataTable
+	 * * `in` - Floating over the DataTable
+	 * * `below` - (Header only) Fixed to the bottom of the table body
+	 * * `above` - (Footer only) Fixed to the top of the table body
+	 *
+	 * @param  {string}  mode        Mode that the item should be shown in
+	 * @param  {string}  item        'header' or 'footer'
+	 * @param  {boolean} forceChange Force a redraw of the mode, even if already
+	 *     in that mode.
+	 * @private
+	 */
+	_modeChange: function ( mode, item, forceChange )
+	{
+		var dt = this.s.dt;
+		var itemDom = this.dom[ item ];
+		var position = this.s.position;
+
+		// It isn't trivial to add a !important css attribute...
+		var importantWidth = function (w) {
+			itemDom.floating.attr('style', function(i,s) {
+				return (s || '') + 'width: '+w+'px !important;';
+			});
+		};
+
+		// Record focus. Browser's will cause input elements to loose focus if
+		// they are inserted else where in the doc
+		var tablePart = this.dom[ item==='footer' ? 'tfoot' : 'thead' ];
+		var focus = $.contains( tablePart[0], document.activeElement ) ?
+			document.activeElement :
+			null;
+
+		if ( focus ) {
+			focus.blur();
+		}
+
+		if ( mode === 'in-place' ) {
+			// Insert the header back into the table's real header
+			if ( itemDom.placeholder ) {
+				itemDom.placeholder.remove();
+				itemDom.placeholder = null;
+			}
+
+			this._unsize( item );
+
+			if ( item === 'header' ) {
+				itemDom.host.prepend( tablePart );
+			}
+			else {
+				itemDom.host.append( tablePart );
+			}
+
+			if ( itemDom.floating ) {
+				itemDom.floating.remove();
+				itemDom.floating = null;
+			}
+		}
+		else if ( mode === 'in' ) {
+			// Remove the header from the read header and insert into a fixed
+			// positioned floating table clone
+			this._clone( item, forceChange );
+
+			itemDom.floating
+				.addClass( 'fixedHeader-floating' )
+				.css( item === 'header' ? 'top' : 'bottom', this.c[item+'Offset'] )
+				.css( 'left', position.left+'px' );
+
+			importantWidth(position.width);
+
+			if ( item === 'footer' ) {
+				itemDom.floating.css( 'top', '' );
+			}
+		}
+		else if ( mode === 'below' ) { // only used for the header
+			// Fix the position of the floating header at base of the table body
+			this._clone( item, forceChange );
+
+			itemDom.floating
+				.addClass( 'fixedHeader-locked' )
+				.css( 'top', position.tfootTop - position.theadHeight )
+				.css( 'left', position.left+'px' );
+
+			importantWidth(position.width);
+		}
+		else if ( mode === 'above' ) { // only used for the footer
+			// Fix the position of the floating footer at top of the table body
+			this._clone( item, forceChange );
+
+			itemDom.floating
+				.addClass( 'fixedHeader-locked' )
+				.css( 'top', position.tbodyTop )
+				.css( 'left', position.left+'px' );
+
+			importantWidth(position.width);
+		}
+
+		// Restore focus if it was lost
+		if ( focus && focus !== document.activeElement ) {
+			setTimeout( function () {
+				focus.focus();
+			}, 10 );
+		}
+
+		this.s.scrollLeft.header = -1;
+		this.s.scrollLeft.footer = -1;
+		this.s[item+'Mode'] = mode;
+	},
+
+	/**
+	 * Cache the positional information that is required for the mode
+	 * calculations that FixedHeader performs.
+	 *
+	 * @private
+	 */
+	_positions: function ()
+	{
+		var dt = this.s.dt;
+		var table = dt.table();
+		var position = this.s.position;
+		var dom = this.dom;
+		var tableNode = $(table.node());
+
+		// Need to use the header and footer that are in the main table,
+		// regardless of if they are clones, since they hold the positions we
+		// want to measure from
+		var thead = tableNode.children('thead');
+		var tfoot = tableNode.children('tfoot');
+		var tbody = dom.tbody;
+
+		position.visible = tableNode.is(':visible');
+		position.width = tableNode.outerWidth();
+		position.left = tableNode.offset().left;
+		position.theadTop = thead.offset().top;
+		position.tbodyTop = tbody.offset().top;
+		position.tbodyHeight = tbody.outerHeight();
+		position.theadHeight = position.tbodyTop - position.theadTop;
+
+		if ( tfoot.length ) {
+			position.tfootTop = tfoot.offset().top;
+			position.tfootBottom = position.tfootTop + tfoot.outerHeight();
+			position.tfootHeight = position.tfootBottom - position.tfootTop;
+		}
+		else {
+			position.tfootTop = position.tbodyTop + tbody.outerHeight();
+			position.tfootBottom = position.tfootTop;
+			position.tfootHeight = position.tfootTop;
+		}
+	},
+
+
+	/**
+	 * Mode calculation - determine what mode the fixed items should be placed
+	 * into.
+	 *
+	 * @param  {boolean} forceChange Force a redraw of the mode, even if already
+	 *     in that mode.
+	 * @private
+	 */
+	_scroll: function ( forceChange )
+	{
+		var windowTop = $(document).scrollTop();
+		var windowLeft = $(document).scrollLeft();
+		var position = this.s.position;
+		var headerMode, footerMode;
+
+		if ( this.c.header ) {
+			if ( ! this.s.enable ) {
+				headerMode = 'in-place';
+			}
+			else if ( ! position.visible || windowTop <= position.theadTop - this.c.headerOffset ) {
+				headerMode = 'in-place';
+			}
+			else if ( windowTop <= position.tfootTop - position.theadHeight - this.c.headerOffset ) {
+				headerMode = 'in';
+			}
+			else {
+				headerMode = 'below';
+			}
+
+			if ( forceChange || headerMode !== this.s.headerMode ) {
+				this._modeChange( headerMode, 'header', forceChange );
+			}
+
+			this._horizontal( 'header', windowLeft );
+		}
+
+		if ( this.c.footer && this.dom.tfoot.length ) {
+			if ( ! this.s.enable ) {
+				footerMode = 'in-place';
+			}
+			else if ( ! position.visible || windowTop + position.windowHeight >= position.tfootBottom + this.c.footerOffset ) {
+				footerMode = 'in-place';
+			}
+			else if ( position.windowHeight + windowTop > position.tbodyTop + position.tfootHeight + this.c.footerOffset ) {
+				footerMode = 'in';
+			}
+			else {
+				footerMode = 'above';
+			}
+
+			if ( forceChange || footerMode !== this.s.footerMode ) {
+				this._modeChange( footerMode, 'footer', forceChange );
+			}
+
+			this._horizontal( 'footer', windowLeft );
+		}
+	}
+} );
+
+
+/**
+ * Version
+ * @type {String}
+ * @static
+ */
+FixedHeader.version = "3.1.9";
+
+/**
+ * Defaults
+ * @type {Object}
+ * @static
+ */
+FixedHeader.defaults = {
+	header: true,
+	footer: false,
+	headerOffset: 0,
+	footerOffset: 0
+};
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables interfaces
+ */
+
+// Attach for constructor access
+$.fn.dataTable.FixedHeader = FixedHeader;
+$.fn.DataTable.FixedHeader = FixedHeader;
+
+
+// DataTables creation - check if the FixedHeader option has been defined on the
+// table and if so, initialise
+$(document).on( 'init.dt.dtfh', function (e, settings, json) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var init = settings.oInit.fixedHeader;
+	var defaults = DataTable.defaults.fixedHeader;
+
+	if ( (init || defaults) && ! settings._fixedHeader ) {
+		var opts = $.extend( {}, defaults, init );
+
+		if ( init !== false ) {
+			new FixedHeader( settings, opts );
+		}
+	}
+} );
+
+// DataTables API methods
+DataTable.Api.register( 'fixedHeader()', function () {} );
+
+DataTable.Api.register( 'fixedHeader.adjust()', function () {
+	return this.iterator( 'table', function ( ctx ) {
+		var fh = ctx._fixedHeader;
+
+		if ( fh ) {
+			fh.update();
+		}
+	} );
+} );
+
+DataTable.Api.register( 'fixedHeader.enable()', function ( flag ) {
+	return this.iterator( 'table', function ( ctx ) {
+		var fh = ctx._fixedHeader;
+
+		flag = ( flag !== undefined ? flag : true );
+		if ( fh && flag !== fh.enabled() ) {
+			fh.enable( flag );
+		}
+	} );
+} );
+
+DataTable.Api.register( 'fixedHeader.enabled()', function () {
+	if ( this.context.length ) {
+		var fh = this.context[0]._fixedHeader;
+
+		if ( fh ) {
+			return fh.enabled();
+		}
+	}
+
+	return false;
+} );
+
+DataTable.Api.register( 'fixedHeader.disable()', function ( ) {
+	return this.iterator( 'table', function ( ctx ) {
+		var fh = ctx._fixedHeader;
+
+		if ( fh && fh.enabled() ) {
+			fh.enable( false );
+		}
+	} );
+} );
+
+$.each( ['header', 'footer'], function ( i, el ) {
+	DataTable.Api.register( 'fixedHeader.'+el+'Offset()', function ( offset ) {
+		var ctx = this.context;
+
+		if ( offset === undefined ) {
+			return ctx.length && ctx[0]._fixedHeader ?
+				ctx[0]._fixedHeader[el +'Offset']() :
+				undefined;
+		}
+
+		return this.iterator( 'table', function ( ctx ) {
+			var fh = ctx._fixedHeader;
+
+			if ( fh ) {
+				fh[ el +'Offset' ]( offset );
+			}
+		} );
+	} );
+} );
+
+
+return FixedHeader;
+}));
+
+/*!
+ FixedHeader 3.1.9
+ ©2009-2021 SpryMedia Ltd - datatables.net/license
+*/
+(function(d){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(g){return d(g,window,document)}):"object"===typeof exports?module.exports=function(g,j){g||(g=window);if(!j||!j.fn.dataTable)j=require("datatables.net")(g,j).$;return d(j,g,g.document)}:d(jQuery,window,document)})(function(d,g,j,k){var i=d.fn.dataTable,l=0,h=function(a,b){if(!(this instanceof h))throw"FixedHeader must be initialised with the 'new' keyword.";!0===b&&(b={});a=new i.Api(a);this.c=d.extend(!0,
+{},h.defaults,b);this.s={dt:a,position:{theadTop:0,tbodyTop:0,tfootTop:0,tfootBottom:0,width:0,left:0,tfootHeight:0,theadHeight:0,windowHeight:d(g).height(),visible:!0},headerMode:null,footerMode:null,autoWidth:a.settings()[0].oFeatures.bAutoWidth,namespace:".dtfc"+l++,scrollLeft:{header:-1,footer:-1},enable:!0};this.dom={floatingHeader:null,thead:d(a.table().header()),tbody:d(a.table().body()),tfoot:d(a.table().footer()),header:{host:null,floating:null,placeholder:null},footer:{host:null,floating:null,
+placeholder:null}};this.dom.header.host=this.dom.thead.parent();this.dom.footer.host=this.dom.tfoot.parent();var e=a.settings()[0];if(e._fixedHeader)throw"FixedHeader already initialised on table "+e.nTable.id;e._fixedHeader=this;this._constructor()};d.extend(h.prototype,{destroy:function(){this.s.dt.off(".dtfc");d(g).off(this.s.namespace);this.c.header&&this._modeChange("in-place","header",!0);this.c.footer&&this.dom.tfoot.length&&this._modeChange("in-place","footer",!0)},enable:function(a,b){this.s.enable=
+a;if(b||b===k)this._positions(),this._scroll(!0)},enabled:function(){return this.s.enable},headerOffset:function(a){a!==k&&(this.c.headerOffset=a,this.update());return this.c.headerOffset},footerOffset:function(a){a!==k&&(this.c.footerOffset=a,this.update());return this.c.footerOffset},update:function(){var a=this.s.dt.table().node();d(a).is(":visible")?this.enable(!0,!1):this.enable(!1,!1);this._positions();this._scroll(!0)},_constructor:function(){var a=this,b=this.s.dt;d(g).on("scroll"+this.s.namespace,
+function(){a._scroll()}).on("resize"+this.s.namespace,i.util.throttle(function(){a.s.position.windowHeight=d(g).height();a.update()},50));var e=d(".fh-fixedHeader");!this.c.headerOffset&&e.length&&(this.c.headerOffset=e.outerHeight());e=d(".fh-fixedFooter");!this.c.footerOffset&&e.length&&(this.c.footerOffset=e.outerHeight());b.on("column-reorder.dt.dtfc column-visibility.dt.dtfc draw.dt.dtfc column-sizing.dt.dtfc responsive-display.dt.dtfc",function(){a.update()});b.on("destroy.dtfc",function(){a.destroy()});
+this._positions();this._scroll()},_clone:function(a,b){var e=this.s.dt,c=this.dom[a],f="header"===a?this.dom.thead:this.dom.tfoot;!b&&c.floating?c.floating.removeClass("fixedHeader-floating fixedHeader-locked"):(c.floating&&(c.placeholder.remove(),this._unsize(a),c.floating.children().detach(),c.floating.remove()),c.floating=d(e.table().node().cloneNode(!1)).css("table-layout","fixed").attr("aria-hidden","true").removeAttr("id").append(f).appendTo("body"),c.placeholder=f.clone(!1),c.placeholder.find("*[id]").removeAttr("id"),
+c.host.prepend(c.placeholder),this._matchWidths(c.placeholder,c.floating))},_matchWidths:function(a,b){var e=function(b){return d(b,a).map(function(){return 1*d(this).css("width").replace(/[^\d\.]/g,"")}).toArray()},c=function(a,c){d(a,b).each(function(a){d(this).css({width:c[a],minWidth:c[a]})})},f=e("th"),e=e("td");c("th",f);c("td",e)},_unsize:function(a){var b=this.dom[a].floating;b&&("footer"===a||"header"===a&&!this.s.autoWidth)?d("th, td",b).css({width:"",minWidth:""}):b&&"header"===a&&d("th, td",
+b).css("min-width","")},_horizontal:function(a,b){var e=this.dom[a],c=this.s.position,d=this.s.scrollLeft;e.floating&&d[a]!==b&&(e.floating.css("left",c.left-b),d[a]=b)},_modeChange:function(a,b,e){var c=this.dom[b],f=this.s.position,g=function(a){c.floating.attr("style",function(b,c){return(c||"")+"width: "+a+"px !important;"})},i=this.dom["footer"===b?"tfoot":"thead"],h=d.contains(i[0],j.activeElement)?j.activeElement:null;h&&h.blur();if("in-place"===a){if(c.placeholder&&(c.placeholder.remove(),
+c.placeholder=null),this._unsize(b),"header"===b?c.host.prepend(i):c.host.append(i),c.floating)c.floating.remove(),c.floating=null}else"in"===a?(this._clone(b,e),c.floating.addClass("fixedHeader-floating").css("header"===b?"top":"bottom",this.c[b+"Offset"]).css("left",f.left+"px"),g(f.width),"footer"===b&&c.floating.css("top","")):"below"===a?(this._clone(b,e),c.floating.addClass("fixedHeader-locked").css("top",f.tfootTop-f.theadHeight).css("left",f.left+"px"),g(f.width)):"above"===a&&(this._clone(b,
+e),c.floating.addClass("fixedHeader-locked").css("top",f.tbodyTop).css("left",f.left+"px"),g(f.width));h&&h!==j.activeElement&&setTimeout(function(){h.focus()},10);this.s.scrollLeft.header=-1;this.s.scrollLeft.footer=-1;this.s[b+"Mode"]=a},_positions:function(){var a=this.s.dt.table(),b=this.s.position,e=this.dom,a=d(a.node()),c=a.children("thead"),f=a.children("tfoot"),e=e.tbody;b.visible=a.is(":visible");b.width=a.outerWidth();b.left=a.offset().left;b.theadTop=c.offset().top;b.tbodyTop=e.offset().top;
+b.tbodyHeight=e.outerHeight();b.theadHeight=b.tbodyTop-b.theadTop;f.length?(b.tfootTop=f.offset().top,b.tfootBottom=b.tfootTop+f.outerHeight(),b.tfootHeight=b.tfootBottom-b.tfootTop):(b.tfootTop=b.tbodyTop+e.outerHeight(),b.tfootBottom=b.tfootTop,b.tfootHeight=b.tfootTop)},_scroll:function(a){var b=d(j).scrollTop(),e=d(j).scrollLeft(),c=this.s.position,f;this.c.header&&(f=this.s.enable?!c.visible||b<=c.theadTop-this.c.headerOffset?"in-place":b<=c.tfootTop-c.theadHeight-this.c.headerOffset?"in":"below":
+"in-place",(a||f!==this.s.headerMode)&&this._modeChange(f,"header",a),this._horizontal("header",e));this.c.footer&&this.dom.tfoot.length&&(b=this.s.enable?!c.visible||b+c.windowHeight>=c.tfootBottom+this.c.footerOffset?"in-place":c.windowHeight+b>c.tbodyTop+c.tfootHeight+this.c.footerOffset?"in":"above":"in-place",(a||b!==this.s.footerMode)&&this._modeChange(b,"footer",a),this._horizontal("footer",e))}});h.version="3.1.9";h.defaults={header:!0,footer:!1,headerOffset:0,footerOffset:0};d.fn.dataTable.FixedHeader=
+h;d.fn.DataTable.FixedHeader=h;d(j).on("init.dt.dtfh",function(a,b){if("dt"===a.namespace){var e=b.oInit.fixedHeader,c=i.defaults.fixedHeader;if((e||c)&&!b._fixedHeader)c=d.extend({},c,e),!1!==e&&new h(b,c)}});i.Api.register("fixedHeader()",function(){});i.Api.register("fixedHeader.adjust()",function(){return this.iterator("table",function(a){(a=a._fixedHeader)&&a.update()})});i.Api.register("fixedHeader.enable()",function(a){return this.iterator("table",function(b){b=b._fixedHeader;a=a!==k?a:!0;
+b&&a!==b.enabled()&&b.enable(a)})});i.Api.register("fixedHeader.enabled()",function(){if(this.context.length){var a=this.context[0]._fixedHeader;if(a)return a.enabled()}return!1});i.Api.register("fixedHeader.disable()",function(){return this.iterator("table",function(a){(a=a._fixedHeader)&&a.enabled()&&a.enable(!1)})});d.each(["header","footer"],function(a,b){i.Api.register("fixedHeader."+b+"Offset()",function(a){var c=this.context;return a===k?c.length&&c[0]._fixedHeader?c[0]._fixedHeader[b+"Offset"]():
+k:this.iterator("table",function(c){if(c=c._fixedHeader)c[b+"Offset"](a)})})});return h});
 
 /*! Bootstrap 4 styling wrapper for FixedHeader
  * ©2018 SpryMedia Ltd - datatables.net/license
@@ -77360,6 +86710,1349 @@ return $.fn.dataTable;
 */
 (function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-fixedheader"],function(a){return c(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net-bs4")(a,b).$;b.fn.dataTable.FixedHeader||require("datatables.net-fixedheader")(a,b);return c(b,a,a.document)}:c(jQuery,window,document)})(function(c){return c.fn.dataTable});
 
+/*! KeyTable 2.6.2
+ * ©2009-2021 SpryMedia Ltd - datatables.net/license
+ */
+
+/**
+ * @summary     KeyTable
+ * @description Spreadsheet like keyboard navigation for DataTables
+ * @version     2.6.2
+ * @file        dataTables.keyTable.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     www.sprymedia.co.uk/contact
+ * @copyright   Copyright 2009-2021 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+var namespaceCounter = 0;
+var editorNamespaceCounter = 0;
+
+
+var KeyTable = function ( dt, opts ) {
+	// Sanity check that we are using DataTables 1.10 or newer
+	if ( ! DataTable.versionCheck || ! DataTable.versionCheck( '1.10.8' ) ) {
+		throw 'KeyTable requires DataTables 1.10.8 or newer';
+	}
+
+	// User and defaults configuration object
+	this.c = $.extend( true, {},
+		DataTable.defaults.keyTable,
+		KeyTable.defaults,
+		opts
+	);
+
+	// Internal settings
+	this.s = {
+		/** @type {DataTable.Api} DataTables' API instance */
+		dt: new DataTable.Api( dt ),
+
+		enable: true,
+
+		/** @type {bool} Flag for if a draw is triggered by focus */
+		focusDraw: false,
+
+		/** @type {bool} Flag to indicate when waiting for a draw to happen.
+		  *   Will ignore key presses at this point
+		  */
+		waitingForDraw: false,
+
+		/** @type {object} Information about the last cell that was focused */
+		lastFocus: null,
+
+		/** @type {string} Unique namespace per instance */
+		namespace: '.keyTable-'+(namespaceCounter++),
+
+		/** @type {Node} Input element for tabbing into the table */
+		tabInput: null
+	};
+
+	// DOM items
+	this.dom = {
+
+	};
+
+	// Check if row reorder has already been initialised on this table
+	var settings = this.s.dt.settings()[0];
+	var exisiting = settings.keytable;
+	if ( exisiting ) {
+		return exisiting;
+	}
+
+	settings.keytable = this;
+	this._constructor();
+};
+
+
+$.extend( KeyTable.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * API methods for DataTables API interface
+	 */
+
+	/**
+	 * Blur the table's cell focus
+	 */
+	blur: function ()
+	{
+		this._blur();
+	},
+
+	/**
+	 * Enable cell focus for the table
+	 *
+	 * @param  {string} state Can be `true`, `false` or `-string navigation-only`
+	 */
+	enable: function ( state )
+	{
+		this.s.enable = state;
+	},
+
+	/**
+	 * Get enable status
+	 */
+	enabled: function () {
+		return this.s.enable;
+	},
+
+	/**
+	 * Focus on a cell
+	 * @param  {integer} row    Row index
+	 * @param  {integer} column Column index
+	 */
+	focus: function ( row, column )
+	{
+		this._focus( this.s.dt.cell( row, column ) );
+	},
+
+	/**
+	 * Is the cell focused
+	 * @param  {object} cell Cell index to check
+	 * @returns {boolean} true if focused, false otherwise
+	 */
+	focused: function ( cell )
+	{
+		var lastFocus = this.s.lastFocus;
+
+		if ( ! lastFocus ) {
+			return false;
+		}
+
+		var lastIdx = this.s.lastFocus.cell.index();
+		return cell.row === lastIdx.row && cell.column === lastIdx.column;
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * Initialise the KeyTable instance
+	 *
+	 * @private
+	 */
+	_constructor: function ()
+	{
+		this._tabInput();
+
+		var that = this;
+		var dt = this.s.dt;
+		var table = $( dt.table().node() );
+		var namespace = this.s.namespace;
+		var editorBlock = false;
+
+		// Need to be able to calculate the cell positions relative to the table
+		if ( table.css('position') === 'static' ) {
+			table.css( 'position', 'relative' );
+		}
+
+		// Click to focus
+		$( dt.table().body() ).on( 'click'+namespace, 'th, td', function (e) {
+			if ( that.s.enable === false ) {
+				return;
+			}
+
+			var cell = dt.cell( this );
+
+			if ( ! cell.any() ) {
+				return;
+			}
+
+			that._focus( cell, null, false, e );
+		} );
+
+		// Key events
+		$( document ).on( 'keydown'+namespace, function (e) {
+			if ( ! editorBlock ) {
+				that._key( e );
+			}
+		} );
+
+		// Click blur
+		if ( this.c.blurable ) {
+			$( document ).on( 'mousedown'+namespace, function ( e ) {
+				// Click on the search input will blur focus
+				if ( $(e.target).parents( '.dataTables_filter' ).length ) {
+					that._blur();
+				}
+
+				// If the click was inside the DataTables container, don't blur
+				if ( $(e.target).parents().filter( dt.table().container() ).length ) {
+					return;
+				}
+
+				// Don't blur in Editor form
+				if ( $(e.target).parents('div.DTE').length ) {
+					return;
+				}
+
+				// Or an Editor date input
+				if (
+					$(e.target).parents('div.editor-datetime').length ||
+					$(e.target).parents('div.dt-datetime').length
+				) {
+					return;
+				}
+
+				//If the click was inside the fixed columns container, don't blur
+				if ( $(e.target).parents().filter('.DTFC_Cloned').length ) {
+					return;
+				}
+
+				that._blur();
+			} );
+		}
+
+		if ( this.c.editor ) {
+			var editor = this.c.editor;
+
+			// Need to disable KeyTable when the main editor is shown
+			editor.on( 'open.keyTableMain', function (e, mode, action) {
+				if ( mode !== 'inline' && that.s.enable ) {
+					that.enable( false );
+
+					editor.one( 'close'+namespace, function () {
+						that.enable( true );
+					} );
+				}
+			} );
+
+			if ( this.c.editOnFocus ) {
+				dt.on( 'key-focus'+namespace+' key-refocus'+namespace, function ( e, dt, cell, orig ) {
+					that._editor( null, orig, true );
+				} );
+			}
+
+			// Activate Editor when a key is pressed (will be ignored, if
+			// already active).
+			dt.on( 'key'+namespace, function ( e, dt, key, cell, orig ) {
+				that._editor( key, orig, false );
+			} );
+
+			// Active editing on double click - it will already have focus from
+			// the click event handler above
+			$( dt.table().body() ).on( 'dblclick'+namespace, 'th, td', function (e) {
+				if ( that.s.enable === false ) {
+					return;
+				}
+
+				var cell = dt.cell( this );
+
+				if ( ! cell.any() ) {
+					return;
+				}
+
+				if ( that.s.lastFocus && this !== that.s.lastFocus.cell.node() ) {
+					return;
+				}
+
+				that._editor( null, e, true );
+			} );
+
+			// While Editor is busy processing, we don't want to process any key events
+			editor
+				.on('preSubmit', function () {
+					editorBlock = true;
+				} )
+				.on('preSubmitCancelled', function () {
+					editorBlock = false;
+				} )
+				.on('submitComplete', function () {
+					editorBlock = false;
+				} );
+		}
+
+		// Stave saving
+		if ( dt.settings()[0].oFeatures.bStateSave ) {
+			dt.on( 'stateSaveParams'+namespace, function (e, s, d) {
+				d.keyTable = that.s.lastFocus ?
+					that.s.lastFocus.cell.index() :
+					null;
+			} );
+		}
+
+		dt.on( 'column-visibility'+namespace, function (e) {
+			that._tabInput();
+		} );
+
+		// Redraw - retain focus on the current cell
+		dt.on( 'draw'+namespace, function (e) {
+			that._tabInput();
+
+			if ( that.s.focusDraw ) {
+				return;
+			}
+
+			var lastFocus = that.s.lastFocus;
+
+			if ( lastFocus ) {
+				var relative = that.s.lastFocus.relative;
+				var info = dt.page.info();
+				var row = relative.row + info.start;
+
+				if ( info.recordsDisplay === 0 ) {
+					return;
+				}
+
+				// Reverse if needed
+				if ( row >= info.recordsDisplay ) {
+					row = info.recordsDisplay - 1;
+				}
+
+				that._focus( row, relative.column, true, e );
+			}
+		} );
+
+		// Clipboard support
+		if ( this.c.clipboard ) {
+			this._clipboard();
+		}
+
+		dt.on( 'destroy'+namespace, function () {
+			that._blur( true );
+
+			// Event tidy up
+			dt.off( namespace );
+
+			$( dt.table().body() )
+				.off( 'click'+namespace, 'th, td' )
+				.off( 'dblclick'+namespace, 'th, td' );
+
+			$( document )
+				.off( 'mousedown'+namespace )
+				.off( 'keydown'+namespace )
+				.off( 'copy'+namespace )
+				.off( 'paste'+namespace );
+		} );
+
+		// Initial focus comes from state or options
+		var state = dt.state.loaded();
+
+		if ( state && state.keyTable ) {
+			// Wait until init is done
+			dt.one( 'init', function () {
+				var cell = dt.cell( state.keyTable );
+
+				// Ensure that the saved cell still exists
+				if ( cell.any() ) {
+					cell.focus();
+				}
+			} );
+		}
+		else if ( this.c.focus ) {
+			dt.cell( this.c.focus ).focus();
+		}
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Blur the control
+	 *
+	 * @param {boolean} [noEvents=false] Don't trigger updates / events (for destroying)
+	 * @private
+	 */
+	_blur: function (noEvents)
+	{
+		if ( ! this.s.enable || ! this.s.lastFocus ) {
+			return;
+		}
+
+		var cell = this.s.lastFocus.cell;
+
+		$( cell.node() ).removeClass( this.c.className );
+		this.s.lastFocus = null;
+
+		if ( ! noEvents ) {
+			this._updateFixedColumns(cell.index().column);
+
+			this._emitEvent( 'key-blur', [ this.s.dt, cell ] );
+		}
+	},
+
+
+	/**
+	 * Clipboard interaction handlers
+	 *
+	 * @private
+	 */
+	_clipboard: function () {
+		var dt = this.s.dt;
+		var that = this;
+		var namespace = this.s.namespace;
+
+		// IE8 doesn't support getting selected text
+		if ( ! window.getSelection ) {
+			return;
+		}
+
+		$(document).on( 'copy'+namespace, function (ejq) {
+			var e = ejq.originalEvent;
+			var selection = window.getSelection().toString();
+			var focused = that.s.lastFocus;
+
+			// Only copy cell text to clipboard if there is no other selection
+			// and there is a focused cell
+			if ( ! selection && focused ) {
+				e.clipboardData.setData(
+					'text/plain',
+					focused.cell.render( that.c.clipboardOrthogonal )
+				);
+				e.preventDefault();
+			}
+		} );
+
+		$(document).on( 'paste'+namespace, function (ejq) {
+			var e = ejq.originalEvent;
+			var focused = that.s.lastFocus;
+			var activeEl = document.activeElement;
+			var editor = that.c.editor;
+			var pastedText;
+
+			if ( focused && (! activeEl || activeEl.nodeName.toLowerCase() === 'body') ) {
+				e.preventDefault();
+
+				if ( window.clipboardData && window.clipboardData.getData ) {
+					// IE
+					pastedText = window.clipboardData.getData('Text');
+				}
+				else if ( e.clipboardData && e.clipboardData.getData ) {
+					// Everything else
+					pastedText = e.clipboardData.getData('text/plain');
+				}
+
+				if ( editor ) {
+					// Got Editor - need to activate inline editing,
+					// set the value and submit
+					editor
+						.inline( focused.cell.index() )
+						.set( editor.displayed()[0], pastedText )
+						.submit();
+				}
+				else {
+					// No editor, so just dump the data in
+					focused.cell.data( pastedText );
+					dt.draw(false);
+				}
+			}
+		} );
+	},
+
+
+	/**
+	 * Get an array of the column indexes that KeyTable can operate on. This
+	 * is a merge of the user supplied columns and the visible columns.
+	 *
+	 * @private
+	 */
+	_columns: function ()
+	{
+		var dt = this.s.dt;
+		var user = dt.columns( this.c.columns ).indexes();
+		var out = [];
+
+		dt.columns( ':visible' ).every( function (i) {
+			if ( user.indexOf( i ) !== -1 ) {
+				out.push( i );
+			}
+		} );
+
+		return out;
+	},
+
+
+	/**
+	 * Perform excel like navigation for Editor by triggering an edit on key
+	 * press
+	 *
+	 * @param  {integer} key Key code for the pressed key
+	 * @param  {object} orig Original event
+	 * @private
+	 */
+	_editor: function ( key, orig, hardEdit )
+	{
+		// If nothing focused, we can't take any action
+		if (! this.s.lastFocus) {
+			return;
+		}
+
+		// DataTables draw event
+		if (orig && orig.type === 'draw') {
+			return;
+		}
+
+		var that = this;
+		var dt = this.s.dt;
+		var editor = this.c.editor;
+		var editCell = this.s.lastFocus.cell;
+		var namespace = this.s.namespace + 'e' + editorNamespaceCounter++;
+
+		// Do nothing if there is already an inline edit in this cell
+		if ( $('div.DTE', editCell.node()).length ) {
+			return;
+		}
+
+		// Don't activate Editor on control key presses
+		if ( key !== null && (
+			(key >= 0x00 && key <= 0x09) ||
+			key === 0x0b ||
+			key === 0x0c ||
+			(key >= 0x0e && key <= 0x1f) ||
+			(key >= 0x70 && key <= 0x7b) ||
+			(key >= 0x7f && key <= 0x9f)
+		) ) {
+			return;
+		}
+
+		if ( orig ) {
+			orig.stopPropagation();
+
+			// Return key should do nothing - for textareas it would empty the
+			// contents
+			if ( key === 13 ) {
+				orig.preventDefault();
+			}
+		}
+
+		var editInline = function () {
+			editor
+				.one( 'open'+namespace, function () {
+					// Remove cancel open
+					editor.off( 'cancelOpen'+namespace );
+
+					// Excel style - select all text
+					if ( ! hardEdit ) {
+						$('div.DTE_Field_InputControl input, div.DTE_Field_InputControl textarea').select();
+					}
+
+					// Reduce the keys the Keys listens for
+					dt.keys.enable( hardEdit ? 'tab-only' : 'navigation-only' );
+
+					// On blur of the navigation submit
+					dt.on( 'key-blur.editor', function (e, dt, cell) {
+						if ( editor.displayed() && cell.node() === editCell.node() ) {
+							editor.submit();
+						}
+					} );
+
+					// Highlight the cell a different colour on full edit
+					if ( hardEdit ) {
+						$( dt.table().container() ).addClass('dtk-focus-alt');
+					}
+
+					// If the dev cancels the submit, we need to return focus
+					editor.on( 'preSubmitCancelled'+namespace, function () {
+						setTimeout( function () {
+							that._focus( editCell, null, false );
+						}, 50 );
+					} );
+
+					editor.on( 'submitUnsuccessful'+namespace, function () {
+						that._focus( editCell, null, false );
+					} );
+
+					// Restore full key navigation on close
+					editor.one( 'close'+namespace, function () {
+						dt.keys.enable( true );
+						dt.off( 'key-blur.editor' );
+						editor.off( namespace );
+						$( dt.table().container() ).removeClass('dtk-focus-alt');
+
+						if (that.s.returnSubmit) {
+							that.s.returnSubmit = false;
+							that._emitEvent( 'key-return-submit', [dt, editCell] );
+						}
+					} );
+				} )
+				.one( 'cancelOpen'+namespace, function () {
+					// `preOpen` can cancel the display of the form, so it
+					// might be that the open event handler isn't needed
+					editor.off( namespace );
+				} )
+				.inline( editCell.index() );
+		};
+
+		// Editor 1.7 listens for `return` on keyup, so if return is the trigger
+		// key, we need to wait for `keyup` otherwise Editor would just submit
+		// the content triggered by this keypress.
+		if ( key === 13 ) {
+			hardEdit = true;
+
+			$(document).one( 'keyup', function () { // immediately removed
+				editInline();
+			} );
+		}
+		else {
+			editInline();
+		}
+	},
+
+
+	/**
+	 * Emit an event on the DataTable for listeners
+	 *
+	 * @param  {string} name Event name
+	 * @param  {array} args Event arguments
+	 * @private
+	 */
+	_emitEvent: function ( name, args )
+	{
+		this.s.dt.iterator( 'table', function ( ctx, i ) {
+			$(ctx.nTable).triggerHandler( name, args );
+		} );
+	},
+
+
+	/**
+	 * Focus on a particular cell, shifting the table's paging if required
+	 *
+	 * @param  {DataTables.Api|integer} row Can be given as an API instance that
+	 *   contains the cell to focus or as an integer. As the latter it is the
+	 *   visible row index (from the whole data set) - NOT the data index
+	 * @param  {integer} [column] Not required if a cell is given as the first
+	 *   parameter. Otherwise this is the column data index for the cell to
+	 *   focus on
+	 * @param {boolean} [shift=true] Should the viewport be moved to show cell
+	 * @private
+	 */
+	_focus: function ( row, column, shift, originalEvent )
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var pageInfo = dt.page.info();
+		var lastFocus = this.s.lastFocus;
+
+		if ( ! originalEvent) {
+			originalEvent = null;
+		}
+
+		if ( ! this.s.enable ) {
+			return;
+		}
+
+		if ( typeof row !== 'number' ) {
+			// Its an API instance - check that there is actually a row
+			if ( ! row.any() ) {
+				return;
+			}
+
+			// Convert the cell to a row and column
+			var index = row.index();
+			column = index.column;
+			row = dt
+				.rows( { filter: 'applied', order: 'applied' } )
+				.indexes()
+				.indexOf( index.row );
+
+			// Don't focus rows that were filtered out.
+			if ( row < 0 ) {
+				return;
+			}
+
+			// For server-side processing normalise the row by adding the start
+			// point, since `rows().indexes()` includes only rows that are
+			// available at the client-side
+			if ( pageInfo.serverSide ) {
+				row += pageInfo.start;
+			}
+		}
+
+		// Is the row on the current page? If not, we need to redraw to show the
+		// page
+		if ( pageInfo.length !== -1 && (row < pageInfo.start || row >= pageInfo.start+pageInfo.length) ) {
+			this.s.focusDraw = true;
+			this.s.waitingForDraw = true;
+
+			dt
+				.one( 'draw', function () {
+					that.s.focusDraw = false;
+					that.s.waitingForDraw = false;
+					that._focus( row, column, undefined, originalEvent );
+				} )
+				.page( Math.floor( row / pageInfo.length ) )
+				.draw( false );
+
+			return;
+		}
+
+		// In the available columns?
+		if ( $.inArray( column, this._columns() ) === -1 ) {
+			return;
+		}
+
+		// De-normalise the server-side processing row, so we select the row
+		// in its displayed position
+		if ( pageInfo.serverSide ) {
+			row -= pageInfo.start;
+		}
+
+		// Get the cell from the current position - ignoring any cells which might
+		// not have been rendered (therefore can't use `:eq()` selector).
+		var cells = dt.cells( null, column, {search: 'applied', order: 'applied'} ).flatten();
+		var cell = dt.cell( cells[ row ] );
+
+		if ( lastFocus ) {
+			// Don't trigger a refocus on the same cell
+			if ( lastFocus.node === cell.node() ) {
+				this._emitEvent( 'key-refocus', [ this.s.dt, cell, originalEvent || null ] );
+				return;
+			}
+
+			// Otherwise blur the old focus
+			this._blur();
+		}
+
+		// Clear focus from other tables
+		this._removeOtherFocus();
+
+		var node = $( cell.node() );
+		node.addClass( this.c.className );
+
+		this._updateFixedColumns(column);
+
+		// Shift viewpoint and page to make cell visible
+		if ( shift === undefined || shift === true ) {
+			this._scroll( $(window), $(document.body), node, 'offset' );
+
+			var bodyParent = dt.table().body().parentNode;
+			if ( bodyParent !== dt.table().header().parentNode ) {
+				var parent = $(bodyParent.parentNode);
+
+				this._scroll( parent, parent, node, 'position' );
+			}
+		}
+
+		// Event and finish
+		this.s.lastFocus = {
+			cell: cell,
+			node: cell.node(),
+			relative: {
+				row: dt.rows( { page: 'current' } ).indexes().indexOf( cell.index().row ),
+				column: cell.index().column
+			}
+		};
+
+		this._emitEvent( 'key-focus', [ this.s.dt, cell, originalEvent || null ] );
+		dt.state.save();
+	},
+
+
+	/**
+	 * Handle key press
+	 *
+	 * @param  {object} e Event
+	 * @private
+	 */
+	_key: function ( e )
+	{
+		// If we are waiting for a draw to happen from another key event, then
+		// do nothing for this new key press.
+		if ( this.s.waitingForDraw ) {
+			e.preventDefault();
+			return;
+		}
+
+		var enable = this.s.enable;
+		this.s.returnSubmit = (enable === 'navigation-only' || enable === 'tab-only') && e.keyCode === 13
+			? true
+			: false;
+
+		var navEnable = enable === true || enable === 'navigation-only';
+		if ( ! enable ) {
+			return;
+		}
+
+		if ( (e.keyCode === 0 || e.ctrlKey || e.metaKey || e.altKey) && !(e.ctrlKey && e.altKey) ) {
+			return;
+		}
+
+		// If not focused, then there is no key action to take
+		var lastFocus = this.s.lastFocus;
+		if ( ! lastFocus ) {
+			return;
+		}
+
+		// And the last focus still exists!
+		if ( ! this.s.dt.cell(lastFocus.node).any() ) {
+			this.s.lastFocus = null;
+			return;
+		}
+
+		var that = this;
+		var dt = this.s.dt;
+		var scrolling = this.s.dt.settings()[0].oScroll.sY ? true : false;
+
+		// If we are not listening for this key, do nothing
+		if ( this.c.keys && $.inArray( e.keyCode, this.c.keys ) === -1 ) {
+			return;
+		}
+
+		switch( e.keyCode ) {
+			case 9: // tab
+				// `enable` can be tab-only
+				this._shift( e, e.shiftKey ? 'left' : 'right', true );
+				break;
+
+			case 27: // esc
+				if ( this.c.blurable && enable === true ) {
+					this._blur();
+				}
+				break;
+
+			case 33: // page up (previous page)
+			case 34: // page down (next page)
+				if ( navEnable && !scrolling ) {
+					e.preventDefault();
+
+					dt
+						.page( e.keyCode === 33 ? 'previous' : 'next' )
+						.draw( false );
+				}
+				break;
+
+			case 35: // end (end of current page)
+			case 36: // home (start of current page)
+				if ( navEnable ) {
+					e.preventDefault();
+					var indexes = dt.cells( {page: 'current'} ).indexes();
+					var colIndexes = this._columns();
+
+					this._focus( dt.cell(
+						indexes[ e.keyCode === 35 ? indexes.length-1 : colIndexes[0] ]
+					), null, true, e );
+				}
+				break;
+
+			case 37: // left arrow
+				if ( navEnable ) {
+					this._shift( e, 'left' );
+				}
+				break;
+
+			case 38: // up arrow
+				if ( navEnable ) {
+					this._shift( e, 'up' );
+				}
+				break;
+
+			case 39: // right arrow
+				if ( navEnable ) {
+					this._shift( e, 'right' );
+				}
+				break;
+
+			case 40: // down arrow
+				if ( navEnable ) {
+					this._shift( e, 'down' );
+				}
+				break;
+
+			case 113: // F2 - Excel like hard edit
+				if ( this.c.editor ) {
+					this._editor(null, e, true);
+					break;
+				}
+				// else fallthrough
+
+			default:
+				// Everything else - pass through only when fully enabled
+				if ( enable === true ) {
+					this._emitEvent( 'key', [ dt, e.keyCode, this.s.lastFocus.cell, e ] );
+				}
+				break;
+		}
+	},
+
+	/**
+	 * Remove focus from all tables other than this one
+	 */
+	_removeOtherFocus: function ()
+	{
+		var thisTable = this.s.dt.table().node();
+
+		$.fn.dataTable.tables({api:true}).iterator('table', function (settings) {
+			if (this.table().node() !== thisTable) {
+				this.cell.blur();
+			}
+		});
+	},
+
+	/**
+	 * Scroll a container to make a cell visible in it. This can be used for
+	 * both DataTables scrolling and native window scrolling.
+	 *
+	 * @param  {jQuery} container Scrolling container
+	 * @param  {jQuery} scroller  Item being scrolled
+	 * @param  {jQuery} cell      Cell in the scroller
+	 * @param  {string} posOff    `position` or `offset` - which to use for the
+	 *   calculation. `offset` for the document, otherwise `position`
+	 * @private
+	 */
+	_scroll: function ( container, scroller, cell, posOff )
+	{
+		var offset = cell[posOff]();
+		var height = cell.outerHeight();
+		var width = cell.outerWidth();
+
+		var scrollTop = scroller.scrollTop();
+		var scrollLeft = scroller.scrollLeft();
+		var containerHeight = container.height();
+		var containerWidth = container.width();
+
+		// If Scroller is being used, the table can be `position: absolute` and that
+		// needs to be taken account of in the offset. If no Scroller, this will be 0
+		if ( posOff === 'position' ) {
+			offset.top += parseInt( cell.closest('table').css('top'), 10 );
+		}
+
+		// Top correction
+		if ( offset.top < scrollTop ) {
+			scroller.scrollTop( offset.top );
+		}
+
+		// Left correction
+		if ( offset.left < scrollLeft ) {
+			scroller.scrollLeft( offset.left );
+		}
+
+		// Bottom correction
+		if ( offset.top + height > scrollTop + containerHeight && height < containerHeight ) {
+			scroller.scrollTop( offset.top + height - containerHeight );
+		}
+
+		// Right correction
+		if ( offset.left + width > scrollLeft + containerWidth && width < containerWidth ) {
+			scroller.scrollLeft( offset.left + width - containerWidth );
+		}
+	},
+
+
+	/**
+	 * Calculate a single offset movement in the table - up, down, left and
+	 * right and then perform the focus if possible
+	 *
+	 * @param  {object}  e           Event object
+	 * @param  {string}  direction   Movement direction
+	 * @param  {boolean} keyBlurable `true` if the key press can result in the
+	 *   table being blurred. This is so arrow keys won't blur the table, but
+	 *   tab will.
+	 * @private
+	 */
+	_shift: function ( e, direction, keyBlurable )
+	{
+		var that      = this;
+		var dt        = this.s.dt;
+		var pageInfo  = dt.page.info();
+		var rows      = pageInfo.recordsDisplay;
+		var columns   = this._columns();
+		var last      = this.s.lastFocus;
+		if ( ! last ) {
+			return;
+		}
+
+		var currentCell  = last.cell;
+		if ( ! currentCell ) {
+			return;
+		}
+
+		var currRow = dt
+			.rows( { filter: 'applied', order: 'applied' } )
+			.indexes()
+			.indexOf( currentCell.index().row );
+
+		// When server-side processing, `rows().indexes()` only gives the rows
+		// that are available at the client-side, so we need to normalise the
+		// row's current position by the display start point
+		if ( pageInfo.serverSide ) {
+			currRow += pageInfo.start;
+		}
+
+		var currCol = dt
+			.columns( columns )
+			.indexes()
+			.indexOf( currentCell.index().column );
+
+		var
+			row = currRow,
+			column = columns[ currCol ]; // row is the display, column is an index
+
+		if ( direction === 'right' ) {
+			if ( currCol >= columns.length - 1 ) {
+				row++;
+				column = columns[0];
+			}
+			else {
+				column = columns[ currCol+1 ];
+			}
+		}
+		else if ( direction === 'left' ) {
+			if ( currCol === 0 ) {
+				row--;
+				column = columns[ columns.length - 1 ];
+			}
+			else {
+				column = columns[ currCol-1 ];
+			}
+		}
+		else if ( direction === 'up' ) {
+			row--;
+		}
+		else if ( direction === 'down' ) {
+			row++;
+		}
+
+		if ( row >= 0 && row < rows && $.inArray( column, columns ) !== -1 ) {
+			if (e) {
+				e.preventDefault();
+			}
+
+			this._focus( row, column, true, e );
+		}
+		else if ( ! keyBlurable || ! this.c.blurable ) {
+			// No new focus, but if the table isn't blurable, then don't loose
+			// focus
+			if (e) {
+				e.preventDefault();
+			}
+		}
+		else {
+			this._blur();
+		}
+	},
+
+
+	/**
+	 * Create and insert a hidden input element that can receive focus on behalf
+	 * of the table
+	 *
+	 * @private
+	 */
+	_tabInput: function ()
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var tabIndex = this.c.tabIndex !== null ?
+			this.c.tabIndex :
+			dt.settings()[0].iTabIndex;
+
+		if ( tabIndex == -1 ) {
+			return;
+		}
+
+		// Only create the input element once on first class
+		if (! this.s.tabInput) {
+			var div = $('<div><input type="text" tabindex="'+tabIndex+'"/></div>')
+				.css( {
+					position: 'absolute',
+					height: 1,
+					width: 0,
+					overflow: 'hidden'
+				} );
+
+			div.children().on( 'focus', function (e) {
+				var cell = dt.cell(':eq(0)', that._columns(), {page: 'current'});
+
+				if ( cell.any() ) {
+					that._focus( cell, null, true, e );
+				}
+			} );
+
+			this.s.tabInput = div;
+		}
+
+		// Insert the input element into the first cell in the table's body
+		var cell = this.s.dt.cell(':eq(0)', '0:visible', {page: 'current', order: 'current'}).node();
+		if (cell) {
+			$(cell).prepend(this.s.tabInput);
+		}
+	},
+
+	/**
+	 * Update fixed columns if they are enabled and if the cell we are
+	 * focusing is inside a fixed column
+	 * @param  {integer} column Index of the column being changed
+	 * @private
+	 */
+	_updateFixedColumns: function( column )
+	{
+		var dt = this.s.dt;
+		var settings = dt.settings()[0];
+
+		if ( settings._oFixedColumns ) {
+			var leftCols = settings._oFixedColumns.s.iLeftColumns;
+			var rightCols = settings.aoColumns.length - settings._oFixedColumns.s.iRightColumns;
+
+			if (column < leftCols || column >= rightCols) {
+				dt.fixedColumns().update();
+			}
+		}
+	}
+} );
+
+
+/**
+ * KeyTable default settings for initialisation
+ *
+ * @namespace
+ * @name KeyTable.defaults
+ * @static
+ */
+KeyTable.defaults = {
+	/**
+	 * Can focus be removed from the table
+	 * @type {Boolean}
+	 */
+	blurable: true,
+
+	/**
+	 * Class to give to the focused cell
+	 * @type {String}
+	 */
+	className: 'focus',
+
+	/**
+	 * Enable or disable clipboard support
+	 * @type {Boolean}
+	 */
+	clipboard: true,
+
+	/**
+	 * Orthogonal data that should be copied to clipboard
+	 * @type {string}
+	 */
+	clipboardOrthogonal: 'display',
+
+	/**
+	 * Columns that can be focused. This is automatically merged with the
+	 * visible columns as only visible columns can gain focus.
+	 * @type {String}
+	 */
+	columns: '', // all
+
+	/**
+	 * Editor instance to automatically perform Excel like navigation
+	 * @type {Editor}
+	 */
+	editor: null,
+
+	/**
+	 * Trigger editing immediately on focus
+	 * @type {boolean}
+	 */
+	editOnFocus: false,
+
+	/**
+	 * Select a cell to automatically select on start up. `null` for no
+	 * automatic selection
+	 * @type {cell-selector}
+	 */
+	focus: null,
+
+	/**
+	 * Array of keys to listen for
+	 * @type {null|array}
+	 */
+	keys: null,
+
+	/**
+	 * Tab index for where the table should sit in the document's tab flow
+	 * @type {integer|null}
+	 */
+	tabIndex: null
+};
+
+
+
+KeyTable.version = "2.6.2";
+
+
+$.fn.dataTable.KeyTable = KeyTable;
+$.fn.DataTable.KeyTable = KeyTable;
+
+
+DataTable.Api.register( 'cell.blur()', function () {
+	return this.iterator( 'table', function (ctx) {
+		if ( ctx.keytable ) {
+			ctx.keytable.blur();
+		}
+	} );
+} );
+
+DataTable.Api.register( 'cell().focus()', function () {
+	return this.iterator( 'cell', function (ctx, row, column) {
+		if ( ctx.keytable ) {
+			ctx.keytable.focus( row, column );
+		}
+	} );
+} );
+
+DataTable.Api.register( 'keys.disable()', function () {
+	return this.iterator( 'table', function (ctx) {
+		if ( ctx.keytable ) {
+			ctx.keytable.enable( false );
+		}
+	} );
+} );
+
+DataTable.Api.register( 'keys.enable()', function ( opts ) {
+	return this.iterator( 'table', function (ctx) {
+		if ( ctx.keytable ) {
+			ctx.keytable.enable( opts === undefined ? true : opts );
+		}
+	} );
+} );
+
+DataTable.Api.register( 'keys.enabled()', function ( opts ) {
+	var ctx = this.context;
+
+	if (ctx.length) {
+		return ctx[0].keytable
+			? ctx[0].keytable.enabled()
+			: false;
+	}
+
+	return false;
+} );
+
+DataTable.Api.register( 'keys.move()', function ( dir ) {
+	return this.iterator( 'table', function (ctx) {
+		if ( ctx.keytable ) {
+			ctx.keytable._shift( null, dir, false );
+		}
+	} );
+} );
+
+// Cell selector
+DataTable.ext.selector.cell.push( function ( settings, opts, cells ) {
+	var focused = opts.focused;
+	var kt = settings.keytable;
+	var out = [];
+
+	if ( ! kt || focused === undefined ) {
+		return cells;
+	}
+
+	for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+		if ( (focused === true &&  kt.focused( cells[i] ) ) ||
+			 (focused === false && ! kt.focused( cells[i] ) )
+		) {
+			out.push( cells[i] );
+		}
+	}
+
+	return out;
+} );
+
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on( 'preInit.dt.dtk', function (e, settings, json) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var init = settings.oInit.keys;
+	var defaults = DataTable.defaults.keys;
+
+	if ( init || defaults ) {
+		var opts = $.extend( {}, defaults, init );
+
+		if ( init !== false ) {
+			new KeyTable( settings, opts  );
+		}
+	}
+} );
+
+
+return KeyTable;
+}));
+
+/*!
+ KeyTable 2.6.2
+ ©2009-2021 SpryMedia Ltd - datatables.net/license
+*/
+(function(e){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(j){return e(j,window,document)}):"object"===typeof exports?module.exports=function(j,k){j||(j=window);if(!k||!k.fn.dataTable)k=require("datatables.net")(j,k).$;return e(k,j,j.document)}:e(jQuery,window,document)})(function(e,j,k,n){var l=e.fn.dataTable,o=0,p=0,m=function(a,b){if(!l.versionCheck||!l.versionCheck("1.10.8"))throw"KeyTable requires DataTables 1.10.8 or newer";this.c=e.extend(!0,{},l.defaults.keyTable,
+m.defaults,b);this.s={dt:new l.Api(a),enable:!0,focusDraw:!1,waitingForDraw:!1,lastFocus:null,namespace:".keyTable-"+o++,tabInput:null};this.dom={};var d=this.s.dt.settings()[0],c=d.keytable;if(c)return c;d.keytable=this;this._constructor()};e.extend(m.prototype,{blur:function(){this._blur()},enable:function(a){this.s.enable=a},enabled:function(){return this.s.enable},focus:function(a,b){this._focus(this.s.dt.cell(a,b))},focused:function(a){if(!this.s.lastFocus)return!1;var b=this.s.lastFocus.cell.index();
+return a.row===b.row&&a.column===b.column},_constructor:function(){this._tabInput();var a=this,b=this.s.dt,d=e(b.table().node()),c=this.s.namespace,f=!1;"static"===d.css("position")&&d.css("position","relative");e(b.table().body()).on("click"+c,"th, td",function(c){if(!1!==a.s.enable){var d=b.cell(this);d.any()&&a._focus(d,null,!1,c)}});e(k).on("keydown"+c,function(b){f||a._key(b)});if(this.c.blurable)e(k).on("mousedown"+c,function(c){e(c.target).parents(".dataTables_filter").length&&a._blur();e(c.target).parents().filter(b.table().container()).length||
+e(c.target).parents("div.DTE").length||!e(c.target).parents("div.editor-datetime").length&&!e(c.target).parents("div.dt-datetime").length&&(e(c.target).parents().filter(".DTFC_Cloned").length||a._blur())});if(this.c.editor){var i=this.c.editor;i.on("open.keyTableMain",function(b,d){"inline"!==d&&a.s.enable&&(a.enable(!1),i.one("close"+c,function(){a.enable(!0)}))});if(this.c.editOnFocus)b.on("key-focus"+c+" key-refocus"+c,function(b,c,d,f){a._editor(null,f,!0)});b.on("key"+c,function(b,c,d,f,g){a._editor(d,
+g,!1)});e(b.table().body()).on("dblclick"+c,"th, td",function(c){!1!==a.s.enable&&b.cell(this).any()&&(a.s.lastFocus&&this!==a.s.lastFocus.cell.node()||a._editor(null,c,!0))});i.on("preSubmit",function(){f=!0}).on("preSubmitCancelled",function(){f=!1}).on("submitComplete",function(){f=!1})}if(b.settings()[0].oFeatures.bStateSave)b.on("stateSaveParams"+c,function(b,c,d){d.keyTable=a.s.lastFocus?a.s.lastFocus.cell.index():null});b.on("column-visibility"+c,function(){a._tabInput()});b.on("draw"+c,function(c){a._tabInput();
+if(!a.s.focusDraw&&a.s.lastFocus){var d=a.s.lastFocus.relative,f=b.page.info(),g=d.row+f.start;0!==f.recordsDisplay&&(g>=f.recordsDisplay&&(g=f.recordsDisplay-1),a._focus(g,d.column,!0,c))}});this.c.clipboard&&this._clipboard();b.on("destroy"+c,function(){a._blur(!0);b.off(c);e(b.table().body()).off("click"+c,"th, td").off("dblclick"+c,"th, td");e(k).off("mousedown"+c).off("keydown"+c).off("copy"+c).off("paste"+c)});var g=b.state.loaded();if(g&&g.keyTable)b.one("init",function(){var a=b.cell(g.keyTable);
+a.any()&&a.focus()});else this.c.focus&&b.cell(this.c.focus).focus()},_blur:function(a){if(this.s.enable&&this.s.lastFocus){var b=this.s.lastFocus.cell;e(b.node()).removeClass(this.c.className);this.s.lastFocus=null;a||(this._updateFixedColumns(b.index().column),this._emitEvent("key-blur",[this.s.dt,b]))}},_clipboard:function(){var a=this.s.dt,b=this,d=this.s.namespace;j.getSelection&&(e(k).on("copy"+d,function(a){var a=a.originalEvent,d=j.getSelection().toString(),e=b.s.lastFocus;!d&&e&&(a.clipboardData.setData("text/plain",
+e.cell.render(b.c.clipboardOrthogonal)),a.preventDefault())}),e(k).on("paste"+d,function(c){var c=c.originalEvent,d=b.s.lastFocus,e=k.activeElement,g=b.c.editor,h;if(d&&(!e||"body"===e.nodeName.toLowerCase()))c.preventDefault(),j.clipboardData&&j.clipboardData.getData?h=j.clipboardData.getData("Text"):c.clipboardData&&c.clipboardData.getData&&(h=c.clipboardData.getData("text/plain")),g?g.inline(d.cell.index()).set(g.displayed()[0],h).submit():(d.cell.data(h),a.draw(!1))}))},_columns:function(){var a=
+this.s.dt,b=a.columns(this.c.columns).indexes(),d=[];a.columns(":visible").every(function(a){-1!==b.indexOf(a)&&d.push(a)});return d},_editor:function(a,b,d){if(this.s.lastFocus&&!(b&&"draw"===b.type)){var c=this,f=this.s.dt,i=this.c.editor,g=this.s.lastFocus.cell,h=this.s.namespace+"e"+p++;if(!e("div.DTE",g.node()).length&&!(null!==a&&(0<=a&&9>=a||11===a||12===a||14<=a&&31>=a||112<=a&&123>=a||127<=a&&159>=a))){b&&(b.stopPropagation(),13===a&&b.preventDefault());var j=function(){i.one("open"+h,function(){i.off("cancelOpen"+
+h);d||e("div.DTE_Field_InputControl input, div.DTE_Field_InputControl textarea").select();f.keys.enable(d?"tab-only":"navigation-only");f.on("key-blur.editor",function(a,b,c){i.displayed()&&c.node()===g.node()&&i.submit()});d&&e(f.table().container()).addClass("dtk-focus-alt");i.on("preSubmitCancelled"+h,function(){setTimeout(function(){c._focus(g,null,false)},50)});i.on("submitUnsuccessful"+h,function(){c._focus(g,null,false)});i.one("close"+h,function(){f.keys.enable(true);f.off("key-blur.editor");
+i.off(h);e(f.table().container()).removeClass("dtk-focus-alt");if(c.s.returnSubmit){c.s.returnSubmit=false;c._emitEvent("key-return-submit",[f,g])}})}).one("cancelOpen"+h,function(){i.off(h)}).inline(g.index())};13===a?(d=!0,e(k).one("keyup",function(){j()})):j()}}},_emitEvent:function(a,b){this.s.dt.iterator("table",function(d){e(d.nTable).triggerHandler(a,b)})},_focus:function(a,b,d,c){var f=this,i=this.s.dt,g=i.page.info(),h=this.s.lastFocus;c||(c=null);if(this.s.enable){if("number"!==typeof a){if(!a.any())return;
+var l=a.index(),b=l.column,a=i.rows({filter:"applied",order:"applied"}).indexes().indexOf(l.row);if(0>a)return;g.serverSide&&(a+=g.start)}if(-1!==g.length&&(a<g.start||a>=g.start+g.length))this.s.focusDraw=!0,this.s.waitingForDraw=!0,i.one("draw",function(){f.s.focusDraw=!1;f.s.waitingForDraw=!1;f._focus(a,b,n,c)}).page(Math.floor(a/g.length)).draw(!1);else if(-1!==e.inArray(b,this._columns())){g.serverSide&&(a-=g.start);g=i.cells(null,b,{search:"applied",order:"applied"}).flatten();g=i.cell(g[a]);
+if(h){if(h.node===g.node()){this._emitEvent("key-refocus",[this.s.dt,g,c||null]);return}this._blur()}this._removeOtherFocus();h=e(g.node());h.addClass(this.c.className);this._updateFixedColumns(b);if(d===n||!0===d)this._scroll(e(j),e(k.body),h,"offset"),d=i.table().body().parentNode,d!==i.table().header().parentNode&&(d=e(d.parentNode),this._scroll(d,d,h,"position"));this.s.lastFocus={cell:g,node:g.node(),relative:{row:i.rows({page:"current"}).indexes().indexOf(g.index().row),column:g.index().column}};
+this._emitEvent("key-focus",[this.s.dt,g,c||null]);i.state.save()}}},_key:function(a){if(this.s.waitingForDraw)a.preventDefault();else{var b=this.s.enable;this.s.returnSubmit=("navigation-only"===b||"tab-only"===b)&&13===a.keyCode?!0:!1;var d=!0===b||"navigation-only"===b;if(b&&(!(0===a.keyCode||a.ctrlKey||a.metaKey||a.altKey)||a.ctrlKey&&a.altKey)){var c=this.s.lastFocus;if(c)if(this.s.dt.cell(c.node).any()){var c=this.s.dt,f=this.s.dt.settings()[0].oScroll.sY?!0:!1;if(!(this.c.keys&&-1===e.inArray(a.keyCode,
+this.c.keys)))switch(a.keyCode){case 9:this._shift(a,a.shiftKey?"left":"right",!0);break;case 27:this.c.blurable&&!0===b&&this._blur();break;case 33:case 34:d&&!f&&(a.preventDefault(),c.page(33===a.keyCode?"previous":"next").draw(!1));break;case 35:case 36:d&&(a.preventDefault(),b=c.cells({page:"current"}).indexes(),d=this._columns(),this._focus(c.cell(b[35===a.keyCode?b.length-1:d[0]]),null,!0,a));break;case 37:d&&this._shift(a,"left");break;case 38:d&&this._shift(a,"up");break;case 39:d&&this._shift(a,
+"right");break;case 40:d&&this._shift(a,"down");break;case 113:if(this.c.editor){this._editor(null,a,!0);break}default:!0===b&&this._emitEvent("key",[c,a.keyCode,this.s.lastFocus.cell,a])}}else this.s.lastFocus=null}}},_removeOtherFocus:function(){var a=this.s.dt.table().node();e.fn.dataTable.tables({api:!0}).iterator("table",function(){this.table().node()!==a&&this.cell.blur()})},_scroll:function(a,b,d,c){var f=d[c](),e=d.outerHeight(),g=d.outerWidth(),h=b.scrollTop(),j=b.scrollLeft(),k=a.height(),
+a=a.width();"position"===c&&(f.top+=parseInt(d.closest("table").css("top"),10));f.top<h&&b.scrollTop(f.top);f.left<j&&b.scrollLeft(f.left);f.top+e>h+k&&e<k&&b.scrollTop(f.top+e-k);f.left+g>j+a&&g<a&&b.scrollLeft(f.left+g-a)},_shift:function(a,b,d){var c=this.s.dt,f=c.page.info(),i=f.recordsDisplay,g=this._columns(),h=this.s.lastFocus;if(h){var j=h.cell;j&&((h=c.rows({filter:"applied",order:"applied"}).indexes().indexOf(j.index().row),f.serverSide&&(h+=f.start),c=c.columns(g).indexes().indexOf(j.index().column),
+f=h,h=g[c],"right"===b?c>=g.length-1?(f++,h=g[0]):h=g[c+1]:"left"===b?0===c?(f--,h=g[g.length-1]):h=g[c-1]:"up"===b?f--:"down"===b&&f++,0<=f&&f<i&&-1!==e.inArray(h,g))?(a&&a.preventDefault(),this._focus(f,h,!0,a)):!d||!this.c.blurable?a&&a.preventDefault():this._blur())}},_tabInput:function(){var a=this,b=this.s.dt,d=null!==this.c.tabIndex?this.c.tabIndex:b.settings()[0].iTabIndex;-1!=d&&(this.s.tabInput||(d=e('<div><input type="text" tabindex="'+d+'"/></div>').css({position:"absolute",height:1,width:0,
+overflow:"hidden"}),d.children().on("focus",function(c){var d=b.cell(":eq(0)",a._columns(),{page:"current"});d.any()&&a._focus(d,null,!0,c)}),this.s.tabInput=d),(d=this.s.dt.cell(":eq(0)","0:visible",{page:"current",order:"current"}).node())&&e(d).prepend(this.s.tabInput))},_updateFixedColumns:function(a){var b=this.s.dt,d=b.settings()[0];if(d._oFixedColumns){var c=d.aoColumns.length-d._oFixedColumns.s.iRightColumns;(a<d._oFixedColumns.s.iLeftColumns||a>=c)&&b.fixedColumns().update()}}});m.defaults=
+{blurable:!0,className:"focus",clipboard:!0,clipboardOrthogonal:"display",columns:"",editor:null,editOnFocus:!1,focus:null,keys:null,tabIndex:null};m.version="2.6.2";e.fn.dataTable.KeyTable=m;e.fn.DataTable.KeyTable=m;l.Api.register("cell.blur()",function(){return this.iterator("table",function(a){a.keytable&&a.keytable.blur()})});l.Api.register("cell().focus()",function(){return this.iterator("cell",function(a,b,d){a.keytable&&a.keytable.focus(b,d)})});l.Api.register("keys.disable()",function(){return this.iterator("table",
+function(a){a.keytable&&a.keytable.enable(!1)})});l.Api.register("keys.enable()",function(a){return this.iterator("table",function(b){b.keytable&&b.keytable.enable(a===n?!0:a)})});l.Api.register("keys.enabled()",function(){var a=this.context;return a.length?a[0].keytable?a[0].keytable.enabled():!1:!1});l.Api.register("keys.move()",function(a){return this.iterator("table",function(b){b.keytable&&b.keytable._shift(null,a,!1)})});l.ext.selector.cell.push(function(a,b,d){var b=b.focused,a=a.keytable,
+c=[];if(!a||b===n)return d;for(var f=0,e=d.length;f<e;f++)(!0===b&&a.focused(d[f])||!1===b&&!a.focused(d[f]))&&c.push(d[f]);return c});e(k).on("preInit.dt.dtk",function(a,b){if("dt"===a.namespace){var d=b.oInit.keys,c=l.defaults.keys;if(d||c)c=e.extend({},c,d),!1!==d&&new m(b,c)}});return m});
+
 /*! Bootstrap 4 styling wrapper for KeyTable
  * ©2018 SpryMedia Ltd - datatables.net/license
  */
@@ -77403,6 +88096,506 @@ return $.fn.dataTable;
  ©2018 SpryMedia Ltd - datatables.net/license
 */
 (function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-keytable"],function(a){return c(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net-bs4")(a,b).$;b.fn.dataTable.KeyTable||require("datatables.net-keytable")(a,b);return c(b,a,a.document)}:c(jQuery,window,document)})(function(c){return c.fn.dataTable});
+
+/*! RowGroup 1.1.3
+ * ©2017-2021 SpryMedia Ltd - datatables.net/license
+ */
+
+/**
+ * @summary     RowGroup
+ * @description RowGrouping for DataTables
+ * @version     1.1.3
+ * @file        dataTables.rowGroup.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     datatables.net
+ * @copyright   Copyright 2017-2021 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+var RowGroup = function ( dt, opts ) {
+	// Sanity check that we are using DataTables 1.10 or newer
+	if ( ! DataTable.versionCheck || ! DataTable.versionCheck( '1.10.8' ) ) {
+		throw 'RowGroup requires DataTables 1.10.8 or newer';
+	}
+
+	// User and defaults configuration object
+	this.c = $.extend( true, {},
+		DataTable.defaults.rowGroup,
+		RowGroup.defaults,
+		opts
+	);
+
+	// Internal settings
+	this.s = {
+		dt: new DataTable.Api( dt )
+	};
+
+	// DOM items
+	this.dom = {
+
+	};
+
+	// Check if row grouping has already been initialised on this table
+	var settings = this.s.dt.settings()[0];
+	var existing = settings.rowGroup;
+	if ( existing ) {
+		return existing;
+	}
+
+	settings.rowGroup = this;
+	this._constructor();
+};
+
+
+$.extend( RowGroup.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * API methods for DataTables API interface
+	 */
+
+	/**
+	 * Get/set the grouping data source - need to call draw after this is
+	 * executed as a setter
+	 * @returns string~RowGroup
+	 */
+	dataSrc: function ( val )
+	{
+		if ( val === undefined ) {
+			return this.c.dataSrc;
+		}
+
+		var dt = this.s.dt;
+
+		this.c.dataSrc = val;
+
+		$(dt.table().node()).triggerHandler( 'rowgroup-datasrc.dt', [ dt, val ] );
+
+		return this;
+	},
+
+	/**
+	 * Disable - need to call draw after this is executed
+	 * @returns RowGroup
+	 */
+	disable: function ()
+	{
+		this.c.enable = false;
+		return this;
+	},
+
+	/**
+	 * Enable - need to call draw after this is executed
+	 * @returns RowGroup
+	 */
+	enable: function ( flag )
+	{
+		if ( flag === false ) {
+			return this.disable();
+		}
+
+		this.c.enable = true;
+		return this;
+	},
+
+	/**
+	 * Get enabled flag
+	 * @returns boolean
+	 */
+	enabled: function ()
+	{
+		return this.c.enable;
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+	_constructor: function ()
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var hostSettings = dt.settings()[0];
+
+		dt.on( 'draw.dtrg', function (e, s) {
+			if ( that.c.enable && hostSettings === s ) {
+				that._draw();
+			}
+		} );
+
+		dt.on( 'column-visibility.dt.dtrg responsive-resize.dt.dtrg', function () {
+			that._adjustColspan();
+		} );
+
+		dt.on( 'destroy', function () {
+			dt.off( '.dtrg' );
+		} );
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Adjust column span when column visibility changes
+	 * @private
+	 */
+	_adjustColspan: function ()
+	{
+		$( 'tr.'+this.c.className, this.s.dt.table().body() ).find('td:visible')
+			.attr( 'colspan', this._colspan() );
+	},
+
+	/**
+	 * Get the number of columns that a grouping row should span
+	 * @private
+	 */
+	_colspan: function ()
+	{
+		return this.s.dt.columns().visible().reduce( function (a, b) {
+			return a + b;
+		}, 0 );
+	},
+
+
+	/**
+	 * Update function that is called whenever we need to draw the grouping rows.
+	 * This is basically a bootstrap for the self iterative _group and _groupDisplay
+	 * methods
+	 * @private
+	 */
+	_draw: function ()
+	{
+		var dt = this.s.dt;
+		var groupedRows = this._group( 0, dt.rows( { page: 'current' } ).indexes() );
+
+		this._groupDisplay( 0, groupedRows );
+	},
+
+	/**
+	 * Get the grouping information from a data set (index) of rows
+	 * @param {number} level Nesting level
+	 * @param {DataTables.Api} rows API of the rows to consider for this group
+	 * @returns {object[]} Nested grouping information - it is structured like this:
+	 *	{
+	 *		dataPoint: 'Edinburgh',
+	 *		rows: [ 1,2,3,4,5,6,7 ],
+	 *		children: [ {
+	 *			dataPoint: 'developer'
+	 *			rows: [ 1, 2, 3 ]
+	 *		},
+	 *		{
+	 *			dataPoint: 'support',
+	 *			rows: [ 4, 5, 6, 7 ]
+	 *		} ]
+	 *	}
+	 * @private
+	 */
+	_group: function ( level, rows ) {
+		var fns = Array.isArray( this.c.dataSrc ) ? this.c.dataSrc : [ this.c.dataSrc ];
+		var fn = DataTable.ext.oApi._fnGetObjectDataFn( fns[ level ] );
+		var dt = this.s.dt;
+		var group, last;
+		var data = [];
+		var that = this;
+
+		for ( var i=0, ien=rows.length ; i<ien ; i++ ) {
+			var rowIndex = rows[i];
+			var rowData = dt.row( rowIndex ).data();
+			var group = fn( rowData );
+
+			if ( group === null || group === undefined ) {
+				group = that.c.emptyDataGroup;
+			}
+
+			if ( last === undefined || group !== last ) {
+				data.push( {
+					dataPoint: group,
+					rows: []
+				} );
+
+				last = group;
+			}
+
+			data[ data.length-1 ].rows.push( rowIndex );
+		}
+
+		if ( fns[ level+1 ] !== undefined ) {
+			for ( var i=0, ien=data.length ; i<ien ; i++ ) {
+				data[i].children = this._group( level+1, data[i].rows );
+			}
+		}
+
+		return data;
+	},
+
+	/**
+	 * Row group display - insert the rows into the document
+	 * @param {number} level Nesting level
+	 * @param {object[]} groups Takes the nested array from `_group`
+	 * @private
+	 */
+	_groupDisplay: function ( level, groups )
+	{
+		var dt = this.s.dt;
+		var display;
+
+		for ( var i=0, ien=groups.length ; i<ien ; i++ ) {
+			var group = groups[i];
+			var groupName = group.dataPoint;
+			var row;
+			var rows = group.rows;
+
+			if ( this.c.startRender ) {
+				display = this.c.startRender.call( this, dt.rows(rows), groupName, level );
+				row = this._rowWrap( display, this.c.startClassName, level );
+
+				if ( row ) {
+					row.insertBefore( dt.row( rows[0] ).node() );
+				}
+			}
+
+			if ( this.c.endRender ) {
+				display = this.c.endRender.call( this, dt.rows(rows), groupName, level );
+				row = this._rowWrap( display, this.c.endClassName, level );
+
+				if ( row ) {
+					row.insertAfter( dt.row( rows[ rows.length-1 ] ).node() );
+				}
+			}
+
+			if ( group.children ) {
+				this._groupDisplay( level+1, group.children );
+			}
+		}
+	},
+
+	/**
+	 * Take a rendered value from an end user and make it suitable for display
+	 * as a row, by wrapping it in a row, or detecting that it is a row.
+	 * @param {node|jQuery|string} display Display value
+	 * @param {string} className Class to add to the row
+	 * @param {array} group
+	 * @param {number} group level
+	 * @private
+	 */
+	_rowWrap: function ( display, className, level )
+	{
+		var row;
+
+		if ( display === null || display === '' ) {
+			display = this.c.emptyDataGroup;
+		}
+
+		if ( display === undefined || display === null ) {
+			return null;
+		}
+
+		if ( typeof display === 'object' && display.nodeName && display.nodeName.toLowerCase() === 'tr') {
+			row = $(display);
+		}
+		else if (display instanceof $ && display.length && display[0].nodeName.toLowerCase() === 'tr') {
+			row = display;
+		}
+		else {
+			row = $('<tr/>')
+				.append(
+					$('<td/>')
+						.attr( 'colspan', this._colspan() )
+						.append( display  )
+				);
+		}
+
+		return row
+			.addClass( this.c.className )
+			.addClass( className )
+			.addClass( 'dtrg-level-'+level );
+	}
+} );
+
+
+/**
+ * RowGroup default settings for initialisation
+ *
+ * @namespace
+ * @name RowGroup.defaults
+ * @static
+ */
+RowGroup.defaults = {
+	/**
+	 * Class to apply to grouping rows - applied to both the start and
+	 * end grouping rows.
+	 * @type string
+	 */
+	className: 'dtrg-group',
+
+	/**
+	 * Data property from which to read the grouping information
+	 * @type string|integer|array
+	 */
+	dataSrc: 0,
+
+	/**
+	 * Text to show if no data is found for a group
+	 * @type string
+	 */
+	emptyDataGroup: 'No group',
+
+	/**
+	 * Initial enablement state
+	 * @boolean
+	 */
+	enable: true,
+
+	/**
+	 * Class name to give to the end grouping row
+	 * @type string
+	 */
+	endClassName: 'dtrg-end',
+
+	/**
+	 * End grouping label function
+	 * @function
+	 */
+	endRender: null,
+
+	/**
+	 * Class name to give to the start grouping row
+	 * @type string
+	 */
+	startClassName: 'dtrg-start',
+
+	/**
+	 * Start grouping label function
+	 * @function
+	 */
+	startRender: function ( rows, group ) {
+		return group;
+	}
+};
+
+
+RowGroup.version = "1.1.3";
+
+
+$.fn.dataTable.RowGroup = RowGroup;
+$.fn.DataTable.RowGroup = RowGroup;
+
+
+DataTable.Api.register( 'rowGroup()', function () {
+	return this;
+} );
+
+DataTable.Api.register( 'rowGroup().disable()', function () {
+	return this.iterator( 'table', function (ctx) {
+		if ( ctx.rowGroup ) {
+			ctx.rowGroup.enable( false );
+		}
+	} );
+} );
+
+DataTable.Api.register( 'rowGroup().enable()', function ( opts ) {
+	return this.iterator( 'table', function (ctx) {
+		if ( ctx.rowGroup ) {
+			ctx.rowGroup.enable( opts === undefined ? true : opts );
+		}
+	} );
+} );
+
+DataTable.Api.register( 'rowGroup().enabled()', function () {
+	var ctx = this.context;
+
+	return ctx.length && ctx[0].rowGroup ?
+		ctx[0].rowGroup.enabled() :
+		false;
+} );
+
+DataTable.Api.register( 'rowGroup().dataSrc()', function ( val ) {
+	if ( val === undefined ) {
+		return this.context[0].rowGroup.dataSrc();
+	}
+
+	return this.iterator( 'table', function (ctx) {
+		if ( ctx.rowGroup ) {
+			ctx.rowGroup.dataSrc( val );
+		}
+	} );
+} );
+
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on( 'preInit.dt.dtrg', function (e, settings, json) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var init = settings.oInit.rowGroup;
+	var defaults = DataTable.defaults.rowGroup;
+
+	if ( init || defaults ) {
+		var opts = $.extend( {}, defaults, init );
+
+		if ( init !== false ) {
+			new RowGroup( settings, opts  );
+		}
+	}
+} );
+
+
+return RowGroup;
+
+}));
+
+/*!
+ RowGroup 1.1.3
+ ©2017-2021 SpryMedia Ltd - datatables.net/license
+*/
+(function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(f){return c(f,window,document)}):"object"===typeof exports?module.exports=function(f,i){f||(f=window);if(!i||!i.fn.dataTable)i=require("datatables.net")(f,i).$;return c(i,f,f.document)}:c(jQuery,window,document)})(function(c,f,i,k){var d=c.fn.dataTable,g=function(a,b){if(!d.versionCheck||!d.versionCheck("1.10.8"))throw"RowGroup requires DataTables 1.10.8 or newer";this.c=c.extend(!0,{},d.defaults.rowGroup,
+g.defaults,b);this.s={dt:new d.Api(a)};this.dom={};var m=this.s.dt.settings()[0],e=m.rowGroup;if(e)return e;m.rowGroup=this;this._constructor()};c.extend(g.prototype,{dataSrc:function(a){if(a===k)return this.c.dataSrc;var b=this.s.dt;this.c.dataSrc=a;c(b.table().node()).triggerHandler("rowgroup-datasrc.dt",[b,a]);return this},disable:function(){this.c.enable=!1;return this},enable:function(a){if(!1===a)return this.disable();this.c.enable=!0;return this},enabled:function(){return this.c.enable},_constructor:function(){var a=
+this,b=this.s.dt,m=b.settings()[0];b.on("draw.dtrg",function(b,c){a.c.enable&&m===c&&a._draw()});b.on("column-visibility.dt.dtrg responsive-resize.dt.dtrg",function(){a._adjustColspan()});b.on("destroy",function(){b.off(".dtrg")})},_adjustColspan:function(){c("tr."+this.c.className,this.s.dt.table().body()).find("td:visible").attr("colspan",this._colspan())},_colspan:function(){return this.s.dt.columns().visible().reduce(function(a,b){return a+b},0)},_draw:function(){var a=this._group(0,this.s.dt.rows({page:"current"}).indexes());
+this._groupDisplay(0,a)},_group:function(a,b){for(var c=Array.isArray(this.c.dataSrc)?this.c.dataSrc:[this.c.dataSrc],e=d.ext.oApi._fnGetObjectDataFn(c[a]),f=this.s.dt,j,g,l=[],h=0,i=b.length;h<i;h++){var n=b[h];j=f.row(n).data();j=e(j);if(null===j||j===k)j=this.c.emptyDataGroup;if(g===k||j!==g)l.push({dataPoint:j,rows:[]}),g=j;l[l.length-1].rows.push(n)}if(c[a+1]!==k){h=0;for(i=l.length;h<i;h++)l[h].children=this._group(a+1,l[h].rows)}return l},_groupDisplay:function(a,b){for(var c=this.s.dt,e,g=
+0,i=b.length;g<i;g++){var d=b[g],f=d.dataPoint,h=d.rows;this.c.startRender&&(e=this.c.startRender.call(this,c.rows(h),f,a),(e=this._rowWrap(e,this.c.startClassName,a))&&e.insertBefore(c.row(h[0]).node()));this.c.endRender&&(e=this.c.endRender.call(this,c.rows(h),f,a),(e=this._rowWrap(e,this.c.endClassName,a))&&e.insertAfter(c.row(h[h.length-1]).node()));d.children&&this._groupDisplay(a+1,d.children)}},_rowWrap:function(a,b,d){if(null===a||""===a)a=this.c.emptyDataGroup;return a===k||null===a?null:
+("object"===typeof a&&a.nodeName&&"tr"===a.nodeName.toLowerCase()?c(a):a instanceof c&&a.length&&"tr"===a[0].nodeName.toLowerCase()?a:c("<tr/>").append(c("<td/>").attr("colspan",this._colspan()).append(a))).addClass(this.c.className).addClass(b).addClass("dtrg-level-"+d)}});g.defaults={className:"dtrg-group",dataSrc:0,emptyDataGroup:"No group",enable:!0,endClassName:"dtrg-end",endRender:null,startClassName:"dtrg-start",startRender:function(a,b){return b}};g.version="1.1.3";c.fn.dataTable.RowGroup=
+g;c.fn.DataTable.RowGroup=g;d.Api.register("rowGroup()",function(){return this});d.Api.register("rowGroup().disable()",function(){return this.iterator("table",function(a){a.rowGroup&&a.rowGroup.enable(!1)})});d.Api.register("rowGroup().enable()",function(a){return this.iterator("table",function(b){b.rowGroup&&b.rowGroup.enable(a===k?!0:a)})});d.Api.register("rowGroup().enabled()",function(){var a=this.context;return a.length&&a[0].rowGroup?a[0].rowGroup.enabled():!1});d.Api.register("rowGroup().dataSrc()",
+function(a){return a===k?this.context[0].rowGroup.dataSrc():this.iterator("table",function(b){b.rowGroup&&b.rowGroup.dataSrc(a)})});c(i).on("preInit.dt.dtrg",function(a,b){if("dt"===a.namespace){var f=b.oInit.rowGroup,e=d.defaults.rowGroup;if(f||e)e=c.extend({},e,f),!1!==f&&new g(b,e)}});return g});
 
 /*! Bootstrap 4 styling wrapper for RowGroup
  * ©2018 SpryMedia Ltd - datatables.net/license
@@ -77448,6 +88641,847 @@ return $.fn.dataTable;
 */
 (function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-rowgroup"],function(a){return c(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net-bs4")(a,b).$;b.fn.dataTable.RowGroup||require("datatables.net-rowgroup")(a,b);return c(b,a,a.document)}:c(jQuery,window,document)})(function(c){return c.fn.dataTable});
 
+/*! RowReorder 1.2.8
+ * 2015-2020 SpryMedia Ltd - datatables.net/license
+ */
+
+/**
+ * @summary     RowReorder
+ * @description Row reordering extension for DataTables
+ * @version     1.2.8
+ * @file        dataTables.rowReorder.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     www.sprymedia.co.uk/contact
+ * @copyright   Copyright 2015-2020 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+/**
+ * RowReorder provides the ability in DataTables to click and drag rows to
+ * reorder them. When a row is dropped the data for the rows effected will be
+ * updated to reflect the change. Normally this data point should also be the
+ * column being sorted upon in the DataTable but this does not need to be the
+ * case. RowReorder implements a "data swap" method - so the rows being
+ * reordered take the value of the data point from the row that used to occupy
+ * the row's new position.
+ *
+ * Initialisation is done by either:
+ *
+ * * `rowReorder` parameter in the DataTable initialisation object
+ * * `new $.fn.dataTable.RowReorder( table, opts )` after DataTables
+ *   initialisation.
+ *
+ *  @class
+ *  @param {object} settings DataTables settings object for the host table
+ *  @param {object} [opts] Configuration options
+ *  @requires jQuery 1.7+
+ *  @requires DataTables 1.10.7+
+ */
+var RowReorder = function ( dt, opts ) {
+	// Sanity check that we are using DataTables 1.10 or newer
+	if ( ! DataTable.versionCheck || ! DataTable.versionCheck( '1.10.8' ) ) {
+		throw 'DataTables RowReorder requires DataTables 1.10.8 or newer';
+	}
+
+	// User and defaults configuration object
+	this.c = $.extend( true, {},
+		DataTable.defaults.rowReorder,
+		RowReorder.defaults,
+		opts
+	);
+
+	// Internal settings
+	this.s = {
+		/** @type {integer} Scroll body top cache */
+		bodyTop: null,
+
+		/** @type {DataTable.Api} DataTables' API instance */
+		dt: new DataTable.Api( dt ),
+
+		/** @type {function} Data fetch function */
+		getDataFn: DataTable.ext.oApi._fnGetObjectDataFn( this.c.dataSrc ),
+
+		/** @type {array} Pixel positions for row insertion calculation */
+		middles: null,
+
+		/** @type {Object} Cached dimension information for use in the mouse move event handler */
+		scroll: {},
+
+		/** @type {integer} Interval object used for smooth scrolling */
+		scrollInterval: null,
+
+		/** @type {function} Data set function */
+		setDataFn: DataTable.ext.oApi._fnSetObjectDataFn( this.c.dataSrc ),
+
+		/** @type {Object} Mouse down information */
+		start: {
+			top: 0,
+			left: 0,
+			offsetTop: 0,
+			offsetLeft: 0,
+			nodes: []
+		},
+
+		/** @type {integer} Window height cached value */
+		windowHeight: 0,
+
+		/** @type {integer} Document outer height cached value */
+		documentOuterHeight: 0,
+
+		/** @type {integer} DOM clone outer height cached value */
+		domCloneOuterHeight: 0
+	};
+
+	// DOM items
+	this.dom = {
+		/** @type {jQuery} Cloned row being moved around */
+		clone: null,
+
+		/** @type {jQuery} DataTables scrolling container */
+		dtScroll: $('div.dataTables_scrollBody', this.s.dt.table().container())
+	};
+
+	// Check if row reorder has already been initialised on this table
+	var settings = this.s.dt.settings()[0];
+	var exisiting = settings.rowreorder;
+
+	if ( exisiting ) {
+		return exisiting;
+	}
+
+	if ( !this.dom.dtScroll.length ) {
+		this.dom.dtScroll = $(this.s.dt.table().container(), 'tbody')
+	}
+
+	settings.rowreorder = this;
+	this._constructor();
+};
+
+
+$.extend( RowReorder.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * Initialise the RowReorder instance
+	 *
+	 * @private
+	 */
+	_constructor: function ()
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var table = $( dt.table().node() );
+
+		// Need to be able to calculate the row positions relative to the table
+		if ( table.css('position') === 'static' ) {
+			table.css( 'position', 'relative' );
+		}
+
+		// listen for mouse down on the target column - we have to implement
+		// this rather than using HTML5 drag and drop as drag and drop doesn't
+		// appear to work on table rows at this time. Also mobile browsers are
+		// not supported.
+		// Use `table().container()` rather than just the table node for IE8 -
+		// otherwise it only works once...
+		$(dt.table().container()).on( 'mousedown.rowReorder touchstart.rowReorder', this.c.selector, function (e) {
+			if ( ! that.c.enable ) {
+				return;
+			}
+
+			// Ignore excluded children of the selector
+			if ( $(e.target).is(that.c.excludedChildren) ) {
+				return true;
+			}
+
+			var tr = $(this).closest('tr');
+			var row = dt.row( tr );
+
+			// Double check that it is a DataTable row
+			if ( row.any() ) {
+				that._emitEvent( 'pre-row-reorder', {
+					node: row.node(),
+					index: row.index()
+				} );
+
+				that._mouseDown( e, tr );
+				return false;
+			}
+		} );
+
+		dt.on( 'destroy.rowReorder', function () {
+			$(dt.table().container()).off( '.rowReorder' );
+			dt.off( '.rowReorder' );
+		} );
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Cache the measurements that RowReorder needs in the mouse move handler
+	 * to attempt to speed things up, rather than reading from the DOM.
+	 *
+	 * @private
+	 */
+	_cachePositions: function ()
+	{
+		var dt = this.s.dt;
+
+		// Frustratingly, if we add `position:relative` to the tbody, the
+		// position is still relatively to the parent. So we need to adjust
+		// for that
+		var headerHeight = $( dt.table().node() ).find('thead').outerHeight();
+
+		// Need to pass the nodes through jQuery to get them in document order,
+		// not what DataTables thinks it is, since we have been altering the
+		// order
+		var nodes = $.unique( dt.rows( { page: 'current' } ).nodes().toArray() );
+		var middles = $.map( nodes, function ( node, i ) {
+			var top = $(node).position().top - headerHeight;
+
+			return (top + top + $(node).outerHeight() ) / 2;
+		} );
+
+		this.s.middles = middles;
+		this.s.bodyTop = $( dt.table().body() ).offset().top;
+		this.s.windowHeight = $(window).height();
+		this.s.documentOuterHeight = $(document).outerHeight();
+	},
+
+
+	/**
+	 * Clone a row so it can be floated around the screen
+	 *
+	 * @param  {jQuery} target Node to be cloned
+	 * @private
+	 */
+	_clone: function ( target )
+	{
+		var dt = this.s.dt;
+		var clone = $( dt.table().node().cloneNode(false) )
+			.addClass( 'dt-rowReorder-float' )
+			.append('<tbody/>')
+			.append( target.clone( false ) );
+
+		// Match the table and column widths - read all sizes before setting
+		// to reduce reflows
+		var tableWidth = target.outerWidth();
+		var tableHeight = target.outerHeight();
+		var sizes = target.children().map( function () {
+			return $(this).width();
+		} );
+
+		clone
+			.width( tableWidth )
+			.height( tableHeight )
+			.find('tr').children().each( function (i) {
+				this.style.width = sizes[i]+'px';
+			} );
+
+		// Insert into the document to have it floating around
+		clone.appendTo( 'body' );
+
+		this.dom.clone = clone;
+		this.s.domCloneOuterHeight = clone.outerHeight();
+	},
+
+
+	/**
+	 * Update the cloned item's position in the document
+	 *
+	 * @param  {object} e Event giving the mouse's position
+	 * @private
+	 */
+	_clonePosition: function ( e )
+	{
+		var start = this.s.start;
+		var topDiff = this._eventToPage( e, 'Y' ) - start.top;
+		var leftDiff = this._eventToPage( e, 'X' ) - start.left;
+		var snap = this.c.snapX;
+		var left;
+		var top = topDiff + start.offsetTop;
+
+		if ( snap === true ) {
+			left = start.offsetLeft;
+		}
+		else if ( typeof snap === 'number' ) {
+			left = start.offsetLeft + snap;
+		}
+		else {
+			left = leftDiff + start.offsetLeft;
+		}
+
+		if(top < 0) {
+			top = 0
+		}
+		else if(top + this.s.domCloneOuterHeight > this.s.documentOuterHeight) {
+			top = this.s.documentOuterHeight - this.s.domCloneOuterHeight;
+		}
+
+		this.dom.clone.css( {
+			top: top,
+			left: left
+		} );
+	},
+
+
+	/**
+	 * Emit an event on the DataTable for listeners
+	 *
+	 * @param  {string} name Event name
+	 * @param  {array} args Event arguments
+	 * @private
+	 */
+	_emitEvent: function ( name, args )
+	{
+		this.s.dt.iterator( 'table', function ( ctx, i ) {
+			$(ctx.nTable).triggerHandler( name+'.dt', args );
+		} );
+	},
+
+
+	/**
+	 * Get pageX/Y position from an event, regardless of if it is a mouse or
+	 * touch event.
+	 *
+	 * @param  {object} e Event
+	 * @param  {string} pos X or Y (must be a capital)
+	 * @private
+	 */
+	_eventToPage: function ( e, pos )
+	{
+		if ( e.type.indexOf( 'touch' ) !== -1 ) {
+			return e.originalEvent.touches[0][ 'page'+pos ];
+		}
+
+		return e[ 'page'+pos ];
+	},
+
+
+	/**
+	 * Mouse down event handler. Read initial positions and add event handlers
+	 * for the move.
+	 *
+	 * @param  {object} e      Mouse event
+	 * @param  {jQuery} target TR element that is to be moved
+	 * @private
+	 */
+	_mouseDown: function ( e, target )
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var start = this.s.start;
+
+		var offset = target.offset();
+		start.top = this._eventToPage( e, 'Y' );
+		start.left = this._eventToPage( e, 'X' );
+		start.offsetTop = offset.top;
+		start.offsetLeft = offset.left;
+		start.nodes = $.unique( dt.rows( { page: 'current' } ).nodes().toArray() );
+
+		this._cachePositions();
+		this._clone( target );
+		this._clonePosition( e );
+
+		this.dom.target = target;
+		target.addClass( 'dt-rowReorder-moving' );
+
+		$( document )
+			.on( 'mouseup.rowReorder touchend.rowReorder', function (e) {
+				that._mouseUp(e);
+			} )
+			.on( 'mousemove.rowReorder touchmove.rowReorder', function (e) {
+				that._mouseMove(e);
+			} );
+
+		// Check if window is x-scrolling - if not, disable it for the duration
+		// of the drag
+		if ( $(window).width() === $(document).width() ) {
+			$(document.body).addClass( 'dt-rowReorder-noOverflow' );
+		}
+
+		// Cache scrolling information so mouse move doesn't need to read.
+		// This assumes that the window and DT scroller will not change size
+		// during an row drag, which I think is a fair assumption
+		var scrollWrapper = this.dom.dtScroll;
+		this.s.scroll = {
+			windowHeight: $(window).height(),
+			windowWidth:  $(window).width(),
+			dtTop:        scrollWrapper.length ? scrollWrapper.offset().top : null,
+			dtLeft:       scrollWrapper.length ? scrollWrapper.offset().left : null,
+			dtHeight:     scrollWrapper.length ? scrollWrapper.outerHeight() : null,
+			dtWidth:      scrollWrapper.length ? scrollWrapper.outerWidth() : null
+		};
+	},
+
+
+	/**
+	 * Mouse move event handler - move the cloned row and shuffle the table's
+	 * rows if required.
+	 *
+	 * @param  {object} e Mouse event
+	 * @private
+	 */
+	_mouseMove: function ( e )
+	{
+		this._clonePosition( e );
+
+		// Transform the mouse position into a position in the table's body
+		var bodyY = this._eventToPage( e, 'Y' ) - this.s.bodyTop;
+		var middles = this.s.middles;
+		var insertPoint = null;
+		var dt = this.s.dt;
+
+		// Determine where the row should be inserted based on the mouse
+		// position
+		for ( var i=0, ien=middles.length ; i<ien ; i++ ) {
+			if ( bodyY < middles[i] ) {
+				insertPoint = i;
+				break;
+			}
+		}
+
+		if ( insertPoint === null ) {
+			insertPoint = middles.length;
+		}
+
+		// Perform the DOM shuffle if it has changed from last time
+		if ( this.s.lastInsert === null || this.s.lastInsert !== insertPoint ) {
+			var nodes = $.unique( dt.rows( { page: 'current' } ).nodes().toArray() );
+
+			if ( insertPoint > this.s.lastInsert ) {
+				this.dom.target.insertAfter( nodes[ insertPoint-1 ] );
+			}
+			else {
+				this.dom.target.insertBefore( nodes[ insertPoint ] );
+			}
+
+			this._cachePositions();
+
+			this.s.lastInsert = insertPoint;
+		}
+
+		this._shiftScroll( e );
+	},
+
+
+	/**
+	 * Mouse up event handler - release the event handlers and perform the
+	 * table updates
+	 *
+	 * @param  {object} e Mouse event
+	 * @private
+	 */
+	_mouseUp: function ( e )
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var i, ien;
+		var dataSrc = this.c.dataSrc;
+
+		this.dom.clone.remove();
+		this.dom.clone = null;
+
+		this.dom.target.removeClass( 'dt-rowReorder-moving' );
+		//this.dom.target = null;
+
+		$(document).off( '.rowReorder' );
+		$(document.body).removeClass( 'dt-rowReorder-noOverflow' );
+
+		clearInterval( this.s.scrollInterval );
+		this.s.scrollInterval = null;
+
+		// Calculate the difference
+		var startNodes = this.s.start.nodes;
+		var endNodes = $.unique( dt.rows( { page: 'current' } ).nodes().toArray() );
+		var idDiff = {};
+		var fullDiff = [];
+		var diffNodes = [];
+		var getDataFn = this.s.getDataFn;
+		var setDataFn = this.s.setDataFn;
+
+		for ( i=0, ien=startNodes.length ; i<ien ; i++ ) {
+			if ( startNodes[i] !== endNodes[i] ) {
+				var id = dt.row( endNodes[i] ).id();
+				var endRowData = dt.row( endNodes[i] ).data();
+				var startRowData = dt.row( startNodes[i] ).data();
+
+				if ( id ) {
+					idDiff[ id ] = getDataFn( startRowData );
+				}
+
+				fullDiff.push( {
+					node: endNodes[i],
+					oldData: getDataFn( endRowData ),
+					newData: getDataFn( startRowData ),
+					newPosition: i,
+					oldPosition: $.inArray( endNodes[i], startNodes )
+				} );
+
+				diffNodes.push( endNodes[i] );
+			}
+		}
+
+		// Create event args
+		var eventArgs = [ fullDiff, {
+			dataSrc:       dataSrc,
+			nodes:         diffNodes,
+			values:        idDiff,
+			triggerRow:    dt.row( this.dom.target ),
+			originalEvent: e
+		} ];
+
+		// Emit event
+		this._emitEvent( 'row-reorder', eventArgs );
+
+		var update = function () {
+			if ( that.c.update ) {
+				for ( i=0, ien=fullDiff.length ; i<ien ; i++ ) {
+					var row = dt.row( fullDiff[i].node );
+					var rowData = row.data();
+
+					setDataFn( rowData, fullDiff[i].newData );
+
+					// Invalidate the cell that has the same data source as the dataSrc
+					dt.columns().every( function () {
+						if ( this.dataSrc() === dataSrc ) {
+							dt.cell( fullDiff[i].node, this.index() ).invalidate( 'data' );
+						}
+					} );
+				}
+
+				// Trigger row reordered event
+				that._emitEvent( 'row-reordered', eventArgs );
+
+				dt.draw( false );
+			}
+		};
+
+		// Editor interface
+		if ( this.c.editor ) {
+			// Disable user interaction while Editor is submitting
+			this.c.enable = false;
+
+			this.c.editor
+				.edit(
+					diffNodes,
+					false,
+					$.extend( {submit: 'changed'}, this.c.formOptions )
+				)
+				.multiSet( dataSrc, idDiff )
+				.one( 'preSubmitCancelled.rowReorder', function () {
+					that.c.enable = true;
+					that.c.editor.off( '.rowReorder' );
+					dt.draw( false );
+				} )
+				.one( 'submitUnsuccessful.rowReorder', function () {
+					dt.draw( false );
+				} )
+				.one( 'submitSuccess.rowReorder', function () {
+					update();
+				} )
+				.one( 'submitComplete', function () {
+					that.c.enable = true;
+					that.c.editor.off( '.rowReorder' );
+				} )
+				.submit();
+		}
+		else {
+			update();
+		}
+	},
+
+
+	/**
+	 * Move the window and DataTables scrolling during a drag to scroll new
+	 * content into view.
+	 *
+	 * This matches the `_shiftScroll` method used in AutoFill, but only
+	 * horizontal scrolling is considered here.
+	 *
+	 * @param  {object} e Mouse move event object
+	 * @private
+	 */
+	_shiftScroll: function ( e )
+	{
+		var that = this;
+		var dt = this.s.dt;
+		var scroll = this.s.scroll;
+		var runInterval = false;
+		var scrollSpeed = 5;
+		var buffer = 65;
+		var
+			windowY = e.pageY - document.body.scrollTop,
+			windowVert,
+			dtVert;
+
+		// Window calculations - based on the mouse position in the window,
+		// regardless of scrolling
+		if ( windowY < $(window).scrollTop() + buffer ) {
+			windowVert = scrollSpeed * -1;
+		}
+		else if ( windowY > scroll.windowHeight + $(window).scrollTop() - buffer ) {
+			windowVert = scrollSpeed;
+		}
+
+		// DataTables scrolling calculations - based on the table's position in
+		// the document and the mouse position on the page
+		if ( scroll.dtTop !== null && e.pageY < scroll.dtTop + buffer ) {
+			dtVert = scrollSpeed * -1;
+		}
+		else if ( scroll.dtTop !== null && e.pageY > scroll.dtTop + scroll.dtHeight - buffer ) {
+			dtVert = scrollSpeed;
+		}
+
+		// This is where it gets interesting. We want to continue scrolling
+		// without requiring a mouse move, so we need an interval to be
+		// triggered. The interval should continue until it is no longer needed,
+		// but it must also use the latest scroll commands (for example consider
+		// that the mouse might move from scrolling up to scrolling left, all
+		// with the same interval running. We use the `scroll` object to "pass"
+		// this information to the interval. Can't use local variables as they
+		// wouldn't be the ones that are used by an already existing interval!
+		if ( windowVert || dtVert ) {
+			scroll.windowVert = windowVert;
+			scroll.dtVert = dtVert;
+			runInterval = true;
+		}
+		else if ( this.s.scrollInterval ) {
+			// Don't need to scroll - remove any existing timer
+			clearInterval( this.s.scrollInterval );
+			this.s.scrollInterval = null;
+		}
+
+		// If we need to run the interval to scroll and there is no existing
+		// interval (if there is an existing one, it will continue to run)
+		if ( ! this.s.scrollInterval && runInterval ) {
+			this.s.scrollInterval = setInterval( function () {
+				// Don't need to worry about setting scroll <0 or beyond the
+				// scroll bound as the browser will just reject that.
+				if ( scroll.windowVert ) {
+					var top = $(document).scrollTop();
+					$(document).scrollTop(top + scroll.windowVert);
+
+					if ( top !== $(document).scrollTop() ) {
+						var move = parseFloat(that.dom.clone.css("top"));
+						that.dom.clone.css("top", move + scroll.windowVert);
+					}
+				}
+
+				// DataTables scrolling
+				if ( scroll.dtVert ) {
+					var scroller = that.dom.dtScroll[0];
+
+					if ( scroll.dtVert ) {
+						scroller.scrollTop += scroll.dtVert;
+					}
+				}
+			}, 20 );
+		}
+	}
+} );
+
+
+
+/**
+ * RowReorder default settings for initialisation
+ *
+ * @namespace
+ * @name RowReorder.defaults
+ * @static
+ */
+RowReorder.defaults = {
+	/**
+	 * Data point in the host row's data source object for where to get and set
+	 * the data to reorder. This will normally also be the sorting column.
+	 *
+	 * @type {Number}
+	 */
+	dataSrc: 0,
+
+	/**
+	 * Editor instance that will be used to perform the update
+	 *
+	 * @type {DataTable.Editor}
+	 */
+	editor: null,
+
+	/**
+	 * Enable / disable RowReorder's user interaction
+	 * @type {Boolean}
+	 */
+	enable: true,
+
+	/**
+	 * Form options to pass to Editor when submitting a change in the row order.
+	 * See the Editor `from-options` object for details of the options
+	 * available.
+	 * @type {Object}
+	 */
+	formOptions: {},
+
+	/**
+	 * Drag handle selector. This defines the element that when dragged will
+	 * reorder a row.
+	 *
+	 * @type {String}
+	 */
+	selector: 'td:first-child',
+
+	/**
+	 * Optionally lock the dragged row's x-position. This can be `true` to
+	 * fix the position match the host table's, `false` to allow free movement
+	 * of the row, or a number to define an offset from the host table.
+	 *
+	 * @type {Boolean|number}
+	 */
+	snapX: false,
+
+	/**
+	 * Update the table's data on drop
+	 *
+	 * @type {Boolean}
+	 */
+	update: true,
+
+	/**
+	 * Selector for children of the drag handle selector that mouseDown events
+	 * will be passed through to and drag will not activate
+	 *
+	 * @type {String}
+	 */
+	excludedChildren: 'a'
+};
+
+
+/*
+ * API
+ */
+var Api = $.fn.dataTable.Api;
+
+// Doesn't do anything - work around for a bug in DT... Not documented
+Api.register( 'rowReorder()', function () {
+	return this;
+} );
+
+Api.register( 'rowReorder.enable()', function ( toggle ) {
+	if ( toggle === undefined ) {
+		toggle = true;
+	}
+
+	return this.iterator( 'table', function ( ctx ) {
+		if ( ctx.rowreorder ) {
+			ctx.rowreorder.c.enable = toggle;
+		}
+	} );
+} );
+
+Api.register( 'rowReorder.disable()', function () {
+	return this.iterator( 'table', function ( ctx ) {
+		if ( ctx.rowreorder ) {
+			ctx.rowreorder.c.enable = false;
+		}
+	} );
+} );
+
+
+/**
+ * Version information
+ *
+ * @name RowReorder.version
+ * @static
+ */
+RowReorder.version = '1.2.8';
+
+
+$.fn.dataTable.RowReorder = RowReorder;
+$.fn.DataTable.RowReorder = RowReorder;
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on( 'init.dt.dtr', function (e, settings, json) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var init = settings.oInit.rowReorder;
+	var defaults = DataTable.defaults.rowReorder;
+
+	if ( init || defaults ) {
+		var opts = $.extend( {}, init, defaults );
+
+		if ( init !== false ) {
+			new RowReorder( settings, opts  );
+		}
+	}
+} );
+
+
+return RowReorder;
+}));
+
+/*!
+ RowReorder 1.2.8
+ 2015-2020 SpryMedia Ltd - datatables.net/license
+*/
+(function(e){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(f){return e(f,window,document)}):"object"===typeof exports?module.exports=function(f,g){f||(f=window);if(!g||!g.fn.dataTable)g=require("datatables.net")(f,g).$;return e(g,f,f.document)}:e(jQuery,window,document)})(function(e,f,g,o){var i=e.fn.dataTable,j=function(d,c){if(!i.versionCheck||!i.versionCheck("1.10.8"))throw"DataTables RowReorder requires DataTables 1.10.8 or newer";this.c=e.extend(!0,{},i.defaults.rowReorder,
+j.defaults,c);this.s={bodyTop:null,dt:new i.Api(d),getDataFn:i.ext.oApi._fnGetObjectDataFn(this.c.dataSrc),middles:null,scroll:{},scrollInterval:null,setDataFn:i.ext.oApi._fnSetObjectDataFn(this.c.dataSrc),start:{top:0,left:0,offsetTop:0,offsetLeft:0,nodes:[]},windowHeight:0,documentOuterHeight:0,domCloneOuterHeight:0};this.dom={clone:null,dtScroll:e("div.dataTables_scrollBody",this.s.dt.table().container())};var b=this.s.dt.settings()[0],a=b.rowreorder;if(a)return a;this.dom.dtScroll.length||(this.dom.dtScroll=
+e(this.s.dt.table().container(),"tbody"));b.rowreorder=this;this._constructor()};e.extend(j.prototype,{_constructor:function(){var d=this,c=this.s.dt,b=e(c.table().node());"static"===b.css("position")&&b.css("position","relative");e(c.table().container()).on("mousedown.rowReorder touchstart.rowReorder",this.c.selector,function(a){if(d.c.enable){if(e(a.target).is(d.c.excludedChildren))return!0;var b=e(this).closest("tr"),h=c.row(b);if(h.any())return d._emitEvent("pre-row-reorder",{node:h.node(),index:h.index()}),
+d._mouseDown(a,b),!1}});c.on("destroy.rowReorder",function(){e(c.table().container()).off(".rowReorder");c.off(".rowReorder")})},_cachePositions:function(){var d=this.s.dt,c=e(d.table().node()).find("thead").outerHeight(),b=e.unique(d.rows({page:"current"}).nodes().toArray()),b=e.map(b,function(b){var d=e(b).position().top-c;return(d+d+e(b).outerHeight())/2});this.s.middles=b;this.s.bodyTop=e(d.table().body()).offset().top;this.s.windowHeight=e(f).height();this.s.documentOuterHeight=e(g).outerHeight()},
+_clone:function(d){var c=e(this.s.dt.table().node().cloneNode(!1)).addClass("dt-rowReorder-float").append("<tbody/>").append(d.clone(!1)),b=d.outerWidth(),a=d.outerHeight(),g=d.children().map(function(){return e(this).width()});c.width(b).height(a).find("tr").children().each(function(b){this.style.width=g[b]+"px"});c.appendTo("body");this.dom.clone=c;this.s.domCloneOuterHeight=c.outerHeight()},_clonePosition:function(d){var c=this.s.start,b=this._eventToPage(d,"Y")-c.top,d=this._eventToPage(d,"X")-
+c.left,a=this.c.snapX,b=b+c.offsetTop,c=!0===a?c.offsetLeft:"number"===typeof a?c.offsetLeft+a:d+c.offsetLeft;0>b?b=0:b+this.s.domCloneOuterHeight>this.s.documentOuterHeight&&(b=this.s.documentOuterHeight-this.s.domCloneOuterHeight);this.dom.clone.css({top:b,left:c})},_emitEvent:function(d,c){this.s.dt.iterator("table",function(b){e(b.nTable).triggerHandler(d+".dt",c)})},_eventToPage:function(d,c){return-1!==d.type.indexOf("touch")?d.originalEvent.touches[0]["page"+c]:d["page"+c]},_mouseDown:function(d,
+c){var b=this,a=this.s.dt,m=this.s.start,h=c.offset();m.top=this._eventToPage(d,"Y");m.left=this._eventToPage(d,"X");m.offsetTop=h.top;m.offsetLeft=h.left;m.nodes=e.unique(a.rows({page:"current"}).nodes().toArray());this._cachePositions();this._clone(c);this._clonePosition(d);this.dom.target=c;c.addClass("dt-rowReorder-moving");e(g).on("mouseup.rowReorder touchend.rowReorder",function(a){b._mouseUp(a)}).on("mousemove.rowReorder touchmove.rowReorder",function(a){b._mouseMove(a)});e(f).width()===e(g).width()&&
+e(g.body).addClass("dt-rowReorder-noOverflow");a=this.dom.dtScroll;this.s.scroll={windowHeight:e(f).height(),windowWidth:e(f).width(),dtTop:a.length?a.offset().top:null,dtLeft:a.length?a.offset().left:null,dtHeight:a.length?a.outerHeight():null,dtWidth:a.length?a.outerWidth():null}},_mouseMove:function(d){this._clonePosition(d);for(var c=this._eventToPage(d,"Y")-this.s.bodyTop,b=this.s.middles,a=null,g=this.s.dt,h=0,f=b.length;h<f;h++)if(c<b[h]){a=h;break}null===a&&(a=b.length);if(null===this.s.lastInsert||
+this.s.lastInsert!==a)c=e.unique(g.rows({page:"current"}).nodes().toArray()),a>this.s.lastInsert?this.dom.target.insertAfter(c[a-1]):this.dom.target.insertBefore(c[a]),this._cachePositions(),this.s.lastInsert=a;this._shiftScroll(d)},_mouseUp:function(d){var c=this,b=this.s.dt,a,f,h=this.c.dataSrc;this.dom.clone.remove();this.dom.clone=null;this.dom.target.removeClass("dt-rowReorder-moving");e(g).off(".rowReorder");e(g.body).removeClass("dt-rowReorder-noOverflow");clearInterval(this.s.scrollInterval);
+this.s.scrollInterval=null;var n=this.s.start.nodes,l=e.unique(b.rows({page:"current"}).nodes().toArray()),j={},i=[],k=[],p=this.s.getDataFn,o=this.s.setDataFn;a=0;for(f=n.length;a<f;a++)if(n[a]!==l[a]){var q=b.row(l[a]).id(),u=b.row(l[a]).data(),r=b.row(n[a]).data();q&&(j[q]=p(r));i.push({node:l[a],oldData:p(u),newData:p(r),newPosition:a,oldPosition:e.inArray(l[a],n)});k.push(l[a])}var s=[i,{dataSrc:h,nodes:k,values:j,triggerRow:b.row(this.dom.target),originalEvent:d}];this._emitEvent("row-reorder",
+s);var t=function(){if(c.c.update){a=0;for(f=i.length;a<f;a++){var d=b.row(i[a].node).data();o(d,i[a].newData);b.columns().every(function(){this.dataSrc()===h&&b.cell(i[a].node,this.index()).invalidate("data")})}c._emitEvent("row-reordered",s);b.draw(!1)}};this.c.editor?(this.c.enable=!1,this.c.editor.edit(k,!1,e.extend({submit:"changed"},this.c.formOptions)).multiSet(h,j).one("preSubmitCancelled.rowReorder",function(){c.c.enable=!0;c.c.editor.off(".rowReorder");b.draw(!1)}).one("submitUnsuccessful.rowReorder",
+function(){b.draw(!1)}).one("submitSuccess.rowReorder",function(){t()}).one("submitComplete",function(){c.c.enable=!0;c.c.editor.off(".rowReorder")}).submit()):t()},_shiftScroll:function(d){var c=this,b=this.s.scroll,a=!1,i=d.pageY-g.body.scrollTop,h,j;i<e(f).scrollTop()+65?h=-5:i>b.windowHeight+e(f).scrollTop()-65&&(h=5);null!==b.dtTop&&d.pageY<b.dtTop+65?j=-5:null!==b.dtTop&&d.pageY>b.dtTop+b.dtHeight-65&&(j=5);h||j?(b.windowVert=h,b.dtVert=j,a=!0):this.s.scrollInterval&&(clearInterval(this.s.scrollInterval),
+this.s.scrollInterval=null);!this.s.scrollInterval&&a&&(this.s.scrollInterval=setInterval(function(){if(b.windowVert){var a=e(g).scrollTop();e(g).scrollTop(a+b.windowVert);if(a!==e(g).scrollTop()){a=parseFloat(c.dom.clone.css("top"));c.dom.clone.css("top",a+b.windowVert)}}if(b.dtVert){a=c.dom.dtScroll[0];if(b.dtVert)a.scrollTop=a.scrollTop+b.dtVert}},20))}});j.defaults={dataSrc:0,editor:null,enable:!0,formOptions:{},selector:"td:first-child",snapX:!1,update:!0,excludedChildren:"a"};var k=e.fn.dataTable.Api;
+k.register("rowReorder()",function(){return this});k.register("rowReorder.enable()",function(d){d===o&&(d=!0);return this.iterator("table",function(c){c.rowreorder&&(c.rowreorder.c.enable=d)})});k.register("rowReorder.disable()",function(){return this.iterator("table",function(d){d.rowreorder&&(d.rowreorder.c.enable=!1)})});j.version="1.2.8";e.fn.dataTable.RowReorder=j;e.fn.DataTable.RowReorder=j;e(g).on("init.dt.dtr",function(d,c){if("dt"===d.namespace){var b=c.oInit.rowReorder,a=i.defaults.rowReorder;
+if(b||a)a=e.extend({},b,a),!1!==b&&new j(c,a)}});return j});
+
 /*! Bootstrap 4 styling wrapper for RowReorder
  * ©2018 SpryMedia Ltd - datatables.net/license
  */
@@ -77492,6 +89526,1344 @@ return $.fn.dataTable;
 */
 (function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-rowreorder"],function(a){return c(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net-bs4")(a,b).$;b.fn.dataTable.RowReorder||require("datatables.net-rowreorder")(a,b);return c(b,a,a.document)}:c(jQuery,window,document)})(function(c){return c.fn.dataTable});
 
+/*! Scroller 2.0.4
+ * ©2011-2021 SpryMedia Ltd - datatables.net/license
+ */
+
+/**
+ * @summary     Scroller
+ * @description Virtual rendering for DataTables
+ * @version     2.0.4
+ * @file        dataTables.scroller.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     www.sprymedia.co.uk/contact
+ * @copyright   Copyright 2011-2021 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net
+ */
+
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+/**
+ * Scroller is a virtual rendering plug-in for DataTables which allows large
+ * datasets to be drawn on screen every quickly. What the virtual rendering means
+ * is that only the visible portion of the table (and a bit to either side to make
+ * the scrolling smooth) is drawn, while the scrolling container gives the
+ * visual impression that the whole table is visible. This is done by making use
+ * of the pagination abilities of DataTables and moving the table around in the
+ * scrolling container DataTables adds to the page. The scrolling container is
+ * forced to the height it would be for the full table display using an extra
+ * element.
+ *
+ * Note that rows in the table MUST all be the same height. Information in a cell
+ * which expands on to multiple lines will cause some odd behaviour in the scrolling.
+ *
+ * Scroller is initialised by simply including the letter 'S' in the sDom for the
+ * table you want to have this feature enabled on. Note that the 'S' must come
+ * AFTER the 't' parameter in `dom`.
+ *
+ * Key features include:
+ *   <ul class="limit_length">
+ *     <li>Speed! The aim of Scroller for DataTables is to make rendering large data sets fast</li>
+ *     <li>Full compatibility with deferred rendering in DataTables for maximum speed</li>
+ *     <li>Display millions of rows</li>
+ *     <li>Integration with state saving in DataTables (scrolling position is saved)</li>
+ *     <li>Easy to use</li>
+ *   </ul>
+ *
+ *  @class
+ *  @constructor
+ *  @global
+ *  @param {object} dt DataTables settings object or API instance
+ *  @param {object} [opts={}] Configuration object for Scroller. Options
+ *    are defined by {@link Scroller.defaults}
+ *
+ *  @requires jQuery 1.7+
+ *  @requires DataTables 1.10.0+
+ *
+ *  @example
+ *    $(document).ready(function() {
+ *        $('#example').DataTable( {
+ *            "scrollY": "200px",
+ *            "ajax": "media/dataset/large.txt",
+ *            "scroller": true,
+ *            "deferRender": true
+ *        } );
+ *    } );
+ */
+var Scroller = function ( dt, opts ) {
+	/* Sanity check - you just know it will happen */
+	if ( ! (this instanceof Scroller) ) {
+		alert( "Scroller warning: Scroller must be initialised with the 'new' keyword." );
+		return;
+	}
+
+	if ( opts === undefined ) {
+		opts = {};
+	}
+
+	var dtApi = $.fn.dataTable.Api( dt );
+
+	/**
+	 * Settings object which contains customisable information for the Scroller instance
+	 * @namespace
+	 * @private
+	 * @extends Scroller.defaults
+	 */
+	this.s = {
+		/**
+		 * DataTables settings object
+		 *  @type     object
+		 *  @default  Passed in as first parameter to constructor
+		 */
+		dt: dtApi.settings()[0],
+
+		/**
+		 * DataTables API instance
+		 *  @type     DataTable.Api
+		 */
+		dtApi: dtApi,
+
+		/**
+		 * Pixel location of the top of the drawn table in the viewport
+		 *  @type     int
+		 *  @default  0
+		 */
+		tableTop: 0,
+
+		/**
+		 * Pixel location of the bottom of the drawn table in the viewport
+		 *  @type     int
+		 *  @default  0
+		 */
+		tableBottom: 0,
+
+		/**
+		 * Pixel location of the boundary for when the next data set should be loaded and drawn
+		 * when scrolling up the way.
+		 *  @type     int
+		 *  @default  0
+		 *  @private
+		 */
+		redrawTop: 0,
+
+		/**
+		 * Pixel location of the boundary for when the next data set should be loaded and drawn
+		 * when scrolling down the way. Note that this is actually calculated as the offset from
+		 * the top.
+		 *  @type     int
+		 *  @default  0
+		 *  @private
+		 */
+		redrawBottom: 0,
+
+		/**
+		 * Auto row height or not indicator
+		 *  @type     bool
+		 *  @default  0
+		 */
+		autoHeight: true,
+
+		/**
+		 * Number of rows calculated as visible in the visible viewport
+		 *  @type     int
+		 *  @default  0
+		 */
+		viewportRows: 0,
+
+		/**
+		 * setTimeout reference for state saving, used when state saving is enabled in the DataTable
+		 * and when the user scrolls the viewport in order to stop the cookie set taking too much
+		 * CPU!
+		 *  @type     int
+		 *  @default  0
+		 */
+		stateTO: null,
+
+		stateSaveThrottle: function () {},
+
+		/**
+		 * setTimeout reference for the redraw, used when server-side processing is enabled in the
+		 * DataTables in order to prevent DoSing the server
+		 *  @type     int
+		 *  @default  null
+		 */
+		drawTO: null,
+
+		heights: {
+			jump: null,
+			page: null,
+			virtual: null,
+			scroll: null,
+
+			/**
+			 * Height of rows in the table
+			 *  @type     int
+			 *  @default  0
+			 */
+			row: null,
+
+			/**
+			 * Pixel height of the viewport
+			 *  @type     int
+			 *  @default  0
+			 */
+			viewport: null,
+			labelFactor: 1,
+			labelHeight: 0,
+		},
+
+		topRowFloat: 0,
+		scrollDrawDiff: null,
+		loaderVisible: false,
+		forceReposition: false,
+		baseRowTop: 0,
+		baseScrollTop: 0,
+		mousedown: false,
+		lastScrollTop: 0
+	};
+
+	// @todo The defaults should extend a `c` property and the internal settings
+	// only held in the `s` property. At the moment they are mixed
+	this.s = $.extend( this.s, Scroller.oDefaults, opts );
+
+	// Workaround for row height being read from height object (see above comment)
+	this.s.heights.row = this.s.rowHeight;
+
+	/**
+	 * DOM elements used by the class instance
+	 * @private
+	 * @namespace
+	 *
+	 */
+	this.dom = {
+		"force":    document.createElement('div'),
+		"label":    $('<div class="dts_label">0</div>'),
+		"scroller": null,
+		"table":    null,
+		"loader":   null
+	};
+
+	// Attach the instance to the DataTables instance so it can be accessed in
+	// future. Don't initialise Scroller twice on the same table
+	if ( this.s.dt.oScroller ) {
+		return;
+	}
+
+	this.s.dt.oScroller = this;
+
+	/* Let's do it */
+	this.construct();
+};
+
+
+
+$.extend( Scroller.prototype, {
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Public methods - to be exposed via the DataTables API
+	 */
+
+	/**
+	 * Calculate and store information about how many rows are to be displayed
+	 * in the scrolling viewport, based on current dimensions in the browser's
+	 * rendering. This can be particularly useful if the table is initially
+	 * drawn in a hidden element - for example in a tab.
+	 *  @param {bool} [redraw=true] Redraw the table automatically after the recalculation, with
+	 *    the new dimensions forming the basis for the draw.
+	 *  @returns {void}
+	 */
+	measure: function ( redraw )
+	{
+		if ( this.s.autoHeight )
+		{
+			this._calcRowHeight();
+		}
+
+		var heights = this.s.heights;
+
+		if ( heights.row ) {
+			heights.viewport = this._parseHeight($(this.dom.scroller).css('max-height'));
+
+			this.s.viewportRows = parseInt( heights.viewport / heights.row, 10 )+1;
+			this.s.dt._iDisplayLength = this.s.viewportRows * this.s.displayBuffer;
+		}
+
+		var label = this.dom.label.outerHeight();
+		var xbar = this.dom.scroller.offsetHeight - this.dom.scroller.clientHeight;
+		heights.labelHeight = label;
+		heights.labelFactor = (heights.viewport-label - xbar) / heights.scroll;
+
+		if ( redraw === undefined || redraw )
+		{
+			this.s.dt.oInstance.fnDraw( false );
+		}
+	},
+
+	/**
+	 * Get information about current displayed record range. This corresponds to
+	 * the information usually displayed in the "Info" block of the table.
+	 *
+	 * @returns {object} info as an object:
+	 *  {
+	 *      start: {int}, // the 0-indexed record at the top of the viewport
+	 *      end:   {int}, // the 0-indexed record at the bottom of the viewport
+	 *  }
+	*/
+	pageInfo: function()
+	{
+		var
+			dt = this.s.dt,
+			iScrollTop = this.dom.scroller.scrollTop,
+			iTotal = dt.fnRecordsDisplay(),
+			iPossibleEnd = Math.ceil(this.pixelsToRow(iScrollTop + this.s.heights.viewport, false, this.s.ani));
+
+		return {
+			start: Math.floor(this.pixelsToRow(iScrollTop, false, this.s.ani)),
+			end: iTotal < iPossibleEnd ? iTotal-1 : iPossibleEnd-1
+		};
+	},
+
+	/**
+	 * Calculate the row number that will be found at the given pixel position
+	 * (y-scroll).
+	 *
+	 * Please note that when the height of the full table exceeds 1 million
+	 * pixels, Scroller switches into a non-linear mode for the scrollbar to fit
+	 * all of the records into a finite area, but this function returns a linear
+	 * value (relative to the last non-linear positioning).
+	 *  @param {int} pixels Offset from top to calculate the row number of
+	 *  @param {int} [intParse=true] If an integer value should be returned
+	 *  @param {int} [virtual=false] Perform the calculations in the virtual domain
+	 *  @returns {int} Row index
+	 */
+	pixelsToRow: function ( pixels, intParse, virtual )
+	{
+		var diff = pixels - this.s.baseScrollTop;
+		var row = virtual ?
+			(this._domain( 'physicalToVirtual', this.s.baseScrollTop ) + diff) / this.s.heights.row :
+			( diff / this.s.heights.row ) + this.s.baseRowTop;
+
+		return intParse || intParse === undefined ?
+			parseInt( row, 10 ) :
+			row;
+	},
+
+	/**
+	 * Calculate the pixel position from the top of the scrolling container for
+	 * a given row
+	 *  @param {int} iRow Row number to calculate the position of
+	 *  @returns {int} Pixels
+	 */
+	rowToPixels: function ( rowIdx, intParse, virtual )
+	{
+		var pixels;
+		var diff = rowIdx - this.s.baseRowTop;
+
+		if ( virtual ) {
+			pixels = this._domain( 'virtualToPhysical', this.s.baseScrollTop );
+			pixels += diff * this.s.heights.row;
+		}
+		else {
+			pixels = this.s.baseScrollTop;
+			pixels += diff * this.s.heights.row;
+		}
+
+		return intParse || intParse === undefined ?
+			parseInt( pixels, 10 ) :
+			pixels;
+	},
+
+
+	/**
+	 * Calculate the row number that will be found at the given pixel position (y-scroll)
+	 *  @param {int} row Row index to scroll to
+	 *  @param {bool} [animate=true] Animate the transition or not
+	 *  @returns {void}
+	 */
+	scrollToRow: function ( row, animate )
+	{
+		var that = this;
+		var ani = false;
+		var px = this.rowToPixels( row );
+
+		// We need to know if the table will redraw or not before doing the
+		// scroll. If it will not redraw, then we need to use the currently
+		// displayed table, and scroll with the physical pixels. Otherwise, we
+		// need to calculate the table's new position from the virtual
+		// transform.
+		var preRows = ((this.s.displayBuffer-1)/2) * this.s.viewportRows;
+		var drawRow = row - preRows;
+		if ( drawRow < 0 ) {
+			drawRow = 0;
+		}
+
+		if ( (px > this.s.redrawBottom || px < this.s.redrawTop) && this.s.dt._iDisplayStart !== drawRow ) {
+			ani = true;
+			px = this._domain( 'virtualToPhysical', row * this.s.heights.row );
+
+			// If we need records outside the current draw region, but the new
+			// scrolling position is inside that (due to the non-linear nature
+			// for larger numbers of records), we need to force position update.
+			if ( this.s.redrawTop < px && px < this.s.redrawBottom ) {
+				this.s.forceReposition = true;
+				animate = false;
+			}
+		}
+
+		if ( animate === undefined || animate )
+		{
+			this.s.ani = ani;
+			$(this.dom.scroller).animate( {
+				"scrollTop": px
+			}, function () {
+				// This needs to happen after the animation has completed and
+				// the final scroll event fired
+				setTimeout( function () {
+					that.s.ani = false;
+				}, 250 );
+			} );
+		}
+		else
+		{
+			$(this.dom.scroller).scrollTop( px );
+		}
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Constructor
+	 */
+
+	/**
+	 * Initialisation for Scroller
+	 *  @returns {void}
+	 *  @private
+	 */
+	construct: function ()
+	{
+		var that = this;
+		var dt = this.s.dtApi;
+
+		/* Sanity check */
+		if ( !this.s.dt.oFeatures.bPaginate ) {
+			this.s.dt.oApi._fnLog( this.s.dt, 0, 'Pagination must be enabled for Scroller' );
+			return;
+		}
+
+		/* Insert a div element that we can use to force the DT scrolling container to
+		 * the height that would be required if the whole table was being displayed
+		 */
+		this.dom.force.style.position = "relative";
+		this.dom.force.style.top = "0px";
+		this.dom.force.style.left = "0px";
+		this.dom.force.style.width = "1px";
+
+		this.dom.scroller = $('div.'+this.s.dt.oClasses.sScrollBody, this.s.dt.nTableWrapper)[0];
+		this.dom.scroller.appendChild( this.dom.force );
+		this.dom.scroller.style.position = "relative";
+
+		this.dom.table = $('>table', this.dom.scroller)[0];
+		this.dom.table.style.position = "absolute";
+		this.dom.table.style.top = "0px";
+		this.dom.table.style.left = "0px";
+
+		// Add class to 'announce' that we are a Scroller table
+		$(dt.table().container()).addClass('dts DTS');
+
+		// Add a 'loading' indicator
+		if ( this.s.loadingIndicator )
+		{
+			this.dom.loader = $('<div class="dataTables_processing dts_loading">'+this.s.dt.oLanguage.sLoadingRecords+'</div>')
+				.css('display', 'none');
+
+			$(this.dom.scroller.parentNode)
+				.css('position', 'relative')
+				.append( this.dom.loader );
+		}
+
+		this.dom.label.appendTo(this.dom.scroller);
+
+		/* Initial size calculations */
+		if ( this.s.heights.row && this.s.heights.row != 'auto' )
+		{
+			this.s.autoHeight = false;
+		}
+
+		// Scrolling callback to see if a page change is needed
+		this.s.ingnoreScroll = true;
+		$(this.dom.scroller).on( 'scroll.dt-scroller', function (e) {
+			that._scroll.call( that );
+		} );
+
+		// In iOS we catch the touchstart event in case the user tries to scroll
+		// while the display is already scrolling
+		$(this.dom.scroller).on('touchstart.dt-scroller', function () {
+			that._scroll.call( that );
+		} );
+
+		$(this.dom.scroller)
+			.on('mousedown.dt-scroller', function () {
+				that.s.mousedown = true;
+			})
+			.on('mouseup.dt-scroller', function () {
+				that.s.labelVisible = false;
+				that.s.mousedown = false;
+				that.dom.label.css('display', 'none');
+			});
+
+		// On resize, update the information element, since the number of rows shown might change
+		$(window).on( 'resize.dt-scroller', function () {
+			that.measure( false );
+			that._info();
+		} );
+
+		// Add a state saving parameter to the DT state saving so we can restore the exact
+		// position of the scrolling.
+		var initialStateSave = true;
+		var loadedState = dt.state.loaded();
+
+		dt.on( 'stateSaveParams.scroller', function ( e, settings, data ) {
+			if ( initialStateSave && loadedState ) {
+				data.scroller = loadedState.scroller;
+				initialStateSave = false;
+			}
+			else {
+				// Need to used the saved position on init
+				data.scroller = {
+					topRow: that.s.topRowFloat,
+					baseScrollTop: that.s.baseScrollTop,
+					baseRowTop: that.s.baseRowTop,
+					scrollTop: that.s.lastScrollTop
+				};
+			}
+		} );
+
+		if ( loadedState && loadedState.scroller ) {
+			this.s.topRowFloat = loadedState.scroller.topRow;
+			this.s.baseScrollTop = loadedState.scroller.baseScrollTop;
+			this.s.baseRowTop = loadedState.scroller.baseRowTop;
+		}
+
+		this.measure( false );
+
+		that.s.stateSaveThrottle = that.s.dt.oApi._fnThrottle( function () {
+			that.s.dtApi.state.save();
+		}, 500 );
+
+		dt.on( 'init.scroller', function () {
+			that.measure( false );
+
+			// Setting to `jump` will instruct _draw to calculate the scroll top
+			// position
+			that.s.scrollType = 'jump';
+			that._draw();
+
+			// Update the scroller when the DataTable is redrawn
+			dt.on( 'draw.scroller', function () {
+				that._draw();
+			});
+		} );
+
+		// Set height before the draw happens, allowing everything else to update
+		// on draw complete without worry for roder.
+		dt.on( 'preDraw.dt.scroller', function () {
+			that._scrollForce();
+		} );
+
+		// Destructor
+		dt.on( 'destroy.scroller', function () {
+			$(window).off( 'resize.dt-scroller' );
+			$(that.dom.scroller).off('.dt-scroller');
+			$(that.s.dt.nTable).off( '.scroller' );
+
+			$(that.s.dt.nTableWrapper).removeClass('DTS');
+			$('div.DTS_Loading', that.dom.scroller.parentNode).remove();
+
+			that.dom.table.style.position = "";
+			that.dom.table.style.top = "";
+			that.dom.table.style.left = "";
+		} );
+	},
+
+
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 * Private methods
+	 */
+
+	/**
+	 * Automatic calculation of table row height. This is just a little tricky here as using
+	 * initialisation DataTables has tale the table out of the document, so we need to create
+	 * a new table and insert it into the document, calculate the row height and then whip the
+	 * table out.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_calcRowHeight: function ()
+	{
+		var dt = this.s.dt;
+		var origTable = dt.nTable;
+		var nTable = origTable.cloneNode( false );
+		var tbody = $('<tbody/>').appendTo( nTable );
+		var container = $(
+			'<div class="'+dt.oClasses.sWrapper+' DTS">'+
+				'<div class="'+dt.oClasses.sScrollWrapper+'">'+
+					'<div class="'+dt.oClasses.sScrollBody+'"></div>'+
+				'</div>'+
+			'</div>'
+		);
+
+		// Want 3 rows in the sizing table so :first-child and :last-child
+		// CSS styles don't come into play - take the size of the middle row
+		$('tbody tr:lt(4)', origTable).clone().appendTo( tbody );
+        var rowsCount = $('tr', tbody).length;
+
+        if ( rowsCount === 1 ) {
+            tbody.prepend('<tr><td>&#160;</td></tr>');
+            tbody.append('<tr><td>&#160;</td></tr>');
+		}
+		else {
+            for (; rowsCount < 3; rowsCount++) {
+                tbody.append('<tr><td>&#160;</td></tr>');
+            }
+		}
+
+		$('div.'+dt.oClasses.sScrollBody, container).append( nTable );
+
+		// If initialised using `dom`, use the holding element as the insert point
+		var insertEl = this.s.dt.nHolding || origTable.parentNode;
+
+		if ( ! $(insertEl).is(':visible') ) {
+			insertEl = 'body';
+		}
+
+		// Remove form element links as they might select over others (particularly radio and checkboxes)
+		container.find("input").removeAttr("name");
+
+		container.appendTo( insertEl );
+		this.s.heights.row = $('tr', tbody).eq(1).outerHeight();
+
+		container.remove();
+	},
+
+	/**
+	 * Draw callback function which is fired when the DataTable is redrawn. The main function of
+	 * this method is to position the drawn table correctly the scrolling container for the rows
+	 * that is displays as a result of the scrolling position.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_draw: function ()
+	{
+		var
+			that = this,
+			heights = this.s.heights,
+			iScrollTop = this.dom.scroller.scrollTop,
+			iTableHeight = $(this.s.dt.nTable).height(),
+			displayStart = this.s.dt._iDisplayStart,
+			displayLen = this.s.dt._iDisplayLength,
+			displayEnd = this.s.dt.fnRecordsDisplay();
+
+		// Disable the scroll event listener while we are updating the DOM
+		this.s.skip = true;
+
+		// If paging is reset
+		if ( (this.s.dt.bSorted || this.s.dt.bFiltered) && displayStart === 0 && !this.s.dt._drawHold ) {
+			this.s.topRowFloat = 0;
+		}
+
+		iScrollTop = this.s.scrollType === 'jump' ?
+			this._domain( 'virtualToPhysical', this.s.topRowFloat * heights.row ) :
+			iScrollTop;
+
+		// Store positional information so positional calculations can be based
+		// upon the current table draw position
+		this.s.baseScrollTop = iScrollTop;
+		this.s.baseRowTop = this.s.topRowFloat;
+
+		// Position the table in the virtual scroller
+		var tableTop = iScrollTop - ((this.s.topRowFloat - displayStart) * heights.row);
+		if ( displayStart === 0 ) {
+			tableTop = 0;
+		}
+		else if ( displayStart + displayLen >= displayEnd ) {
+			tableTop = heights.scroll - iTableHeight;
+		}
+
+		this.dom.table.style.top = tableTop+'px';
+
+		/* Cache some information for the scroller */
+		this.s.tableTop = tableTop;
+		this.s.tableBottom = iTableHeight + this.s.tableTop;
+
+		// Calculate the boundaries for where a redraw will be triggered by the
+		// scroll event listener
+		var boundaryPx = (iScrollTop - this.s.tableTop) * this.s.boundaryScale;
+		this.s.redrawTop = iScrollTop - boundaryPx;
+		this.s.redrawBottom = iScrollTop + boundaryPx > heights.scroll - heights.viewport - heights.row ?
+			heights.scroll - heights.viewport - heights.row :
+			iScrollTop + boundaryPx;
+
+		this.s.skip = false;
+
+		// Restore the scrolling position that was saved by DataTable's state
+		// saving Note that this is done on the second draw when data is Ajax
+		// sourced, and the first draw when DOM soured
+		if ( this.s.dt.oFeatures.bStateSave && this.s.dt.oLoadedState !== null &&
+			 typeof this.s.dt.oLoadedState.scroller != 'undefined' )
+		{
+			// A quirk of DataTables is that the draw callback will occur on an
+			// empty set if Ajax sourced, but not if server-side processing.
+			var ajaxSourced = (this.s.dt.sAjaxSource || that.s.dt.ajax) && ! this.s.dt.oFeatures.bServerSide ?
+				true :
+				false;
+
+			if ( ( ajaxSourced && this.s.dt.iDraw == 2) ||
+			     (!ajaxSourced && this.s.dt.iDraw == 1) )
+			{
+				setTimeout( function () {
+					$(that.dom.scroller).scrollTop( that.s.dt.oLoadedState.scroller.scrollTop );
+
+					// In order to prevent layout thrashing we need another
+					// small delay
+					setTimeout( function () {
+						that.s.ingnoreScroll = false;
+					}, 0 );
+				}, 0 );
+			}
+		}
+		else {
+			that.s.ingnoreScroll = false;
+		}
+
+		// Because of the order of the DT callbacks, the info update will
+		// take precedence over the one we want here. So a 'thread' break is
+		// needed.  Only add the thread break if bInfo is set
+		if ( this.s.dt.oFeatures.bInfo ) {
+			setTimeout( function () {
+				that._info.call( that );
+			}, 0 );
+		}
+
+		$(this.s.dt.nTable).triggerHandler('position.dts.dt', tableTop);
+
+		// Hide the loading indicator
+		if ( this.dom.loader && this.s.loaderVisible ) {
+			this.dom.loader.css( 'display', 'none' );
+			this.s.loaderVisible = false;
+		}
+	},
+
+	/**
+	 * Convert from one domain to another. The physical domain is the actual
+	 * pixel count on the screen, while the virtual is if we had browsers which
+	 * had scrolling containers of infinite height (i.e. the absolute value)
+	 *
+	 *  @param {string} dir Domain transform direction, `virtualToPhysical` or
+	 *    `physicalToVirtual`
+	 *  @returns {number} Calculated transform
+	 *  @private
+	 */
+	_domain: function ( dir, val )
+	{
+		var heights = this.s.heights;
+		var diff;
+		var magic = 10000; // the point at which the non-linear calculations start to happen
+
+		// If the virtual and physical height match, then we use a linear
+		// transform between the two, allowing the scrollbar to be linear
+		if ( heights.virtual === heights.scroll ) {
+			return val;
+		}
+
+		// In the first 10k pixels and the last 10k pixels, we want the scrolling
+		// to be linear. After that it can be non-linear. It would be unusual for
+		// anyone to mouse wheel through that much.
+		if ( val < magic ) {
+			return val;
+		}
+		else if ( dir === 'virtualToPhysical' && val >= heights.virtual - magic ) {
+			diff = heights.virtual - val;
+			return heights.scroll - diff;
+		}
+		else if ( dir === 'physicalToVirtual' && val >= heights.scroll - magic ) {
+			diff = heights.scroll - val;
+			return heights.virtual - diff;
+		}
+
+		// Otherwise, we want a non-linear scrollbar to take account of the
+		// redrawing regions at the start and end of the table, otherwise these
+		// can stutter badly - on large tables 30px (for example) scroll might
+		// be hundreds of rows, so the table would be redrawing every few px at
+		// the start and end. Use a simple linear eq. to stop this, effectively
+		// causing a kink in the scrolling ratio. It does mean the scrollbar is
+		// non-linear, but with such massive data sets, the scrollbar is going
+		// to be a best guess anyway
+		var m = (heights.virtual - magic - magic) / (heights.scroll - magic - magic);
+		var c = magic - (m*magic);
+
+		return dir === 'virtualToPhysical' ?
+			(val-c) / m :
+			(m*val) + c;
+	},
+
+	/**
+	 * Update any information elements that are controlled by the DataTable based on the scrolling
+	 * viewport and what rows are visible in it. This function basically acts in the same way as
+	 * _fnUpdateInfo in DataTables, and effectively replaces that function.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_info: function ()
+	{
+		if ( !this.s.dt.oFeatures.bInfo )
+		{
+			return;
+		}
+
+		var
+			dt = this.s.dt,
+			language = dt.oLanguage,
+			iScrollTop = this.dom.scroller.scrollTop,
+			iStart = Math.floor( this.pixelsToRow(iScrollTop, false, this.s.ani)+1 ),
+			iMax = dt.fnRecordsTotal(),
+			iTotal = dt.fnRecordsDisplay(),
+			iPossibleEnd = Math.ceil( this.pixelsToRow(iScrollTop+this.s.heights.viewport, false, this.s.ani) ),
+			iEnd = iTotal < iPossibleEnd ? iTotal : iPossibleEnd,
+			sStart = dt.fnFormatNumber( iStart ),
+			sEnd = dt.fnFormatNumber( iEnd ),
+			sMax = dt.fnFormatNumber( iMax ),
+			sTotal = dt.fnFormatNumber( iTotal ),
+			sOut;
+
+		if ( dt.fnRecordsDisplay() === 0 &&
+			   dt.fnRecordsDisplay() == dt.fnRecordsTotal() )
+		{
+			/* Empty record set */
+			sOut = language.sInfoEmpty+ language.sInfoPostFix;
+		}
+		else if ( dt.fnRecordsDisplay() === 0 )
+		{
+			/* Empty record set after filtering */
+			sOut = language.sInfoEmpty +' '+
+				language.sInfoFiltered.replace('_MAX_', sMax)+
+					language.sInfoPostFix;
+		}
+		else if ( dt.fnRecordsDisplay() == dt.fnRecordsTotal() )
+		{
+			/* Normal record set */
+			sOut = language.sInfo.
+					replace('_START_', sStart).
+					replace('_END_',   sEnd).
+					replace('_MAX_',   sMax).
+					replace('_TOTAL_', sTotal)+
+				language.sInfoPostFix;
+		}
+		else
+		{
+			/* Record set after filtering */
+			sOut = language.sInfo.
+					replace('_START_', sStart).
+					replace('_END_',   sEnd).
+					replace('_MAX_',   sMax).
+					replace('_TOTAL_', sTotal) +' '+
+				language.sInfoFiltered.replace(
+					'_MAX_',
+					dt.fnFormatNumber(dt.fnRecordsTotal())
+				)+
+				language.sInfoPostFix;
+		}
+
+		var callback = language.fnInfoCallback;
+		if ( callback ) {
+			sOut = callback.call( dt.oInstance,
+				dt, iStart, iEnd, iMax, iTotal, sOut
+			);
+		}
+
+		var n = dt.aanFeatures.i;
+		if ( typeof n != 'undefined' )
+		{
+			for ( var i=0, iLen=n.length ; i<iLen ; i++ )
+			{
+				$(n[i]).html( sOut );
+			}
+		}
+
+		// DT doesn't actually (yet) trigger this event, but it will in future
+		$(dt.nTable).triggerHandler( 'info.dt' );
+	},
+
+	/**
+	 * Parse CSS height property string as number
+	 *
+	 * An attempt is made to parse the string as a number. Currently supported units are 'px',
+	 * 'vh', and 'rem'. 'em' is partially supported; it works as long as the parent element's
+	 * font size matches the body element. Zero is returned for unrecognized strings.
+	 *  @param {string} cssHeight CSS height property string
+	 *  @returns {number} height
+	 *  @private
+	 */
+	_parseHeight: function(cssHeight) {
+		var height;
+		var matches = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))(px|em|rem|vh)$/.exec(cssHeight);
+
+		if (matches === null) {
+			return 0;
+		}
+
+		var value = parseFloat(matches[1]);
+		var unit = matches[2];
+
+		if ( unit === 'px' ) {
+			height = value;
+		}
+		else if ( unit === 'vh' ) {
+			height = ( value / 100 ) * $(window).height();
+		}
+		else if ( unit === 'rem' ) {
+			height = value * parseFloat($(':root').css('font-size'));
+		}
+		else if ( unit === 'em' ) {
+			height = value * parseFloat($('body').css('font-size'));
+		}
+
+		return height ?
+			height :
+			0;
+	},
+
+	/**
+	 * Scrolling function - fired whenever the scrolling position is changed.
+	 * This method needs to use the stored values to see if the table should be
+	 * redrawn as we are moving towards the end of the information that is
+	 * currently drawn or not. If needed, then it will redraw the table based on
+	 * the new position.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_scroll: function ()
+	{
+		var
+			that = this,
+			heights = this.s.heights,
+			iScrollTop = this.dom.scroller.scrollTop,
+			iTopRow;
+
+		if ( this.s.skip ) {
+			return;
+		}
+
+		if ( this.s.ingnoreScroll ) {
+			return;
+		}
+
+		if ( iScrollTop === this.s.lastScrollTop ) {
+			return;
+		}
+
+		/* If the table has been sorted or filtered, then we use the redraw that
+		 * DataTables as done, rather than performing our own
+		 */
+		if ( this.s.dt.bFiltered || this.s.dt.bSorted ) {
+			this.s.lastScrollTop = 0;
+			return;
+		}
+
+		/* Update the table's information display for what is now in the viewport */
+		this._info();
+
+		/* We don't want to state save on every scroll event - that's heavy
+		 * handed, so use a timeout to update the state saving only when the
+		 * scrolling has finished
+		 */
+		clearTimeout( this.s.stateTO );
+		this.s.stateTO = setTimeout( function () {
+			that.s.dtApi.state.save();
+		}, 250 );
+
+		this.s.scrollType = Math.abs(iScrollTop - this.s.lastScrollTop) > heights.viewport ?
+			'jump' :
+			'cont';
+
+		this.s.topRowFloat = this.s.scrollType === 'cont' ?
+			this.pixelsToRow( iScrollTop, false, false ) :
+			this._domain( 'physicalToVirtual', iScrollTop ) / heights.row;
+
+		if ( this.s.topRowFloat < 0 ) {
+			this.s.topRowFloat = 0;
+		}
+
+		/* Check if the scroll point is outside the trigger boundary which would required
+		 * a DataTables redraw
+		 */
+		if ( this.s.forceReposition || iScrollTop < this.s.redrawTop || iScrollTop > this.s.redrawBottom ) {
+			var preRows = Math.ceil( ((this.s.displayBuffer-1)/2) * this.s.viewportRows );
+
+			iTopRow = parseInt(this.s.topRowFloat, 10) - preRows;
+			this.s.forceReposition = false;
+
+			if ( iTopRow <= 0 ) {
+				/* At the start of the table */
+				iTopRow = 0;
+			}
+			else if ( iTopRow + this.s.dt._iDisplayLength > this.s.dt.fnRecordsDisplay() ) {
+				/* At the end of the table */
+				iTopRow = this.s.dt.fnRecordsDisplay() - this.s.dt._iDisplayLength;
+				if ( iTopRow < 0 ) {
+					iTopRow = 0;
+				}
+			}
+			else if ( iTopRow % 2 !== 0 ) {
+				// For the row-striping classes (odd/even) we want only to start
+				// on evens otherwise the stripes will change between draws and
+				// look rubbish
+				iTopRow++;
+			}
+
+			// Store calcuated value, in case the following condition is not met, but so
+			// that the draw function will still use it.
+			this.s.targetTop = iTopRow;
+
+			if ( iTopRow != this.s.dt._iDisplayStart ) {
+				/* Cache the new table position for quick lookups */
+				this.s.tableTop = $(this.s.dt.nTable).offset().top;
+				this.s.tableBottom = $(this.s.dt.nTable).height() + this.s.tableTop;
+
+				var draw = function () {
+					that.s.dt._iDisplayStart = that.s.targetTop;
+					that.s.dt.oApi._fnDraw( that.s.dt );
+				};
+
+				/* Do the DataTables redraw based on the calculated start point - note that when
+				 * using server-side processing we introduce a small delay to not DoS the server...
+				 */
+				if ( this.s.dt.oFeatures.bServerSide ) {
+					this.s.forceReposition = true;
+
+					clearTimeout( this.s.drawTO );
+					this.s.drawTO = setTimeout( draw, this.s.serverWait );
+				}
+				else {
+					draw();
+				}
+
+				if ( this.dom.loader && ! this.s.loaderVisible ) {
+					this.dom.loader.css( 'display', 'block' );
+					this.s.loaderVisible = true;
+				}
+			}
+		}
+		else {
+			this.s.topRowFloat = this.pixelsToRow( iScrollTop, false, true );
+		}
+
+		this.s.lastScrollTop = iScrollTop;
+		this.s.stateSaveThrottle();
+
+		if ( this.s.scrollType === 'jump' && this.s.mousedown ) {
+			this.s.labelVisible = true;
+		}
+		if (this.s.labelVisible) {
+			this.dom.label
+				.html( this.s.dt.fnFormatNumber( parseInt( this.s.topRowFloat, 10 )+1 ) )
+				.css( 'top', iScrollTop + (iScrollTop * heights.labelFactor) )
+				.css( 'display', 'block' );
+		}
+	},
+
+	/**
+	 * Force the scrolling container to have height beyond that of just the
+	 * table that has been drawn so the user can scroll the whole data set.
+	 *
+	 * Note that if the calculated required scrolling height exceeds a maximum
+	 * value (1 million pixels - hard-coded) the forcing element will be set
+	 * only to that maximum value and virtual / physical domain transforms will
+	 * be used to allow Scroller to display tables of any number of records.
+	 *  @returns {void}
+	 *  @private
+	 */
+	_scrollForce: function ()
+	{
+		var heights = this.s.heights;
+		var max = 1000000;
+
+		heights.virtual = heights.row * this.s.dt.fnRecordsDisplay();
+		heights.scroll = heights.virtual;
+
+		if ( heights.scroll > max ) {
+			heights.scroll = max;
+		}
+
+		// Minimum height so there is always a row visible (the 'no rows found'
+		// if reduced to zero filtering)
+		this.dom.force.style.height = heights.scroll > this.s.heights.row ?
+			heights.scroll+'px' :
+			this.s.heights.row+'px';
+	}
+} );
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Statics
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * Scroller default settings for initialisation
+ *  @namespace
+ *  @name Scroller.defaults
+ *  @static
+ */
+Scroller.defaults = {
+	/**
+	 * Scroller uses the boundary scaling factor to decide when to redraw the table - which it
+	 * typically does before you reach the end of the currently loaded data set (in order to
+	 * allow the data to look continuous to a user scrolling through the data). If given as 0
+	 * then the table will be redrawn whenever the viewport is scrolled, while 1 would not
+	 * redraw the table until the currently loaded data has all been shown. You will want
+	 * something in the middle - the default factor of 0.5 is usually suitable.
+	 *  @type     float
+	 *  @default  0.5
+	 *  @static
+	 */
+	boundaryScale: 0.5,
+
+	/**
+	 * The display buffer is what Scroller uses to calculate how many rows it should pre-fetch
+	 * for scrolling. Scroller automatically adjusts DataTables' display length to pre-fetch
+	 * rows that will be shown in "near scrolling" (i.e. just beyond the current display area).
+	 * The value is based upon the number of rows that can be displayed in the viewport (i.e.
+	 * a value of 1), and will apply the display range to records before before and after the
+	 * current viewport - i.e. a factor of 3 will allow Scroller to pre-fetch 1 viewport's worth
+	 * of rows before the current viewport, the current viewport's rows and 1 viewport's worth
+	 * of rows after the current viewport. Adjusting this value can be useful for ensuring
+	 * smooth scrolling based on your data set.
+	 *  @type     int
+	 *  @default  7
+	 *  @static
+	 */
+	displayBuffer: 9,
+
+	/**
+	 * Show (or not) the loading element in the background of the table. Note that you should
+	 * include the dataTables.scroller.css file for this to be displayed correctly.
+	 *  @type     boolean
+	 *  @default  false
+	 *  @static
+	 */
+	loadingIndicator: false,
+
+	/**
+	 * Scroller will attempt to automatically calculate the height of rows for it's internal
+	 * calculations. However the height that is used can be overridden using this parameter.
+	 *  @type     int|string
+	 *  @default  auto
+	 *  @static
+	 */
+	rowHeight: "auto",
+
+	/**
+	 * When using server-side processing, Scroller will wait a small amount of time to allow
+	 * the scrolling to finish before requesting more data from the server. This prevents
+	 * you from DoSing your own server! The wait time can be configured by this parameter.
+	 *  @type     int
+	 *  @default  200
+	 *  @static
+	 */
+	serverWait: 200
+};
+
+Scroller.oDefaults = Scroller.defaults;
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Constants
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/**
+ * Scroller version
+ *  @type      String
+ *  @default   See code
+ *  @name      Scroller.version
+ *  @static
+ */
+Scroller.version = "2.0.4";
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Initialisation
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// Attach a listener to the document which listens for DataTables initialisation
+// events so we can automatically initialise
+$(document).on( 'preInit.dt.dtscroller', function (e, settings) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	var init = settings.oInit.scroller;
+	var defaults = DataTable.defaults.scroller;
+
+	if ( init || defaults ) {
+		var opts = $.extend( {}, init, defaults );
+
+		if ( init !== false ) {
+			new Scroller( settings, opts  );
+		}
+	}
+} );
+
+
+// Attach Scroller to DataTables so it can be accessed as an 'extra'
+$.fn.dataTable.Scroller = Scroller;
+$.fn.DataTable.Scroller = Scroller;
+
+
+// DataTables 1.10 API method aliases
+var Api = $.fn.dataTable.Api;
+
+Api.register( 'scroller()', function () {
+	return this;
+} );
+
+// Undocumented and deprecated - is it actually useful at all?
+Api.register( 'scroller().rowToPixels()', function ( rowIdx, intParse, virtual ) {
+	var ctx = this.context;
+
+	if ( ctx.length && ctx[0].oScroller ) {
+		return ctx[0].oScroller.rowToPixels( rowIdx, intParse, virtual );
+	}
+	// undefined
+} );
+
+// Undocumented and deprecated - is it actually useful at all?
+Api.register( 'scroller().pixelsToRow()', function ( pixels, intParse, virtual ) {
+	var ctx = this.context;
+
+	if ( ctx.length && ctx[0].oScroller ) {
+		return ctx[0].oScroller.pixelsToRow( pixels, intParse, virtual );
+	}
+	// undefined
+} );
+
+// `scroller().scrollToRow()` is undocumented and deprecated. Use `scroller.toPosition()
+Api.register( ['scroller().scrollToRow()', 'scroller.toPosition()'], function ( idx, ani ) {
+	this.iterator( 'table', function ( ctx ) {
+		if ( ctx.oScroller ) {
+			ctx.oScroller.scrollToRow( idx, ani );
+		}
+	} );
+
+	return this;
+} );
+
+Api.register( 'row().scrollTo()', function ( ani ) {
+	var that = this;
+
+	this.iterator( 'row', function ( ctx, rowIdx ) {
+		if ( ctx.oScroller ) {
+			var displayIdx = that
+				.rows( { order: 'applied', search: 'applied' } )
+				.indexes()
+				.indexOf( rowIdx );
+
+			ctx.oScroller.scrollToRow( displayIdx, ani );
+		}
+	} );
+
+	return this;
+} );
+
+Api.register( 'scroller.measure()', function ( redraw ) {
+	this.iterator( 'table', function ( ctx ) {
+		if ( ctx.oScroller ) {
+			ctx.oScroller.measure( redraw );
+		}
+	} );
+
+	return this;
+} );
+
+Api.register( 'scroller.page()', function() {
+	var ctx = this.context;
+
+	if ( ctx.length && ctx[0].oScroller ) {
+		return ctx[0].oScroller.pageInfo();
+	}
+	// undefined
+} );
+
+return Scroller;
+}));
+
+/*!
+ Scroller 2.0.4
+ ©2011-2021 SpryMedia Ltd - datatables.net/license
+*/
+(function(e){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(h){return e(h,window,document)}):"object"===typeof exports?module.exports=function(h,i){h||(h=window);if(!i||!i.fn.dataTable)i=require("datatables.net")(h,i).$;return e(i,h,h.document)}:e(jQuery,window,document)})(function(e,h,i,l){var m=e.fn.dataTable,f=function(a,b){if(this instanceof f){b===l&&(b={});var c=e.fn.dataTable.Api(a);this.s={dt:c.settings()[0],dtApi:c,tableTop:0,tableBottom:0,redrawTop:0,
+redrawBottom:0,autoHeight:!0,viewportRows:0,stateTO:null,stateSaveThrottle:function(){},drawTO:null,heights:{jump:null,page:null,virtual:null,scroll:null,row:null,viewport:null,labelFactor:1,labelHeight:0},topRowFloat:0,scrollDrawDiff:null,loaderVisible:!1,forceReposition:!1,baseRowTop:0,baseScrollTop:0,mousedown:!1,lastScrollTop:0};this.s=e.extend(this.s,f.oDefaults,b);this.s.heights.row=this.s.rowHeight;this.dom={force:i.createElement("div"),label:e('<div class="dts_label">0</div>'),scroller:null,
+table:null,loader:null};this.s.dt.oScroller||(this.s.dt.oScroller=this,this.construct())}else alert("Scroller warning: Scroller must be initialised with the 'new' keyword.")};e.extend(f.prototype,{measure:function(a){this.s.autoHeight&&this._calcRowHeight();var b=this.s.heights;b.row&&(b.viewport=this._parseHeight(e(this.dom.scroller).css("max-height")),this.s.viewportRows=parseInt(b.viewport/b.row,10)+1,this.s.dt._iDisplayLength=this.s.viewportRows*this.s.displayBuffer);var c=this.dom.label.outerHeight(),
+d=this.dom.scroller.offsetHeight-this.dom.scroller.clientHeight;b.labelHeight=c;b.labelFactor=(b.viewport-c-d)/b.scroll;(a===l||a)&&this.s.dt.oInstance.fnDraw(!1)},pageInfo:function(){var a=this.dom.scroller.scrollTop,b=this.s.dt.fnRecordsDisplay(),c=Math.ceil(this.pixelsToRow(a+this.s.heights.viewport,!1,this.s.ani));return{start:Math.floor(this.pixelsToRow(a,!1,this.s.ani)),end:b<c?b-1:c-1}},pixelsToRow:function(a,b,c){a-=this.s.baseScrollTop;c=c?(this._domain("physicalToVirtual",this.s.baseScrollTop)+
+a)/this.s.heights.row:a/this.s.heights.row+this.s.baseRowTop;return b||b===l?parseInt(c,10):c},rowToPixels:function(a,b,c){a-=this.s.baseRowTop;c=c?this._domain("virtualToPhysical",this.s.baseScrollTop):this.s.baseScrollTop;c+=a*this.s.heights.row;return b||b===l?parseInt(c,10):c},scrollToRow:function(a,b){var c=this,d=!1,g=this.rowToPixels(a),k=a-(this.s.displayBuffer-1)/2*this.s.viewportRows;0>k&&(k=0);if((g>this.s.redrawBottom||g<this.s.redrawTop)&&this.s.dt._iDisplayStart!==k)d=!0,g=this._domain("virtualToPhysical",
+a*this.s.heights.row),this.s.redrawTop<g&&g<this.s.redrawBottom&&(this.s.forceReposition=!0,b=!1);b===l||b?(this.s.ani=d,e(this.dom.scroller).animate({scrollTop:g},function(){setTimeout(function(){c.s.ani=!1},250)})):e(this.dom.scroller).scrollTop(g)},construct:function(){var a=this,b=this.s.dtApi;if(this.s.dt.oFeatures.bPaginate){this.dom.force.style.position="relative";this.dom.force.style.top="0px";this.dom.force.style.left="0px";this.dom.force.style.width="1px";this.dom.scroller=e("div."+this.s.dt.oClasses.sScrollBody,
+this.s.dt.nTableWrapper)[0];this.dom.scroller.appendChild(this.dom.force);this.dom.scroller.style.position="relative";this.dom.table=e(">table",this.dom.scroller)[0];this.dom.table.style.position="absolute";this.dom.table.style.top="0px";this.dom.table.style.left="0px";e(b.table().container()).addClass("dts DTS");this.s.loadingIndicator&&(this.dom.loader=e('<div class="dataTables_processing dts_loading">'+this.s.dt.oLanguage.sLoadingRecords+"</div>").css("display","none"),e(this.dom.scroller.parentNode).css("position",
+"relative").append(this.dom.loader));this.dom.label.appendTo(this.dom.scroller);this.s.heights.row&&"auto"!=this.s.heights.row&&(this.s.autoHeight=!1);this.s.ingnoreScroll=!0;e(this.dom.scroller).on("scroll.dt-scroller",function(){a._scroll.call(a)});e(this.dom.scroller).on("touchstart.dt-scroller",function(){a._scroll.call(a)});e(this.dom.scroller).on("mousedown.dt-scroller",function(){a.s.mousedown=true}).on("mouseup.dt-scroller",function(){a.s.labelVisible=false;a.s.mousedown=false;a.dom.label.css("display",
+"none")});e(h).on("resize.dt-scroller",function(){a.measure(false);a._info()});var c=!0,d=b.state.loaded();b.on("stateSaveParams.scroller",function(b,e,h){if(c&&d){h.scroller=d.scroller;c=false}else h.scroller={topRow:a.s.topRowFloat,baseScrollTop:a.s.baseScrollTop,baseRowTop:a.s.baseRowTop,scrollTop:a.s.lastScrollTop}});d&&d.scroller&&(this.s.topRowFloat=d.scroller.topRow,this.s.baseScrollTop=d.scroller.baseScrollTop,this.s.baseRowTop=d.scroller.baseRowTop);this.measure(!1);a.s.stateSaveThrottle=
+a.s.dt.oApi._fnThrottle(function(){a.s.dtApi.state.save()},500);b.on("init.scroller",function(){a.measure(false);a.s.scrollType="jump";a._draw();b.on("draw.scroller",function(){a._draw()})});b.on("preDraw.dt.scroller",function(){a._scrollForce()});b.on("destroy.scroller",function(){e(h).off("resize.dt-scroller");e(a.dom.scroller).off(".dt-scroller");e(a.s.dt.nTable).off(".scroller");e(a.s.dt.nTableWrapper).removeClass("DTS");e("div.DTS_Loading",a.dom.scroller.parentNode).remove();a.dom.table.style.position=
+"";a.dom.table.style.top="";a.dom.table.style.left=""})}else this.s.dt.oApi._fnLog(this.s.dt,0,"Pagination must be enabled for Scroller")},_calcRowHeight:function(){var a=this.s.dt,b=a.nTable,c=b.cloneNode(!1),d=e("<tbody/>").appendTo(c),g=e('<div class="'+a.oClasses.sWrapper+' DTS"><div class="'+a.oClasses.sScrollWrapper+'"><div class="'+a.oClasses.sScrollBody+'"></div></div></div>');e("tbody tr:lt(4)",b).clone().appendTo(d);var k=e("tr",d).length;if(1===k)d.prepend("<tr><td>&#160;</td></tr>"),d.append("<tr><td>&#160;</td></tr>");
+else for(;3>k;k++)d.append("<tr><td>&#160;</td></tr>");e("div."+a.oClasses.sScrollBody,g).append(c);a=this.s.dt.nHolding||b.parentNode;e(a).is(":visible")||(a="body");g.find("input").removeAttr("name");g.appendTo(a);this.s.heights.row=e("tr",d).eq(1).outerHeight();g.remove()},_draw:function(){var a=this,b=this.s.heights,c=this.dom.scroller.scrollTop,d=e(this.s.dt.nTable).height(),g=this.s.dt._iDisplayStart,k=this.s.dt._iDisplayLength,h=this.s.dt.fnRecordsDisplay();this.s.skip=!0;if((this.s.dt.bSorted||
+this.s.dt.bFiltered)&&0===g&&!this.s.dt._drawHold)this.s.topRowFloat=0;c="jump"===this.s.scrollType?this._domain("virtualToPhysical",this.s.topRowFloat*b.row):c;this.s.baseScrollTop=c;this.s.baseRowTop=this.s.topRowFloat;var f=c-(this.s.topRowFloat-g)*b.row;0===g?f=0:g+k>=h&&(f=b.scroll-d);this.dom.table.style.top=f+"px";this.s.tableTop=f;this.s.tableBottom=d+this.s.tableTop;d=(c-this.s.tableTop)*this.s.boundaryScale;this.s.redrawTop=c-d;this.s.redrawBottom=c+d>b.scroll-b.viewport-b.row?b.scroll-
+b.viewport-b.row:c+d;this.s.skip=!1;this.s.dt.oFeatures.bStateSave&&null!==this.s.dt.oLoadedState&&"undefined"!=typeof this.s.dt.oLoadedState.scroller?((b=(this.s.dt.sAjaxSource||a.s.dt.ajax)&&!this.s.dt.oFeatures.bServerSide?!0:!1)&&2==this.s.dt.iDraw||!b&&1==this.s.dt.iDraw)&&setTimeout(function(){e(a.dom.scroller).scrollTop(a.s.dt.oLoadedState.scroller.scrollTop);setTimeout(function(){a.s.ingnoreScroll=!1},0)},0):a.s.ingnoreScroll=!1;this.s.dt.oFeatures.bInfo&&setTimeout(function(){a._info.call(a)},
+0);e(this.s.dt.nTable).triggerHandler("position.dts.dt",f);this.dom.loader&&this.s.loaderVisible&&(this.dom.loader.css("display","none"),this.s.loaderVisible=!1)},_domain:function(a,b){var c=this.s.heights,d;if(c.virtual===c.scroll||1E4>b)return b;if("virtualToPhysical"===a&&b>=c.virtual-1E4)return d=c.virtual-b,c.scroll-d;if("physicalToVirtual"===a&&b>=c.scroll-1E4)return d=c.scroll-b,c.virtual-d;c=(c.virtual-1E4-1E4)/(c.scroll-1E4-1E4);d=1E4-1E4*c;return"virtualToPhysical"===a?(b-d)/c:c*b+d},_info:function(){if(this.s.dt.oFeatures.bInfo){var a=
+this.s.dt,b=a.oLanguage,c=this.dom.scroller.scrollTop,d=Math.floor(this.pixelsToRow(c,!1,this.s.ani)+1),g=a.fnRecordsTotal(),f=a.fnRecordsDisplay(),c=Math.ceil(this.pixelsToRow(c+this.s.heights.viewport,!1,this.s.ani)),c=f<c?f:c,h=a.fnFormatNumber(d),i=a.fnFormatNumber(c),j=a.fnFormatNumber(g),l=a.fnFormatNumber(f),h=0===a.fnRecordsDisplay()&&a.fnRecordsDisplay()==a.fnRecordsTotal()?b.sInfoEmpty+b.sInfoPostFix:0===a.fnRecordsDisplay()?b.sInfoEmpty+" "+b.sInfoFiltered.replace("_MAX_",j)+b.sInfoPostFix:
+a.fnRecordsDisplay()==a.fnRecordsTotal()?b.sInfo.replace("_START_",h).replace("_END_",i).replace("_MAX_",j).replace("_TOTAL_",l)+b.sInfoPostFix:b.sInfo.replace("_START_",h).replace("_END_",i).replace("_MAX_",j).replace("_TOTAL_",l)+" "+b.sInfoFiltered.replace("_MAX_",a.fnFormatNumber(a.fnRecordsTotal()))+b.sInfoPostFix;(b=b.fnInfoCallback)&&(h=b.call(a.oInstance,a,d,c,g,f,h));d=a.aanFeatures.i;if("undefined"!=typeof d){g=0;for(f=d.length;g<f;g++)e(d[g]).html(h)}e(a.nTable).triggerHandler("info.dt")}},
+_parseHeight:function(a){var b,c=/^([+-]?(?:\d+(?:\.\d+)?|\.\d+))(px|em|rem|vh)$/.exec(a);if(null===c)return 0;a=parseFloat(c[1]);c=c[2];"px"===c?b=a:"vh"===c?b=a/100*e(h).height():"rem"===c?b=a*parseFloat(e(":root").css("font-size")):"em"===c&&(b=a*parseFloat(e("body").css("font-size")));return b?b:0},_scroll:function(){var a=this,b=this.s.heights,c=this.dom.scroller.scrollTop,d;if(!this.s.skip&&!this.s.ingnoreScroll&&c!==this.s.lastScrollTop)if(this.s.dt.bFiltered||this.s.dt.bSorted)this.s.lastScrollTop=
+0;else{this._info();clearTimeout(this.s.stateTO);this.s.stateTO=setTimeout(function(){a.s.dtApi.state.save()},250);this.s.scrollType=Math.abs(c-this.s.lastScrollTop)>b.viewport?"jump":"cont";this.s.topRowFloat="cont"===this.s.scrollType?this.pixelsToRow(c,!1,!1):this._domain("physicalToVirtual",c)/b.row;0>this.s.topRowFloat&&(this.s.topRowFloat=0);if(this.s.forceReposition||c<this.s.redrawTop||c>this.s.redrawBottom){if(d=Math.ceil((this.s.displayBuffer-1)/2*this.s.viewportRows),d=parseInt(this.s.topRowFloat,
+10)-d,this.s.forceReposition=!1,0>=d?d=0:d+this.s.dt._iDisplayLength>this.s.dt.fnRecordsDisplay()?(d=this.s.dt.fnRecordsDisplay()-this.s.dt._iDisplayLength,0>d&&(d=0)):0!==d%2&&d++,this.s.targetTop=d,d!=this.s.dt._iDisplayStart)if(this.s.tableTop=e(this.s.dt.nTable).offset().top,this.s.tableBottom=e(this.s.dt.nTable).height()+this.s.tableTop,d=function(){a.s.dt._iDisplayStart=a.s.targetTop;a.s.dt.oApi._fnDraw(a.s.dt)},this.s.dt.oFeatures.bServerSide?(this.s.forceReposition=!0,clearTimeout(this.s.drawTO),
+this.s.drawTO=setTimeout(d,this.s.serverWait)):d(),this.dom.loader&&!this.s.loaderVisible)this.dom.loader.css("display","block"),this.s.loaderVisible=!0}else this.s.topRowFloat=this.pixelsToRow(c,!1,!0);this.s.lastScrollTop=c;this.s.stateSaveThrottle();"jump"===this.s.scrollType&&this.s.mousedown&&(this.s.labelVisible=!0);this.s.labelVisible&&this.dom.label.html(this.s.dt.fnFormatNumber(parseInt(this.s.topRowFloat,10)+1)).css("top",c+c*b.labelFactor).css("display","block")}},_scrollForce:function(){var a=
+this.s.heights;a.virtual=a.row*this.s.dt.fnRecordsDisplay();a.scroll=a.virtual;1E6<a.scroll&&(a.scroll=1E6);this.dom.force.style.height=a.scroll>this.s.heights.row?a.scroll+"px":this.s.heights.row+"px"}});f.defaults={boundaryScale:0.5,displayBuffer:9,loadingIndicator:!1,rowHeight:"auto",serverWait:200};f.oDefaults=f.defaults;f.version="2.0.4";e(i).on("preInit.dt.dtscroller",function(a,b){if("dt"===a.namespace){var c=b.oInit.scroller,d=m.defaults.scroller;if(c||d)d=e.extend({},c,d),!1!==c&&new f(b,
+d)}});e.fn.dataTable.Scroller=f;e.fn.DataTable.Scroller=f;var j=e.fn.dataTable.Api;j.register("scroller()",function(){return this});j.register("scroller().rowToPixels()",function(a,b,c){var d=this.context;if(d.length&&d[0].oScroller)return d[0].oScroller.rowToPixels(a,b,c)});j.register("scroller().pixelsToRow()",function(a,b,c){var d=this.context;if(d.length&&d[0].oScroller)return d[0].oScroller.pixelsToRow(a,b,c)});j.register(["scroller().scrollToRow()","scroller.toPosition()"],function(a,b){this.iterator("table",
+function(c){c.oScroller&&c.oScroller.scrollToRow(a,b)});return this});j.register("row().scrollTo()",function(a){var b=this;this.iterator("row",function(c,d){if(c.oScroller){var e=b.rows({order:"applied",search:"applied"}).indexes().indexOf(d);c.oScroller.scrollToRow(e,a)}});return this});j.register("scroller.measure()",function(a){this.iterator("table",function(b){b.oScroller&&b.oScroller.measure(a)});return this});j.register("scroller.page()",function(){var a=this.context;if(a.length&&a[0].oScroller)return a[0].oScroller.pageInfo()});
+return f});
+
 /*! Bootstrap 4 styling wrapper for Scroller
  * ©2018 SpryMedia Ltd - datatables.net/license
  */
@@ -77535,6 +90907,3623 @@ return $.fn.dataTable;
  ©2018 SpryMedia Ltd - datatables.net/license
 */
 (function(c){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-scroller"],function(a){return c(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net-bs4")(a,b).$;b.fn.dataTable.Scroller||require("datatables.net-scroller")(a,b);return c(b,a,a.document)}:c(jQuery,window,document)})(function(c){return c.fn.dataTable});
+
+/*! SearchBuilder 1.0.1
+ * ©2020 SpryMedia Ltd - datatables.net/license/mit
+ */
+(function () {
+    'use strict';
+
+    var $$2;
+    var dataTable$2;
+    var moment = window.moment;
+    var luxon = window.luxon;
+    /**
+     * Sets the value of jQuery for use in the file
+     *
+     * @param jq the instance of jQuery to be set
+     */
+    function setJQuery$2(jq) {
+        $$2 = jq;
+        dataTable$2 = jq.fn.dataTable;
+    }
+    /**
+     * The Criteria class is used within SearchBuilder to represent a search criteria
+     */
+    var Criteria = /** @class */ (function () {
+        function Criteria(table, opts, topGroup, index, depth) {
+            var _this = this;
+            if (index === void 0) { index = 0; }
+            if (depth === void 0) { depth = 1; }
+            // Check that the required version of DataTables is included
+            if (!dataTable$2 || !dataTable$2.versionCheck || !dataTable$2.versionCheck('1.10.0')) {
+                throw new Error('SearchPane requires DataTables 1.10 or newer');
+            }
+            this.classes = $$2.extend(true, {}, Criteria.classes);
+            // Get options from user and any extra conditions/column types defined by plug-ins
+            this.c = $$2.extend(true, {}, Criteria.defaults, $$2.fn.dataTable.ext.searchBuilder, opts);
+            var i18n = this.c.i18n;
+            this.s = {
+                condition: undefined,
+                conditions: {},
+                data: undefined,
+                dataIdx: -1,
+                dataPoints: [],
+                dateFormat: false,
+                depth: depth,
+                dt: table,
+                filled: false,
+                index: index,
+                topGroup: topGroup,
+                type: '',
+                value: []
+            };
+            this.dom = {
+                buttons: $$2('<div/>')
+                    .addClass(this.classes.buttonContainer),
+                condition: $$2('<select disabled/>')
+                    .addClass(this.classes.condition)
+                    .addClass(this.classes.dropDown)
+                    .addClass(this.classes.italic)
+                    .attr('autocomplete', 'hacking'),
+                conditionTitle: $$2('<option value="" disabled selected hidden/>')
+                    .text(this.s.dt.i18n('searchBuilder.condition', i18n.condition)),
+                container: $$2('<div/>')
+                    .addClass(this.classes.container),
+                data: $$2('<select/>')
+                    .addClass(this.classes.data)
+                    .addClass(this.classes.dropDown)
+                    .addClass(this.classes.italic),
+                dataTitle: $$2('<option value="" disabled selected hidden/>')
+                    .text(this.s.dt.i18n('searchBuilder.data', i18n.data)),
+                defaultValue: $$2('<select disabled/>')
+                    .addClass(this.classes.value)
+                    .addClass(this.classes.dropDown)
+                    .addClass(this.classes.select),
+                "delete": $$2('<button>&times</button>')
+                    .addClass(this.classes["delete"])
+                    .addClass(this.classes.button)
+                    .attr('title', this.s.dt.i18n('searchBuilder.deleteTitle', i18n.deleteTitle))
+                    .attr('type', 'button'),
+                // eslint-disable-next-line no-useless-escape
+                left: $$2('<button>\<</button>')
+                    .addClass(this.classes.left)
+                    .addClass(this.classes.button)
+                    .attr('title', this.s.dt.i18n('searchBuilder.leftTitle', i18n.leftTitle))
+                    .attr('type', 'button'),
+                // eslint-disable-next-line no-useless-escape
+                right: $$2('<button>\></button>')
+                    .addClass(this.classes.right)
+                    .addClass(this.classes.button)
+                    .attr('title', this.s.dt.i18n('searchBuilder.rightTitle', i18n.rightTitle))
+                    .attr('type', 'button'),
+                value: [
+                    $$2('<select disabled/>')
+                        .addClass(this.classes.value)
+                        .addClass(this.classes.dropDown)
+                        .addClass(this.classes.italic)
+                        .addClass(this.classes.select)
+                ],
+                valueTitle: $$2('<option value="--valueTitle--" selected/>')
+                    .text(this.s.dt.i18n('searchBuilder.value', i18n.value))
+            };
+            // If the greyscale option is selected then add the class to add the grey colour to SearchBuilder
+            if (this.c.greyscale) {
+                $$2(this.dom.data).addClass(this.classes.greyscale);
+                $$2(this.dom.condition).addClass(this.classes.greyscale);
+                $$2(this.dom.defaultValue).addClass(this.classes.greyscale);
+                for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
+                    var val = _a[_i];
+                    $$2(val).addClass(this.classes.greyscale);
+                }
+            }
+            // For responsive design, adjust the criterias properties on the following events
+            this.s.dt.on('draw.dtsp', function () {
+                _this._adjustCriteria();
+            });
+            this.s.dt.on('buttons-action', function () {
+                _this._adjustCriteria();
+            });
+            $$2(window).on('resize.dtsp', dataTable$2.util.throttle(function () {
+                _this._adjustCriteria();
+            }));
+            this._buildCriteria();
+            return this;
+        }
+        /**
+         * Adds the left button to the criteria
+         */
+        Criteria.prototype.updateArrows = function (hasSiblings, redraw) {
+            if (hasSiblings === void 0) { hasSiblings = false; }
+            if (redraw === void 0) { redraw = true; }
+            // Empty the container and append all of the elements in the correct order
+            $$2(this.dom.container)
+                .empty()
+                .append(this.dom.data)
+                .append(this.dom.condition)
+                .append(this.dom.value[0]);
+            this.setListeners();
+            // Trigger the inserted events for the value elements as they are inserted
+            $$2(this.dom.value[0]).trigger('dtsb-inserted');
+            for (var i = 1; i < this.dom.value.length; i++) {
+                $$2(this.dom.container).append(this.dom.value[i]);
+                $$2(this.dom.value[i]).trigger('dtsb-inserted');
+            }
+            // If this is a top level criteria then don't let it move left
+            if (this.s.depth > 1) {
+                $$2(this.dom.buttons).append(this.dom.left);
+            }
+            // If the depthLimit of the query has been hit then don't add the right button
+            if ((this.c.depthLimit === false || this.s.depth < this.c.depthLimit) && hasSiblings) {
+                $$2(this.dom.buttons).append(this.dom.right);
+            }
+            else {
+                $$2(this.dom.right).remove();
+            }
+            $$2(this.dom.buttons).append(this.dom["delete"]);
+            $$2(this.dom.container).append(this.dom.buttons);
+            if (redraw) {
+                // A different combination of arrows and selectors may lead to a need for responsive to be triggered
+                this._adjustCriteria();
+            }
+        };
+        /**
+         * Destroys the criteria, removing listeners and container from the dom
+         */
+        Criteria.prototype.destroy = function () {
+            // Turn off listeners
+            $$2(this.dom.data).off('.dtsb');
+            $$2(this.dom.condition).off('.dtsb');
+            $$2(this.dom["delete"]).off('.dtsb');
+            for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
+                var val = _a[_i];
+                $$2(val).off('.dtsb');
+            }
+            // Remove container from the dom
+            $$2(this.dom.container).remove();
+        };
+        /**
+         * Passes in the data for the row and compares it against this single criteria
+         *
+         * @param rowData The data for the row to be compared
+         * @returns boolean Whether the criteria has passed
+         */
+        Criteria.prototype.search = function (rowData, rowIdx) {
+            var condition = this.s.conditions[this.s.condition];
+            if (this.s.condition !== undefined && condition !== undefined) {
+                var filter = rowData[this.s.dataIdx];
+                // This check is in place for if a custom decimal character is in place
+                if (this.s.type.indexOf('num') !== -1 &&
+                    (this.s.dt.settings()[0].oLanguage.sDecimal !== '' ||
+                        this.s.dt.settings()[0].oLanguage.sThousands !== '')) {
+                    var splitRD = [rowData[this.s.dataIdx]];
+                    if (this.s.dt.settings()[0].oLanguage.sDecimal !== '') {
+                        splitRD = rowData[this.s.dataIdx].split(this.s.dt.settings()[0].oLanguage.sDecimal);
+                    }
+                    if (this.s.dt.settings()[0].oLanguage.sThousands !== '') {
+                        for (var i = 0; i < splitRD.length; i++) {
+                            splitRD[i] = splitRD[i].replace(this.s.dt.settings()[0].oLanguage.sThousands, ',');
+                        }
+                    }
+                    filter = splitRD.join('.');
+                }
+                // If orthogonal data is in place we need to get it's values for searching
+                if (this.c.orthogonal.search !== 'filter') {
+                    var settings = this.s.dt.settings()[0];
+                    filter = settings.oApi._fnGetCellData(settings, rowIdx, this.s.dataIdx, typeof this.c.orthogonal === 'string' ?
+                        this.c.orthogonal :
+                        this.c.orthogonal.search);
+                }
+                if (this.s.type === 'array') {
+                    // Make sure we are working with an array
+                    if (!Array.isArray(filter)) {
+                        filter = [filter];
+                    }
+                    filter.sort();
+                    for (var _i = 0, filter_1 = filter; _i < filter_1.length; _i++) {
+                        var filt = filter_1[_i];
+                        if (filt) {
+                            filt = filt.replace(/[\r\n\u2028]/g, ' ');
+                        }
+                    }
+                }
+                else if (filter !== null) {
+                    filter = filter.replace(/[\r\n\u2028]/g, ' ');
+                }
+                if (this.s.type.indexOf('html') !== -1) {
+                    filter = filter.replace(/(<([^>]+)>)/ig, '');
+                }
+                // Not ideal, but jqueries .val() returns an empty string even
+                // when the value set is null, so we shall assume the two are equal
+                if (filter === null) {
+                    filter = '';
+                }
+                return condition.search(filter, this.s.value, this);
+            }
+        };
+        /**
+         * Gets the details required to rebuild the criteria
+         */
+        Criteria.prototype.getDetails = function () {
+            var value = this.s.value;
+            // This check is in place for if a custom decimal character is in place
+            if (this.s.type.indexOf('num') !== -1 &&
+                (this.s.dt.settings()[0].oLanguage.sDecimal !== '' || this.s.dt.settings()[0].oLanguage.sThousands !== '')) {
+                for (var i = 0; i < this.s.value.length; i++) {
+                    var splitRD = [this.s.value[i].toString()];
+                    if (this.s.dt.settings()[0].oLanguage.sDecimal !== '') {
+                        splitRD = this.s.value[i].split(this.s.dt.settings()[0].oLanguage.sDecimal);
+                    }
+                    if (this.s.dt.settings()[0].oLanguage.sThousands !== '') {
+                        for (var j = 0; j < splitRD.length; j++) {
+                            splitRD[j] = splitRD[j].replace(this.s.dt.settings()[0].oLanguage.sThousands, ',');
+                        }
+                    }
+                    this.s.value[i] = splitRD.join('.');
+                }
+            }
+            return {
+                condition: this.s.condition,
+                data: this.s.data,
+                value: value
+            };
+        };
+        /**
+         * Getter for the node for the container of the criteria
+         *
+         * @returns JQuery<HTMLElement> the node for the container
+         */
+        Criteria.prototype.getNode = function () {
+            return this.dom.container;
+        };
+        /**
+         * Populates the criteria data, condition and value(s) as far as has been selected
+         */
+        Criteria.prototype.populate = function () {
+            this._populateData();
+            // If the column index has been found attempt to select a condition
+            if (this.s.dataIdx !== -1) {
+                this._populateCondition();
+                // If the condittion has been found attempt to select the values
+                if (this.s.condition !== undefined) {
+                    this._populateValue();
+                }
+            }
+        };
+        /**
+         * Rebuilds the criteria based upon the details passed in
+         *
+         * @param loadedCriteria the details required to rebuild the criteria
+         */
+        Criteria.prototype.rebuild = function (loadedCriteria) {
+            // Check to see if the previously selected data exists, if so select it
+            var foundData = false;
+            var dataIdx;
+            this._populateData();
+            // If a data selection has previously been made attempt to find and select it
+            if (loadedCriteria.data !== undefined) {
+                var italic_1 = this.classes.italic;
+                var data_1 = this.dom.data;
+                $$2(this.dom.data).children('option').each(function () {
+                    if ($$2(this).text() === loadedCriteria.data) {
+                        $$2(this).attr('selected', true);
+                        $$2(data_1).removeClass(italic_1);
+                        foundData = true;
+                        dataIdx = $$2(this).val();
+                    }
+                });
+            }
+            // If the data has been found and selected then the condition can be populated and searched
+            if (foundData) {
+                this.s.data = loadedCriteria.data;
+                this.s.dataIdx = dataIdx;
+                this.c.orthogonal = this._getOptions().orthogonal;
+                $$2(this.dom.dataTitle).remove();
+                this._populateCondition();
+                $$2(this.dom.conditionTitle).remove();
+                var condition_1;
+                // Check to see if the previously selected condition exists, if so select it
+                $$2(this.dom.condition).children('option').each(function () {
+                    if ((loadedCriteria.condition !== undefined &&
+                        $$2(this).val() === loadedCriteria.condition &&
+                        typeof loadedCriteria.condition === 'string')) {
+                        $$2(this).attr('selected', true);
+                        condition_1 = $$2(this).val();
+                    }
+                });
+                this.s.condition = condition_1;
+                // If the condition has been found and selected then the value can be populated and searched
+                if (this.s.condition !== undefined) {
+                    $$2(this.dom.conditionTitle).remove();
+                    $$2(this.dom.condition).removeClass(this.classes.italic);
+                    this._populateValue(loadedCriteria);
+                }
+                else {
+                    $$2(this.dom.conditionTitle).prependTo(this.dom.condition).attr('selected', true);
+                }
+            }
+        };
+        /**
+         * Sets the listeners for the criteria
+         */
+        Criteria.prototype.setListeners = function () {
+            var _this = this;
+            $$2(this.dom.data)
+                .unbind('input change')
+                .on('input change', function () {
+                $$2(_this.dom.dataTitle).attr('selected', false);
+                $$2(_this.dom.data).removeClass(_this.classes.italic);
+                _this.s.dataIdx = $$2(_this.dom.data).children('option:selected').val();
+                _this.s.data = $$2(_this.dom.data).children('option:selected').text();
+                _this.c.orthogonal = _this._getOptions().orthogonal;
+                // When the data is changed, the values in condition and value may also change so need to renew them
+                _this._clearCondition();
+                _this._clearValue();
+                _this._populateCondition();
+                // If this criteria was previously active in the search then
+                //  remove it from the search and trigger a new search
+                if (_this.s.filled) {
+                    _this.s.filled = false;
+                    _this.s.dt.draw();
+                    _this.setListeners();
+                }
+                _this.s.dt.state.save();
+            });
+            $$2(this.dom.condition)
+                .unbind('input change')
+                .on('input change', function () {
+                $$2(_this.dom.conditionTitle).attr('selected', false);
+                $$2(_this.dom.condition).removeClass(_this.classes.italic);
+                var condDisp = $$2(_this.dom.condition).children('option:selected').val();
+                // Find the condition that has been selected and store it internally
+                for (var _i = 0, _a = Object.keys(_this.s.conditions); _i < _a.length; _i++) {
+                    var cond = _a[_i];
+                    if (cond === condDisp) {
+                        _this.s.condition = condDisp;
+                        break;
+                    }
+                }
+                // When the condition is changed, the value selector may switch between
+                //  a select element and an input element
+                _this._clearValue();
+                _this._populateValue();
+                for (var _b = 0, _c = _this.dom.value; _b < _c.length; _b++) {
+                    var val = _c[_b];
+                    // If this criteria was previously active in the search then remove
+                    //  it from the search and trigger a new search
+                    if (_this.s.filled && $$2(_this.dom.container).has(val).length !== 0) {
+                        _this.s.filled = false;
+                        _this.s.dt.draw();
+                        _this.setListeners();
+                    }
+                }
+                _this.s.dt.draw();
+            });
+        };
+        /**
+         * Adjusts the criteria to make SearchBuilder responsive
+         */
+        Criteria.prototype._adjustCriteria = function () {
+            // If this criteria is not present then don't bother adjusting it
+            if ($$2(document).has(this.dom.container).length === 0) {
+                return;
+            }
+            var valRight;
+            var valWidth;
+            var outmostval = this.dom.value[this.dom.value.length - 1];
+            // Calculate the width and right value of the outmost value element
+            if ($$2(this.dom.container).has(outmostval).length !== 0) {
+                valWidth = $$2(outmostval).outerWidth(true);
+                valRight = $$2(outmostval).offset().left + valWidth;
+            }
+            else {
+                return;
+            }
+            var leftOffset = $$2(this.dom.left).offset();
+            var rightOffset = $$2(this.dom.right).offset();
+            var clearOffset = $$2(this.dom["delete"]).offset();
+            var hasLeft = $$2(this.dom.container).has(this.dom.left).length !== 0;
+            var hasRight = $$2(this.dom.container).has(this.dom.right).length !== 0;
+            var buttonsLeft = hasLeft ?
+                leftOffset.left :
+                hasRight ?
+                    rightOffset.left :
+                    clearOffset.left;
+            // Perform the responsive calculations and redraw where necessary
+            if ((buttonsLeft - valRight < 15 ||
+                (hasLeft && leftOffset.top !== clearOffset.top) ||
+                (hasRight && rightOffset.top !== clearOffset.top)) &&
+                !$$2(this.dom.container).parent().hasClass(this.classes.vertical)) {
+                $$2(this.dom.container).parent().addClass(this.classes.vertical);
+                $$2(this.s.topGroup).trigger('dtsb-redrawContents');
+            }
+            else if (buttonsLeft -
+                ($$2(this.dom.data).offset().left +
+                    $$2(this.dom.data).outerWidth(true) +
+                    $$2(this.dom.condition).outerWidth(true) +
+                    valWidth) > 15
+                && $$2(this.dom.container).parent().hasClass(this.classes.vertical)) {
+                $$2(this.dom.container).parent().removeClass(this.classes.vertical);
+                $$2(this.s.topGroup).trigger('dtsb-redrawContents');
+            }
+        };
+        /**
+         * Builds the elements of the dom together
+         */
+        Criteria.prototype._buildCriteria = function () {
+            // Append Titles for select elements
+            $$2(this.dom.data).append(this.dom.dataTitle);
+            $$2(this.dom.condition).append(this.dom.conditionTitle);
+            // Add elements to container
+            $$2(this.dom.container)
+                .append(this.dom.data)
+                .append(this.dom.condition);
+            for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
+                var val = _a[_i];
+                $$2(val).append(this.dom.valueTitle);
+                $$2(this.dom.container).append(val);
+            }
+            // Add buttons to container
+            $$2(this.dom.container)
+                .append(this.dom["delete"])
+                .append(this.dom.right);
+            this.setListeners();
+        };
+        /**
+         * Clears the condition select element
+         */
+        Criteria.prototype._clearCondition = function () {
+            $$2(this.dom.condition).empty();
+            $$2(this.dom.conditionTitle).attr('selected', true).attr('disabled', true);
+            $$2(this.dom.condition).prepend(this.dom.conditionTitle).prop('selectedIndex', 0);
+            this.s.conditions = {};
+            this.s.condition = undefined;
+        };
+        /**
+         * Clears the value elements
+         */
+        Criteria.prototype._clearValue = function () {
+            if (this.s.condition !== undefined) {
+                var _loop_1 = function (val) {
+                    // Timeout is annoying but because of IOS
+                    setTimeout(function () {
+                        $$2(val).remove();
+                    }, 50);
+                };
+                // Remove all of the value elements
+                for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
+                    var val = _a[_i];
+                    _loop_1(val);
+                }
+                // Call the init function to get the value elements for this condition
+                this.dom.value = [].concat(this.s.conditions[this.s.condition].init(this, Criteria.updateListener));
+                $$2(this.dom.value[0]).insertAfter(this.dom.condition).trigger('dtsb-inserted');
+                // Insert all of the value elements
+                for (var i = 1; i < this.dom.value.length; i++) {
+                    $$2(this.dom.value[i]).insertAfter(this.dom.value[i - 1]).trigger('dtsb-inserted');
+                }
+            }
+            else {
+                var _loop_2 = function (val) {
+                    // Timeout is annoying but because of IOS
+                    setTimeout(function () {
+                        $$2(val).remove();
+                    }, 50);
+                };
+                // Remove all of the value elements
+                for (var _b = 0, _c = this.dom.value; _b < _c.length; _b++) {
+                    var val = _c[_b];
+                    _loop_2(val);
+                }
+                // Append the default valueTitle to the default select element
+                $$2(this.dom.valueTitle)
+                    .attr('selected', true);
+                $$2(this.dom.defaultValue)
+                    .append(this.dom.valueTitle)
+                    .insertAfter(this.dom.condition);
+            }
+            this.s.value = [];
+            this.dom.value = [
+                $$2('<select disabled/>')
+                    .addClass(this.classes.value)
+                    .addClass(this.classes.dropDown)
+                    .addClass(this.classes.italic)
+                    .addClass(this.classes.select)
+                    .append($$2(this.dom.valueTitle).clone())
+            ];
+        };
+        /**
+         * Gets the options for the column
+         *
+         * @returns {object} The options for the column
+         */
+        Criteria.prototype._getOptions = function () {
+            var table = this.s.dt;
+            return $$2.extend(true, {}, Criteria.defaults, table.settings()[0].aoColumns[this.s.dataIdx].searchBuilder);
+        };
+        /**
+         * Populates the condition dropdown
+         */
+        Criteria.prototype._populateCondition = function () {
+            var conditionOpts = [];
+            var conditionsLength = Object.keys(this.s.conditions).length;
+            // If there are no conditions stored then we need to get them from the appropriate type
+            if (conditionsLength === 0) {
+                var column = $$2(this.dom.data).children('option:selected').val();
+                this.s.type = this.s.dt.columns().type().toArray()[column];
+                // If the column type is unknown, call a draw to try reading it again
+                if (this.s.type === null) {
+                    this.s.dt.draw();
+                    this.setListeners();
+                    this.s.type = this.s.dt.columns().type().toArray()[column];
+                }
+                // Enable the condition element
+                $$2(this.dom.condition)
+                    .attr('disabled', false)
+                    .empty()
+                    .append(this.dom.conditionTitle)
+                    .addClass(this.classes.italic);
+                $$2(this.dom.conditionTitle)
+                    .attr('selected', true);
+                var decimal = this.s.dt.settings()[0].oLanguage.sDecimal;
+                // This check is in place for if a custom decimal character is in place
+                if (decimal !== '' && this.s.type.indexOf(decimal) === this.s.type.length - decimal.length) {
+                    if (this.s.type.indexOf('num-fmt') !== -1) {
+                        this.s.type = this.s.type.replace(decimal, '');
+                    }
+                    else if (this.s.type.indexOf('num') !== -1) {
+                        this.s.type = this.s.type.replace(decimal, '');
+                    }
+                }
+                // Select which conditions are going to be used based on the column type
+                var conditionObj = this.c.conditions[this.s.type] !== undefined ?
+                    this.c.conditions[this.s.type] :
+                    this.s.type.indexOf('moment') !== -1 ?
+                        this.c.conditions.moment :
+                        this.s.type.indexOf('luxon') !== -1 ?
+                            this.c.conditions.luxon :
+                            this.c.conditions.string;
+                // If it is a moment format then extract the date format
+                if (this.s.type.indexOf('moment') !== -1) {
+                    this.s.dateFormat = this.s.type.replace(/moment-/g, '');
+                }
+                else if (this.s.type.indexOf('luxon') !== -1) {
+                    this.s.dateFormat = this.s.type.replace(/luxon-/g, '');
+                }
+                // Add all of the conditions to the select element
+                for (var _i = 0, _a = Object.keys(conditionObj); _i < _a.length; _i++) {
+                    var condition = _a[_i];
+                    if (conditionObj[condition] !== null) {
+                        this.s.conditions[condition] = conditionObj[condition];
+                        var condName = conditionObj[condition].conditionName;
+                        if (typeof condName === 'function') {
+                            condName = condName(this.s.dt, this.c.i18n);
+                        }
+                        conditionOpts.push($$2('<option>', {
+                            text: condName,
+                            value: condition
+                        })
+                            .addClass(this.classes.option)
+                            .addClass(this.classes.notItalic));
+                    }
+                }
+            }
+            // Otherwise we can just load them in
+            else if (conditionsLength > 0) {
+                $$2(this.dom.condition).empty().attr('disabled', false).addClass(this.classes.italic);
+                for (var _b = 0, _c = Object.keys(this.s.conditions); _b < _c.length; _b++) {
+                    var condition = _c[_b];
+                    var condName = this.s.conditions[condition].conditionName;
+                    if (typeof condName === 'function') {
+                        condName = condName(this.s.dt, this.c.i18n);
+                    }
+                    var newOpt = $$2('<option>', {
+                        text: condName,
+                        value: condition
+                    })
+                        .addClass(this.classes.option)
+                        .addClass(this.classes.notItalic);
+                    if (this.s.condition !== undefined && this.s.condition === condName) {
+                        $$2(newOpt).attr('selected', true);
+                        $$2(this.dom.condition).removeClass(this.classes.italic);
+                    }
+                    conditionOpts.push(newOpt);
+                }
+            }
+            else {
+                $$2(this.dom.condition)
+                    .attr('disabled', true)
+                    .addClass(this.classes.italic);
+                return;
+            }
+            for (var _d = 0, conditionOpts_1 = conditionOpts; _d < conditionOpts_1.length; _d++) {
+                var opt = conditionOpts_1[_d];
+                $$2(this.dom.condition).append(opt);
+            }
+            $$2(this.dom.condition).prop('selectedIndex', 0);
+        };
+        /**
+         * Populates the data select element
+         */
+        Criteria.prototype._populateData = function () {
+            var _this = this;
+            $$2(this.dom.data).empty().append(this.dom.dataTitle);
+            // If there are no datas stored then we need to get them from the table
+            if (this.s.dataPoints.length === 0) {
+                this.s.dt.columns().every(function (index) {
+                    // Need to check that the column can be filtered on before adding it
+                    if (_this.c.columns === true ||
+                        (_this.s.dt.columns(_this.c.columns).indexes().toArray().indexOf(index) !== -1)) {
+                        var found = false;
+                        for (var _i = 0, _a = _this.s.dataPoints; _i < _a.length; _i++) {
+                            var val = _a[_i];
+                            if (val.index === index) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            var col = _this.s.dt.settings()[0].aoColumns[index];
+                            var opt = {
+                                index: index,
+                                text: (col.searchBuilderTitle === undefined ?
+                                    col.sTitle :
+                                    col.searchBuilderTitle).replace(/(<([^>]+)>)/ig, '')
+                            };
+                            _this.s.dataPoints.push(opt);
+                            $$2(_this.dom.data).append($$2('<option>', {
+                                text: opt.text,
+                                value: opt.index
+                            })
+                                .addClass(_this.classes.option)
+                                .addClass(_this.classes.notItalic));
+                        }
+                    }
+                });
+            }
+            // Otherwise we can just load them in
+            else {
+                var _loop_3 = function (data) {
+                    this_1.s.dt.columns().every(function (index) {
+                        var col = _this.s.dt.settings()[0].aoColumns[index];
+                        if ((col.searchBuilderTitle === undefined ?
+                            col.sTitle :
+                            col.searchBuilderTitle).replace(/(<([^>]+)>)/ig, '') === data.text) {
+                            data.index = index;
+                        }
+                    });
+                    var newOpt = $$2('<option>', {
+                        text: data.text.replace(/(<([^>]+)>)/ig, ''),
+                        value: data.index
+                    })
+                        .addClass(this_1.classes.option)
+                        .addClass(this_1.classes.notItalic);
+                    if (this_1.s.data === data.text) {
+                        this_1.s.dataIdx = data.index;
+                        $$2(newOpt).attr('selected', true);
+                        $$2(this_1.dom.data).removeClass(this_1.classes.italic);
+                    }
+                    $$2(this_1.dom.data).append(newOpt);
+                };
+                var this_1 = this;
+                for (var _i = 0, _a = this.s.dataPoints; _i < _a.length; _i++) {
+                    var data = _a[_i];
+                    _loop_3(data);
+                }
+            }
+        };
+        /**
+         * Populates the Value select element
+         *
+         * @param loadedCriteria optional, used to reload criteria from predefined filters
+         */
+        Criteria.prototype._populateValue = function (loadedCriteria) {
+            var _this = this;
+            var prevFilled = this.s.filled;
+            this.s.filled = false;
+            // Remove any previous value elements
+            // Timeout is annoying but because of IOS
+            setTimeout(function () {
+                $$2(_this.dom.defaultValue).remove();
+            }, 50);
+            var _loop_4 = function (val) {
+                // Timeout is annoying but because of IOS
+                setTimeout(function () {
+                    $$2(val).remove();
+                }, 50);
+            };
+            for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
+                var val = _a[_i];
+                _loop_4(val);
+            }
+            var children = $$2(this.dom.container).children();
+            if (children.length > 3) {
+                for (var i = 2; i < children.length - 1; i++) {
+                    $$2(children[i]).remove();
+                }
+            }
+            // Find the column with the title matching the data for the criteria and take note of the index
+            if (loadedCriteria !== undefined) {
+                this.s.dt.columns().every(function (index) {
+                    if (_this.s.dt.settings()[0].aoColumns[index].sTitle === loadedCriteria.data) {
+                        _this.s.dataIdx = index;
+                    }
+                });
+            }
+            // Initialise the value elements based on the condition
+            this.dom.value = [].concat(this.s.conditions[this.s.condition].init(this, Criteria.updateListener, loadedCriteria !== undefined ? loadedCriteria.value : undefined));
+            if (loadedCriteria !== undefined && loadedCriteria.value !== undefined) {
+                this.s.value = loadedCriteria.value;
+            }
+            // Insert value elements and trigger the inserted event
+            $$2(this.dom.value[0])
+                .insertAfter(this.dom.condition)
+                .trigger('dtsb-inserted');
+            for (var i = 1; i < this.dom.value.length; i++) {
+                $$2(this.dom.value[i])
+                    .insertAfter(this.dom.value[i - 1])
+                    .trigger('dtsb-inserted');
+            }
+            // Check if the criteria can be used in a search
+            this.s.filled = this.s.conditions[this.s.condition].isInputValid(this.dom.value, this);
+            this.setListeners();
+            // If it can and this is different to before then trigger a draw
+            if (prevFilled !== this.s.filled) {
+                this.s.dt.draw();
+                this.setListeners();
+            }
+        };
+        Criteria.version = '1.1.0';
+        Criteria.classes = {
+            button: 'dtsb-button',
+            buttonContainer: 'dtsb-buttonContainer',
+            condition: 'dtsb-condition',
+            container: 'dtsb-criteria',
+            data: 'dtsb-data',
+            "delete": 'dtsb-delete',
+            dropDown: 'dtsb-dropDown',
+            greyscale: 'dtsb-greyscale',
+            input: 'dtsb-input',
+            italic: 'dtsb-italic',
+            joiner: 'dtsp-joiner',
+            left: 'dtsb-left',
+            notItalic: 'dtsb-notItalic',
+            option: 'dtsb-option',
+            right: 'dtsb-right',
+            select: 'dtsb-select',
+            value: 'dtsb-value',
+            vertical: 'dtsb-vertical'
+        };
+        /**
+         * Default initialisation function for select conditions
+         */
+        Criteria.initSelect = function (that, fn, preDefined, array) {
+            if (preDefined === void 0) { preDefined = null; }
+            if (array === void 0) { array = false; }
+            var column = $$2(that.dom.data).children('option:selected').val();
+            var indexArray = that.s.dt.rows().indexes().toArray();
+            var settings = that.s.dt.settings()[0];
+            // Declare select element to be used with all of the default classes and listeners.
+            var el = $$2('<select/>')
+                .addClass(Criteria.classes.value)
+                .addClass(Criteria.classes.dropDown)
+                .addClass(Criteria.classes.italic)
+                .addClass(Criteria.classes.select)
+                .append(that.dom.valueTitle)
+                .on('input change', function () {
+                $$2(this).removeClass(Criteria.classes.italic);
+                fn(that, this);
+            });
+            if (that.c.greyscale) {
+                $$2(el).addClass(Criteria.classes.greyscale);
+            }
+            var added = [];
+            var options = [];
+            // Add all of the options from the table to the select element.
+            // Only add one option for each possible value
+            for (var _i = 0, indexArray_1 = indexArray; _i < indexArray_1.length; _i++) {
+                var index = indexArray_1[_i];
+                var filter = settings.oApi._fnGetCellData(settings, index, column, typeof that.c.orthogonal === 'string' ?
+                    that.c.orthogonal :
+                    that.c.orthogonal.search);
+                var value = {
+                    filter: typeof filter === 'string' ?
+                        filter.replace(/[\r\n\u2028]/g, ' ') : // Need to replace certain characters to match search values
+                        filter,
+                    index: index,
+                    text: settings.oApi._fnGetCellData(settings, index, column, typeof that.c.orthogonal === 'string' ?
+                        that.c.orthogonal :
+                        that.c.orthogonal.display)
+                };
+                // If we are dealing with an array type, either make sure we are working with arrays, or sort them
+                if (that.s.type === 'array') {
+                    value.filter = !Array.isArray(value.filter) ?
+                        [value.filter] :
+                        value.filter = value.filter.sort();
+                    value.text = !Array.isArray(value.text) ?
+                        [value.text] :
+                        value.text = value.text.sort();
+                }
+                // Function to add an option to the select element
+                var addOption = function (filt, text) {
+                    // Add text and value, stripping out any html if that is the column type
+                    var opt = $$2('<option>', {
+                        type: Array.isArray(filt) ? 'Array' : 'String',
+                        value: that.s.type.indexOf('html') !== -1 && filt !== null && typeof filt === 'string' ?
+                            filt.replace(/(<([^>]+)>)/ig, '') :
+                            filt
+                    })
+                        .addClass(that.classes.option)
+                        .addClass(that.classes.notItalic)
+                        // Have to add the text this way so that special html characters are not escaped - &amp; etc.
+                        .html(typeof text === 'string' ?
+                        text.replace(/(<([^>]+)>)/ig, '') :
+                        text);
+                    var val = $$2(opt).val();
+                    // Check that this value has not already been added
+                    if (added.indexOf(val) === -1) {
+                        added.push(val);
+                        options.push(opt);
+                        if (preDefined !== null && Array.isArray(preDefined[0])) {
+                            preDefined[0] = preDefined[0].sort().join(',');
+                        }
+                        // If this value was previously selected as indicated by preDefined, then select it again
+                        if (preDefined !== null && opt.val() === preDefined[0]) {
+                            opt.attr('selected', true);
+                            $$2(el).removeClass(Criteria.classes.italic);
+                        }
+                    }
+                };
+                // If this is to add the individual values within the array we need to loop over the array
+                if (array) {
+                    for (var i = 0; i < value.filter.length; i++) {
+                        addOption(value.filter[i], value.text[i]);
+                    }
+                }
+                // Otherwise the value that is in the cell is to be added
+                else {
+                    addOption(value.filter, value.text);
+                }
+            }
+            options.sort(function (a, b) {
+                if (that.s.type === 'array' ||
+                    that.s.type === 'string' ||
+                    that.s.type === 'num' ||
+                    that.s.type === 'html' ||
+                    that.s.type === 'html-num') {
+                    if ($$2(a).val() < $$2(b).val()) {
+                        return -1;
+                    }
+                    else if ($$2(a).val() > $$2(b).val()) {
+                        return 1;
+                    }
+                    else {
+                        return 0;
+                    }
+                }
+                else if (that.s.type === 'num-fmt' || that.s.type === 'html-num-fmt') {
+                    if (+$$2(a).val().replace(/[^0-9.]/g, '') < +$$2(b).val().replace(/[^0-9.]/g, '')) {
+                        return -1;
+                    }
+                    else if (+$$2(a).val().replace(/[^0-9.]/g, '') > +$$2(b).val().replace(/[^0-9.]/g, '')) {
+                        return 1;
+                    }
+                    else {
+                        return 0;
+                    }
+                }
+            });
+            for (var _a = 0, options_1 = options; _a < options_1.length; _a++) {
+                var opt = options_1[_a];
+                $$2(el).append(opt);
+            }
+            return el;
+        };
+        /**
+         * Default initialisation function for select array conditions
+         *
+         * This exists because there needs to be different select functionality for contains/without and equals/not
+         */
+        Criteria.initSelectArray = function (that, fn, preDefined) {
+            if (preDefined === void 0) { preDefined = null; }
+            return Criteria.initSelect(that, fn, preDefined, true);
+        };
+        /**
+         * Default initialisation function for input conditions
+         */
+        Criteria.initInput = function (that, fn, preDefined) {
+            var _this = this;
+            if (preDefined === void 0) { preDefined = null; }
+            // Declare the input element
+            var searchDelay = that.s.dt.settings()[0].searchDelay;
+            var el = $$2('<input/>')
+                .addClass(Criteria.classes.value)
+                .addClass(Criteria.classes.input)
+                .on('input keypress', !that.c.enterSearch || searchDelay !== null ?
+                that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                    return fn(that, this);
+                }, searchDelay) :
+                that.c.enterSearch ?
+                    function (e) {
+                        var code = e.keyCode || e.which;
+                        if (code === 13) {
+                            fn(that, _this);
+                        }
+                    } :
+                    function () {
+                        fn(that, _this);
+                    });
+            if (that.c.greyscale) {
+                $$2(el).addClass(Criteria.classes.greyscale);
+            }
+            // If there is a preDefined value then add it
+            if (preDefined !== null) {
+                $$2(el).val(preDefined[0]);
+            }
+            // This is add responsive functionality to the logic button without redrawing everything else
+            that.s.dt.one('draw', function () {
+                $$2(that.s.topGroup).trigger('dtsb-redrawLogic');
+            });
+            return el;
+        };
+        /**
+         * Default initialisation function for conditions requiring 2 inputs
+         */
+        Criteria.init2Input = function (that, fn, preDefined) {
+            var _this = this;
+            if (preDefined === void 0) { preDefined = null; }
+            // Declare all of the necessary jQuery elements
+            var searchDelay = that.s.dt.settings()[0].searchDelay;
+            var els = [
+                $$2('<input/>')
+                    .addClass(Criteria.classes.value)
+                    .addClass(Criteria.classes.input)
+                    .on('input keypress', searchDelay !== null ?
+                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                        return fn(that, this);
+                    }, searchDelay) :
+                    that.c.enterSearch ?
+                        function (e) {
+                            var code = e.keyCode || e.which;
+                            if (code === 13) {
+                                fn(that, _this);
+                            }
+                        } :
+                        function () {
+                            fn(that, _this);
+                        }),
+                $$2('<span>')
+                    .addClass(that.classes.joiner)
+                    .text(that.s.dt.i18n('searchBuilder.valueJoiner', that.c.i18n.valueJoiner)),
+                $$2('<input/>')
+                    .addClass(Criteria.classes.value)
+                    .addClass(Criteria.classes.input)
+                    .on('input keypress', searchDelay !== null ?
+                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                        return fn(that, this);
+                    }, searchDelay) :
+                    that.c.enterSearch ?
+                        function (e) {
+                            var code = e.keyCode || e.which;
+                            if (code === 13) {
+                                fn(that, _this);
+                            }
+                        } :
+                        function () {
+                            fn(that, _this);
+                        })
+            ];
+            if (that.c.greyscale) {
+                $$2(els[0]).addClass(Criteria.classes.greyscale);
+                $$2(els[2]).addClass(Criteria.classes.greyscale);
+            }
+            // If there is a preDefined value then add it
+            if (preDefined !== null) {
+                $$2(els[0]).val(preDefined[0]);
+                $$2(els[2]).val(preDefined[1]);
+            }
+            // This is add responsive functionality to the logic button without redrawing everything else
+            that.s.dt.one('draw', function () {
+                $$2(that.s.topGroup).trigger('dtsb-redrawLogic');
+            });
+            return els;
+        };
+        /**
+         * Default initialisation function for date conditions
+         */
+        Criteria.initDate = function (that, fn, preDefined) {
+            var _this = this;
+            if (preDefined === void 0) { preDefined = null; }
+            var searchDelay = that.s.dt.settings()[0].searchDelay;
+            // Declare date element using DataTables dateTime plugin
+            var el = $$2('<input/>')
+                .addClass(Criteria.classes.value)
+                .addClass(Criteria.classes.input)
+                .dtDateTime({
+                attachTo: 'input',
+                format: that.s.dateFormat ? that.s.dateFormat : undefined
+            })
+                .on('change', searchDelay !== null ?
+                that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                    return fn(that, this);
+                }, searchDelay) :
+                function () {
+                    fn(that, _this);
+                })
+                .on('input keypress', !that.c.enterSearch && searchDelay !== null ?
+                that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                    return fn(that, this);
+                }, searchDelay) :
+                that.c.enterSearch ?
+                    function (e) {
+                        var code = e.keyCode || e.which;
+                        if (code === 13) {
+                            fn(that, _this);
+                        }
+                    } :
+                    function () {
+                        fn(that, _this);
+                    });
+            if (that.c.greyscale) {
+                $$2(el).addClass(Criteria.classes.greyscale);
+            }
+            // If there is a preDefined value then add it
+            if (preDefined !== null) {
+                $$2(el).val(preDefined[0]);
+            }
+            // This is add responsive functionality to the logic button without redrawing everything else
+            that.s.dt.one('draw', function () {
+                $$2(that.s.topGroup).trigger('dtsb-redrawLogic');
+            });
+            return el;
+        };
+        Criteria.initNoValue = function (that) {
+            // This is add responsive functionality to the logic button without redrawing everything else
+            that.s.dt.one('draw', function () {
+                $$2(that.s.topGroup).trigger('dtsb-redrawLogic');
+            });
+        };
+        Criteria.init2Date = function (that, fn, preDefined) {
+            var _this = this;
+            if (preDefined === void 0) { preDefined = null; }
+            var searchDelay = that.s.dt.settings()[0].searchDelay;
+            // Declare all of the date elements that are required using DataTables dateTime plugin
+            var els = [
+                $$2('<input/>')
+                    .addClass(Criteria.classes.value)
+                    .addClass(Criteria.classes.input)
+                    .dtDateTime({
+                    attachTo: 'input',
+                    format: that.s.dateFormat ? that.s.dateFormat : undefined
+                })
+                    .on('change', searchDelay !== null ?
+                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                        return fn(that, this);
+                    }, searchDelay) :
+                    function () {
+                        fn(that, _this);
+                    })
+                    .on('input keypress', !that.c.enterSearch && searchDelay !== null ?
+                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                        return fn(that, this);
+                    }, searchDelay) :
+                    that.c.enterSearch ?
+                        function (e) {
+                            var code = e.keyCode || e.which;
+                            if (code === 13) {
+                                fn(that, _this);
+                            }
+                        } :
+                        function () {
+                            fn(that, _this);
+                        }),
+                $$2('<span>')
+                    .addClass(that.classes.joiner)
+                    .text(that.s.dt.i18n('searchBuilder.valueJoiner', that.c.i18n.valueJoiner)),
+                $$2('<input/>')
+                    .addClass(Criteria.classes.value)
+                    .addClass(Criteria.classes.input)
+                    .dtDateTime({
+                    attachTo: 'input',
+                    format: that.s.dateFormat ? that.s.dateFormat : undefined
+                })
+                    .on('change', searchDelay !== null ?
+                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                        return fn(that, this);
+                    }, searchDelay) :
+                    function () {
+                        fn(that, _this);
+                    })
+                    .on('input keypress', !that.c.enterSearch && searchDelay !== null ?
+                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
+                        return fn(that, this);
+                    }, searchDelay) :
+                    that.c.enterSearch ?
+                        function (e) {
+                            var code = e.keyCode || e.which;
+                            if (code === 13) {
+                                fn(that, _this);
+                            }
+                        } :
+                        function () {
+                            fn(that, _this);
+                        })
+            ];
+            if (that.c.greyscale) {
+                $$2(els[0]).addClass(Criteria.classes.greyscale);
+                $$2(els[2]).addClass(Criteria.classes.greyscale);
+            }
+            // If there are and preDefined values then add them
+            if (preDefined !== null && preDefined.length > 0) {
+                $$2(els[0]).val(preDefined[0]);
+                $$2(els[2]).val(preDefined[1]);
+            }
+            // This is add responsive functionality to the logic button without redrawing everything else
+            that.s.dt.one('draw', function () {
+                $$2(that.s.topGroup).trigger('dtsb-redrawLogic');
+            });
+            return els;
+        };
+        /**
+         * Default function for select elements to validate condition
+         */
+        Criteria.isInputValidSelect = function (el) {
+            var allFilled = true;
+            // Check each element to make sure that the selections are valid
+            for (var _i = 0, el_1 = el; _i < el_1.length; _i++) {
+                var element = el_1[_i];
+                if (($$2(element).children('option:selected').length ===
+                    $$2(element).children('option').length -
+                        $$2(element).children('option.' + Criteria.classes.notItalic).length) &&
+                    $$2(element).children('option:selected').length === 1 &&
+                    $$2(element).children('option:selected')[0] === $$2(element).children('option:hidden')[0]) {
+                    allFilled = false;
+                }
+            }
+            return allFilled;
+        };
+        /**
+         * Default function for input and date elements to validate condition
+         */
+        Criteria.isInputValidInput = function (el) {
+            var allFilled = true;
+            // Check each element to make sure that the inputs are valid
+            for (var _i = 0, el_2 = el; _i < el_2.length; _i++) {
+                var element = el_2[_i];
+                if ($$2(element).is('input') && $$2(element).val().length === 0) {
+                    allFilled = false;
+                }
+            }
+            return allFilled;
+        };
+        /**
+         * Default function for getting select conditions
+         */
+        Criteria.inputValueSelect = function (el) {
+            var values = [];
+            // Go through the select elements and push each selected option to the return array
+            for (var _i = 0, el_3 = el; _i < el_3.length; _i++) {
+                var element = el_3[_i];
+                if ($$2(element).is('select')) {
+                    var val = $$2(element).children('option:selected').val();
+                    // If the type of the option is an array we need to split it up and sort it
+                    values.push($$2(element).children('option:selected').attr('type') === 'Array' ?
+                        val.split(',').sort() :
+                        val);
+                }
+            }
+            return values;
+        };
+        /**
+         * Default function for getting input conditions
+         */
+        Criteria.inputValueInput = function (el) {
+            var values = [];
+            // Go through the input elements and push each value to the return array
+            for (var _i = 0, el_4 = el; _i < el_4.length; _i++) {
+                var element = el_4[_i];
+                if ($$2(element).is('input')) {
+                    values.push($$2(element).val());
+                }
+            }
+            return values;
+        };
+        /**
+         * Function that is run on each element as a call back when a search should be triggered
+         */
+        Criteria.updateListener = function (that, el) {
+            // When the value is changed the criteria is now complete so can be included in searches
+            // Get the condition from the map based on the key that has been selected for the condition
+            var condition = that.s.conditions[that.s.condition];
+            that.s.filled = condition.isInputValid(that.dom.value, that);
+            that.s.value = condition.inputValue(that.dom.value, that);
+            if (!Array.isArray(that.s.value)) {
+                that.s.value = [that.s.value];
+            }
+            for (var i = 0; i < that.s.value.length; i++) {
+                // If the value is an array we need to sort it
+                if (Array.isArray(that.s.value[i])) {
+                    that.s.value[i].sort();
+                }
+                // Otherwise replace the decimal place character for i18n
+                else if (that.s.type.indexOf('num') !== -1 &&
+                    (that.s.dt.settings()[0].oLanguage.sDecimal !== '' ||
+                        that.s.dt.settings()[0].oLanguage.sThousands !== '')) {
+                    var splitRD = [that.s.value[i].toString()];
+                    if (that.s.dt.settings()[0].oLanguage.sDecimal !== '') {
+                        splitRD = that.s.value[i].split(that.s.dt.settings()[0].oLanguage.sDecimal);
+                    }
+                    if (that.s.dt.settings()[0].oLanguage.sThousands !== '') {
+                        for (var j = 0; j < splitRD.length; j++) {
+                            splitRD[j] = splitRD[j].replace(that.s.dt.settings()[0].oLanguage.sThousands, ',');
+                        }
+                    }
+                    that.s.value[i] = splitRD.join('.');
+                }
+            }
+            // Take note of the cursor position so that we can refocus there later
+            var idx = null;
+            var cursorPos = null;
+            for (var i = 0; i < that.dom.value.length; i++) {
+                if (el === that.dom.value[i][0]) {
+                    idx = i;
+                    if (el.selectionStart !== undefined) {
+                        cursorPos = el.selectionStart;
+                    }
+                }
+            }
+            // Trigger a search
+            that.s.dt.draw();
+            // Refocus the element and set the correct cursor position
+            if (idx !== null) {
+                $$2(that.dom.value[idx]).removeClass(that.classes.italic);
+                $$2(that.dom.value[idx]).focus();
+                if (cursorPos !== null) {
+                    $$2(that.dom.value[idx])[0].setSelectionRange(cursorPos, cursorPos);
+                }
+            }
+        };
+        // The order of the conditions will make eslint sad :(
+        // Has to be in this order so that they are displayed correctly in select elements
+        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.dateConditions = {
+            '=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.equals', i18n.conditions.date.equals);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    value = value.replace(/(\/|-|,)/g, '-');
+                    return value === comparison[0];
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.not', i18n.conditions.date.not);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    value = value.replace(/(\/|-|,)/g, '-');
+                    return value !== comparison[0];
+                }
+            },
+            '<': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.before', i18n.conditions.date.before);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    value = value.replace(/(\/|-|,)/g, '-');
+                    return value < comparison[0];
+                }
+            },
+            '>': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.after', i18n.conditions.date.after);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    value = value.replace(/(\/|-|,)/g, '-');
+                    return value > comparison[0];
+                }
+            },
+            'between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.between', i18n.conditions.date.between);
+                },
+                init: Criteria.init2Date,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    value = value.replace(/(\/|-|,)/g, '-');
+                    if (comparison[0] < comparison[1]) {
+                        return comparison[0] <= value && value <= comparison[1];
+                    }
+                    else {
+                        return comparison[1] <= value && value <= comparison[0];
+                    }
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.notBetween', i18n.conditions.date.notBetween);
+                },
+                init: Criteria.init2Date,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    value = value.replace(/(\/|-|,)/g, '-');
+                    if (comparison[0] < comparison[1]) {
+                        return !(comparison[0] <= value && value <= comparison[1]);
+                    }
+                    else {
+                        return !(comparison[1] <= value && value <= comparison[0]);
+                    }
+                }
+            },
+            'null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.empty', i18n.conditions.date.empty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value === null || value === undefined || value.length === 0);
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.notEmpty', i18n.conditions.date.notEmpty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return !(value === null || value === undefined || value.length === 0);
+                }
+            }
+        };
+        // The order of the conditions will make eslint sad :(
+        // Has to be in this order so that they are displayed correctly in select elements
+        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.momentDateConditions = {
+            '=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.equals', i18n.conditions.date.equals);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return moment(value, that.s.dateFormat).valueOf() ===
+                        moment(comparison[0], that.s.dateFormat).valueOf();
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.not', i18n.conditions.date.not);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return moment(value, that.s.dateFormat).valueOf() !==
+                        moment(comparison[0], that.s.dateFormat).valueOf();
+                }
+            },
+            '<': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.before', i18n.conditions.date.before);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return moment(value, that.s.dateFormat).valueOf() < moment(comparison[0], that.s.dateFormat).valueOf();
+                }
+            },
+            '>': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.after', i18n.conditions.date.after);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return moment(value, that.s.dateFormat).valueOf() > moment(comparison[0], that.s.dateFormat).valueOf();
+                }
+            },
+            'between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.between', i18n.conditions.date.between);
+                },
+                init: Criteria.init2Date,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    var val = moment(value, that.s.dateFormat).valueOf();
+                    var comp0 = moment(comparison[0], that.s.dateFormat).valueOf();
+                    var comp1 = moment(comparison[1], that.s.dateFormat).valueOf();
+                    if (comp0 < comp1) {
+                        return comp0 <= val && val <= comp1;
+                    }
+                    else {
+                        return comp1 <= val && val <= comp0;
+                    }
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.notBetween', i18n.conditions.date.notBetween);
+                },
+                init: Criteria.init2Date,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    var val = moment(value, that.s.dateFormat).valueOf();
+                    var comp0 = moment(comparison[0], that.s.dateFormat).valueOf();
+                    var comp1 = moment(comparison[1], that.s.dateFormat).valueOf();
+                    if (comp0 < comp1) {
+                        return !(+comp0 <= +val && +val <= +comp1);
+                    }
+                    else {
+                        return !(+comp1 <= +val && +val <= +comp0);
+                    }
+                }
+            },
+            'null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.empty', i18n.conditions.date.empty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value === null || value === undefined || value.length === 0);
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.notEmpty', i18n.conditions.date.notEmpty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return !(value === null || value === undefined || value.length === 0);
+                }
+            }
+        };
+        // The order of the conditions will make eslint sad :(
+        // Has to be in this order so that they are displayed correctly in select elements
+        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.luxonDateConditions = {
+            '=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.equals', i18n.conditions.date.equals);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return luxon.DateTime.fromFormat(value, that.s.dateFormat).ts
+                        === luxon.DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.not', i18n.conditions.date.not);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return luxon.DateTime.fromFormat(value, that.s.dateFormat).ts
+                        !== luxon.DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
+                }
+            },
+            '<': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.before', i18n.conditions.date.before);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return luxon.DateTime.fromFormat(value, that.s.dateFormat).ts
+                        < luxon.DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
+                }
+            },
+            '>': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.after', i18n.conditions.date.after);
+                },
+                init: Criteria.initDate,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    return luxon.DateTime.fromFormat(value, that.s.dateFormat).ts
+                        > luxon.DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
+                }
+            },
+            'between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.between', i18n.conditions.date.between);
+                },
+                init: Criteria.init2Date,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    var val = luxon.DateTime.fromFormat(value, that.s.dateFormat).ts;
+                    var comp0 = luxon.DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
+                    var comp1 = luxon.DateTime.fromFormat(comparison[1], that.s.dateFormat).ts;
+                    if (comp0 < comp1) {
+                        return comp0 <= val && val <= comp1;
+                    }
+                    else {
+                        return comp1 <= val && val <= comp0;
+                    }
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.notBetween', i18n.conditions.date.notBetween);
+                },
+                init: Criteria.init2Date,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison, that) {
+                    var val = luxon.DateTime.fromFormat(value, that.s.dateFormat).ts;
+                    var comp0 = luxon.DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
+                    var comp1 = luxon.DateTime.fromFormat(comparison[1], that.s.dateFormat).ts;
+                    if (comp0 < comp1) {
+                        return !(+comp0 <= +val && +val <= +comp1);
+                    }
+                    else {
+                        return !(+comp1 <= +val && +val <= +comp0);
+                    }
+                }
+            },
+            'null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.empty', i18n.conditions.date.empty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value === null || value === undefined || value.length === 0);
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.date.notEmpty', i18n.conditions.date.notEmpty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return !(value === null || value === undefined || value.length === 0);
+                }
+            }
+        };
+        // The order of the conditions will make eslint sad :(
+        // Has to be in this order so that they are displayed correctly in select elements
+        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.numConditions = {
+            '=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.equals', i18n.conditions.number.equals);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    return +value === +comparison[0];
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.not', i18n.conditions.number.not);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    return +value !== +comparison[0];
+                }
+            },
+            '<': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.lt', i18n.conditions.number.lt);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return +value < +comparison[0];
+                }
+            },
+            '<=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.lte', i18n.conditions.number.lte);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return +value <= +comparison[0];
+                }
+            },
+            '>=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.gte', i18n.conditions.number.gte);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return +value >= +comparison[0];
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '>': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.gt', i18n.conditions.number.gt);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return +value > +comparison[0];
+                }
+            },
+            'between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.between', i18n.conditions.number.between);
+                },
+                init: Criteria.init2Input,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    if (+comparison[0] < +comparison[1]) {
+                        return +comparison[0] <= +value && +value <= +comparison[1];
+                    }
+                    else {
+                        return +comparison[1] <= +value && +value <= +comparison[0];
+                    }
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.notBetween', i18n.conditions.number.notBetween);
+                },
+                init: Criteria.init2Input,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    if (+comparison[0] < +comparison[1]) {
+                        return !(+comparison[0] <= +value && +value <= +comparison[1]);
+                    }
+                    else {
+                        return !(+comparison[1] <= +value && +value <= +comparison[0]);
+                    }
+                }
+            },
+            'null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.empty', i18n.conditions.number.empty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value === null || value === undefined || value.length === 0);
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.notEmpty', i18n.conditions.number.notEmpty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return !(value === null || value === undefined || value.length === 0);
+                }
+            }
+        };
+        // The order of the conditions will make eslint sad :(
+        // Has to be in this order so that they are displayed correctly in select elements
+        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.numFmtConditions = {
+            '=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.equals', i18n.conditions.number.equals);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    return +val === +comp;
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.not', i18n.conditions.number.not);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    return +val !== +comp;
+                }
+            },
+            '<': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.lt', i18n.conditions.number.lt);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    return +val < +comp;
+                }
+            },
+            '<=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.lte', i18n.conditions.number.lte);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    return +val <= +comp;
+                }
+            },
+            '>=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.gte', i18n.conditions.number.gte);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    return +val >= +comp;
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '>': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.gt', i18n.conditions.number.gt);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    return +val > +comp;
+                }
+            },
+            'between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.between', i18n.conditions.number.between);
+                },
+                init: Criteria.init2Input,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp0 = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    var comp1 = comparison[1].indexOf('-') === 0 ?
+                        '-' + comparison[1].replace(/[^0-9.]/g, '') :
+                        comparison[1].replace(/[^0-9.]/g, '');
+                    if (+comp0 < +comp1) {
+                        return +comp0 <= +val && +val <= +comp1;
+                    }
+                    else {
+                        return +comp1 <= +val && +val <= +comp0;
+                    }
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!between': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.notBetween', i18n.conditions.number.notBetween);
+                },
+                init: Criteria.init2Input,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    var val = value.indexOf('-') === 0 ?
+                        '-' + value.replace(/[^0-9.]/g, '') :
+                        value.replace(/[^0-9.]/g, '');
+                    var comp0 = comparison[0].indexOf('-') === 0 ?
+                        '-' + comparison[0].replace(/[^0-9.]/g, '') :
+                        comparison[0].replace(/[^0-9.]/g, '');
+                    var comp1 = comparison[1].indexOf('-') === 0 ?
+                        '-' + comparison[1].replace(/[^0-9.]/g, '') :
+                        comparison[1].replace(/[^0-9.]/g, '');
+                    if (+comp0 < +comp1) {
+                        return !(+comp0 <= +val && +val <= +comp1);
+                    }
+                    else {
+                        return !(+comp1 <= +val && +val <= +comp0);
+                    }
+                }
+            },
+            'null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.empty', i18n.conditions.number.empty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value === null || value === undefined || value.length === 0);
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.number.notEmpty', i18n.conditions.number.notEmpty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return !(value === null || value === undefined || value.length === 0);
+                }
+            }
+        };
+        // The order of the conditions will make eslint sad :(
+        // Has to be in this order so that they are displayed correctly in select elements
+        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.stringConditions = {
+            '=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.string.equals', i18n.conditions.string.equals);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    return value === comparison[0];
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.string.not', i18n.conditions.string.not);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return value !== comparison[0];
+                }
+            },
+            'starts': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.string.startsWith', i18n.conditions.string.startsWith);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return value.toLowerCase().indexOf(comparison[0].toLowerCase()) === 0;
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            'contains': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.string.contains', i18n.conditions.string.contains);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return value.toLowerCase().indexOf(comparison[0].toLowerCase()) !== -1;
+                }
+            },
+            'ends': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.string.endsWith', i18n.conditions.string.endsWith);
+                },
+                init: Criteria.initInput,
+                inputValue: Criteria.inputValueInput,
+                isInputValid: Criteria.isInputValidInput,
+                search: function (value, comparison) {
+                    return value.toLowerCase().endsWith(comparison[0].toLowerCase());
+                }
+            },
+            'null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.string.empty', i18n.conditions.string.empty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value === null || value === undefined || value.length === 0);
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.string.notEmpty', i18n.conditions.string.notEmpty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return !(value === null || value === undefined || value.length === 0);
+                }
+            }
+        };
+        // The order of the conditions will make eslint sad :(
+        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.arrayConditions = {
+            'contains': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.array.contains', i18n.conditions.array.contains);
+                },
+                init: Criteria.initSelectArray,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    return value.indexOf(comparison[0]) !== -1;
+                }
+            },
+            'without': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.array.without', i18n.conditions.array.without);
+                },
+                init: Criteria.initSelectArray,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    return value.indexOf(comparison[0]) === -1;
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.array.equals', i18n.conditions.array.equals);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    if (value.length === comparison[0].length) {
+                        for (var i = 0; i < value.length; i++) {
+                            if (value[i] !== comparison[0][i]) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!=': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.array.not', i18n.conditions.array.not);
+                },
+                init: Criteria.initSelect,
+                inputValue: Criteria.inputValueSelect,
+                isInputValid: Criteria.isInputValidSelect,
+                search: function (value, comparison) {
+                    if (value.length === comparison[0].length) {
+                        for (var i = 0; i < value.length; i++) {
+                            if (value[i] !== comparison[0][i]) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                    return true;
+                }
+            },
+            'null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.array.empty', i18n.conditions.array.empty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value === null || value === undefined || value.length === 0);
+                }
+            },
+            // eslint-disable-next-line sort-keys
+            '!null': {
+                conditionName: function (dt, i18n) {
+                    return dt.i18n('searchBuilder.conditions.array.notEmpty', i18n.conditions.array.notEmpty);
+                },
+                init: Criteria.initNoValue,
+                inputValue: function () {
+                    return;
+                },
+                isInputValid: function () {
+                    return true;
+                },
+                search: function (value) {
+                    return (value !== null && value !== undefined && value.length !== 0);
+                }
+            }
+        };
+        // eslint will be sad because we have to disable member ordering for this as the
+        // private static properties used are not yet declared otherwise
+        // eslint-disable-next-line @typescript-eslint/member-ordering
+        Criteria.defaults = {
+            columns: true,
+            conditions: {
+                'array': Criteria.arrayConditions,
+                'date': Criteria.dateConditions,
+                'html': Criteria.stringConditions,
+                'html-num': Criteria.numConditions,
+                'html-num-fmt': Criteria.numFmtConditions,
+                'luxon': Criteria.luxonDateConditions,
+                'moment': Criteria.momentDateConditions,
+                'num': Criteria.numConditions,
+                'num-fmt': Criteria.numFmtConditions,
+                'string': Criteria.stringConditions
+            },
+            depthLimit: false,
+            enterSearch: false,
+            filterChanged: undefined,
+            greyscale: false,
+            i18n: {
+                add: 'Add Condition',
+                button: {
+                    0: 'Search Builder',
+                    _: 'Search Builder (%d)'
+                },
+                clearAll: 'Clear All',
+                condition: 'Condition',
+                data: 'Data',
+                deleteTitle: 'Delete filtering rule',
+                leftTitle: 'Outdent criteria',
+                logicAnd: 'And',
+                logicOr: 'Or',
+                rightTitle: 'Indent criteria',
+                title: {
+                    0: 'Custom Search Builder',
+                    _: 'Custom Search Builder (%d)'
+                },
+                value: 'Value',
+                valueJoiner: 'and'
+            },
+            logic: 'AND',
+            orthogonal: {
+                display: 'display',
+                search: 'filter'
+            },
+            preDefined: false
+        };
+        return Criteria;
+    }());
+
+    var $$1;
+    var dataTable$1;
+    /**
+     * Sets the value of jQuery for use in the file
+     *
+     * @param jq the instance of jQuery to be set
+     */
+    function setJQuery$1(jq) {
+        $$1 = jq;
+        dataTable$1 = jq.fn.dataTable;
+    }
+    /**
+     * The Group class is used within SearchBuilder to represent a group of criteria
+     */
+    var Group = /** @class */ (function () {
+        function Group(table, opts, topGroup, index, isChild, depth) {
+            if (index === void 0) { index = 0; }
+            if (isChild === void 0) { isChild = false; }
+            if (depth === void 0) { depth = 1; }
+            // Check that the required version of DataTables is included
+            if (!dataTable$1 || !dataTable$1.versionCheck || !dataTable$1.versionCheck('1.10.0')) {
+                throw new Error('SearchBuilder requires DataTables 1.10 or newer');
+            }
+            this.classes = $$1.extend(true, {}, Group.classes);
+            // Get options from user
+            this.c = $$1.extend(true, {}, Group.defaults, opts);
+            this.s = {
+                criteria: [],
+                depth: depth,
+                dt: table,
+                index: index,
+                isChild: isChild,
+                logic: undefined,
+                opts: opts,
+                toDrop: undefined,
+                topGroup: topGroup
+            };
+            this.dom = {
+                add: $$1('<button/>')
+                    .addClass(this.classes.add)
+                    .addClass(this.classes.button)
+                    .attr('type', 'button'),
+                clear: $$1('<button>&times</button>')
+                    .addClass(this.classes.button)
+                    .addClass(this.classes.clearGroup)
+                    .attr('type', 'button'),
+                container: $$1('<div/>')
+                    .addClass(this.classes.group),
+                logic: $$1('<button/>')
+                    .addClass(this.classes.logic)
+                    .addClass(this.classes.button)
+                    .attr('type', 'button'),
+                logicContainer: $$1('<div/>')
+                    .addClass(this.classes.logicContainer)
+            };
+            // A reference to the top level group is maintained throughout any subgroups and criteria that may be created
+            if (this.s.topGroup === undefined) {
+                this.s.topGroup = this.dom.container;
+            }
+            this._setup();
+            return this;
+        }
+        /**
+         * Destroys the groups buttons, clears the internal criteria and removes it from the dom
+         */
+        Group.prototype.destroy = function () {
+            // Turn off listeners
+            $$1(this.dom.add).off('.dtsb');
+            $$1(this.dom.logic).off('.dtsb');
+            // Trigger event for groups at a higher level to pick up on
+            $$1(this.dom.container)
+                .trigger('dtsb-destroy')
+                .remove();
+            this.s.criteria = [];
+        };
+        /**
+         * Gets the details required to rebuild the group
+         */
+        // Eslint upset at empty object but needs to be done
+        // eslint-disable-next-line @typescript-eslint/ban-types
+        Group.prototype.getDetails = function () {
+            if (this.s.criteria.length === 0) {
+                return {};
+            }
+            var details = {
+                criteria: [],
+                logic: this.s.logic
+            };
+            // NOTE here crit could be either a subgroup or a criteria
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                details.criteria.push(crit.criteria.getDetails());
+            }
+            return details;
+        };
+        /**
+         * Getter for the node for the container of the group
+         *
+         * @returns Node for the container of the group
+         */
+        Group.prototype.getNode = function () {
+            return this.dom.container;
+        };
+        /**
+         * Rebuilds the group based upon the details passed in
+         *
+         * @param loadedDetails the details required to rebuild the group
+         */
+        Group.prototype.rebuild = function (loadedDetails) {
+            // If no criteria are stored then just return
+            if (loadedDetails.criteria === undefined ||
+                loadedDetails.criteria === null ||
+                (Array.isArray(loadedDetails.criteria) && loadedDetails.criteria.length === 0)) {
+                return;
+            }
+            this.s.logic = loadedDetails.logic;
+            $$1(this.dom.logic).text(this.s.logic === 'OR'
+                ? this.s.dt.i18n('searchBuilder.logicOr', this.c.i18n.logicOr)
+                : this.s.dt.i18n('searchBuilder.logicAnd', this.c.i18n.logicAnd));
+            // Add all of the criteria, be it a sub group or a criteria
+            if (Array.isArray(loadedDetails.criteria)) {
+                for (var _i = 0, _a = loadedDetails.criteria; _i < _a.length; _i++) {
+                    var crit = _a[_i];
+                    if (crit.logic !== undefined) {
+                        this._addPrevGroup(crit);
+                    }
+                    else if (crit.logic === undefined) {
+                        this._addPrevCriteria(crit);
+                    }
+                }
+            }
+            // For all of the criteria children, update the arrows incase they require changing and set the listeners
+            for (var _b = 0, _c = this.s.criteria; _b < _c.length; _b++) {
+                var crit = _c[_b];
+                if (crit.criteria instanceof Criteria) {
+                    crit.criteria.updateArrows(this.s.criteria.length > 1, false);
+                    this._setCriteriaListeners(crit.criteria);
+                }
+            }
+        };
+        /**
+         * Redraws the Contents of the searchBuilder Groups and Criteria
+         */
+        Group.prototype.redrawContents = function () {
+            // Clear the container out and add the basic elements
+            $$1(this.dom.container)
+                .empty()
+                .append(this.dom.logicContainer)
+                .append(this.dom.add);
+            // Sort the criteria by index so that they appear in the correct order
+            this.s.criteria.sort(function (a, b) {
+                if (a.criteria.s.index < b.criteria.s.index) {
+                    return -1;
+                }
+                else if (a.criteria.s.index > b.criteria.s.index) {
+                    return 1;
+                }
+                return 0;
+            });
+            this.setListeners();
+            for (var i = 0; i < this.s.criteria.length; i++) {
+                var crit = this.s.criteria[i].criteria;
+                if (crit instanceof Criteria) {
+                    // Reset the index to the new value
+                    this.s.criteria[i].index = i;
+                    this.s.criteria[i].criteria.s.index = i;
+                    // Add to the group
+                    $$1(this.s.criteria[i].criteria.dom.container).insertBefore(this.dom.add);
+                    // Set listeners for various points
+                    this._setCriteriaListeners(crit);
+                    this.s.criteria[i].criteria.rebuild(this.s.criteria[i].criteria.getDetails());
+                }
+                else if (crit instanceof Group && crit.s.criteria.length > 0) {
+                    // Reset the index to the new value
+                    this.s.criteria[i].index = i;
+                    this.s.criteria[i].criteria.s.index = i;
+                    // Add the sub group to the group
+                    $$1(this.s.criteria[i].criteria.dom.container).insertBefore(this.dom.add);
+                    // Redraw the contents of the group
+                    crit.redrawContents();
+                    this._setGroupListeners(crit);
+                }
+                else {
+                    // The group is empty so remove it
+                    this.s.criteria.splice(i, 1);
+                    i--;
+                }
+            }
+            this.setupLogic();
+        };
+        /**
+         * Resizes the logic button only rather than the entire dom.
+         */
+        Group.prototype.redrawLogic = function () {
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                if (crit instanceof Group) {
+                    crit.redrawLogic();
+                }
+            }
+            this.setupLogic();
+        };
+        /**
+         * Search method, checking the row data against the criteria in the group
+         *
+         * @param rowData The row data to be compared
+         * @returns boolean The result of the search
+         */
+        Group.prototype.search = function (rowData, rowIdx) {
+            if (this.s.logic === 'AND') {
+                return this._andSearch(rowData, rowIdx);
+            }
+            else if (this.s.logic === 'OR') {
+                return this._orSearch(rowData, rowIdx);
+            }
+            return true;
+        };
+        /**
+         * Locates the groups logic button to the correct location on the page
+         */
+        Group.prototype.setupLogic = function () {
+            // Remove logic button
+            $$1(this.dom.logicContainer).remove();
+            $$1(this.dom.clear).remove();
+            // If there are no criteria in the group then keep the logic removed and return
+            if (this.s.criteria.length < 1) {
+                if (!this.s.isChild) {
+                    $$1(this.dom.container).trigger('dtsb-destroy');
+                    // Set criteria left margin
+                    $$1(this.dom.container).css('margin-left', 0);
+                }
+                return;
+            }
+            // Set width, take 2 for the border
+            var height = $$1(this.dom.container).height() - 1;
+            $$1(this.dom.clear).height('0px');
+            $$1(this.dom.logicContainer).append(this.dom.clear).width(height);
+            // Prepend logic button
+            $$1(this.dom.container).prepend(this.dom.logicContainer);
+            this._setLogicListener();
+            // Set criteria left margin
+            $$1(this.dom.container).css('margin-left', $$1(this.dom.logicContainer).outerHeight(true));
+            var logicOffset = $$1(this.dom.logicContainer).offset();
+            // Set horizontal alignment
+            var currentLeft = logicOffset.left;
+            var groupLeft = $$1(this.dom.container).offset().left;
+            var shuffleLeft = currentLeft - groupLeft;
+            var newPos = currentLeft - shuffleLeft - $$1(this.dom.logicContainer).outerHeight(true);
+            $$1(this.dom.logicContainer).offset({ left: newPos });
+            // Set vertical alignment
+            var firstCrit = $$1(this.dom.logicContainer).next();
+            var currentTop = logicOffset.top;
+            var firstTop = $$1(firstCrit).offset().top;
+            var shuffleTop = currentTop - firstTop;
+            var newTop = currentTop - shuffleTop;
+            $$1(this.dom.logicContainer).offset({ top: newTop });
+            $$1(this.dom.clear).outerHeight($$1(this.dom.logicContainer).height());
+            this._setClearListener();
+        };
+        /**
+         * Sets listeners on the groups elements
+         */
+        Group.prototype.setListeners = function () {
+            var _this = this;
+            $$1(this.dom.add).unbind('click');
+            $$1(this.dom.add).on('click', function () {
+                // If this is the parent group then the logic button has not been added yet
+                if (!_this.s.isChild) {
+                    $$1(_this.dom.container).prepend(_this.dom.logicContainer);
+                }
+                _this.addCriteria();
+                $$1(_this.dom.container).trigger('dtsb-add');
+                _this.s.dt.state.save();
+                return false;
+            });
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                crit.criteria.setListeners();
+            }
+            this._setClearListener();
+            this._setLogicListener();
+        };
+        /**
+         * Adds a criteria to the group
+         *
+         * @param crit Instance of Criteria to be added to the group
+         */
+        Group.prototype.addCriteria = function (crit, redraw) {
+            if (crit === void 0) { crit = null; }
+            if (redraw === void 0) { redraw = true; }
+            var index = crit === null ? this.s.criteria.length : crit.s.index;
+            var criteria = new Criteria(this.s.dt, this.s.opts, this.s.topGroup, index, this.s.depth);
+            // If a Criteria has been passed in then set the values to continue that
+            if (crit !== null) {
+                criteria.c = crit.c;
+                criteria.s = crit.s;
+                criteria.s.depth = this.s.depth;
+                criteria.classes = crit.classes;
+            }
+            criteria.populate();
+            var inserted = false;
+            for (var i = 0; i < this.s.criteria.length; i++) {
+                if (i === 0 && this.s.criteria[i].criteria.s.index > criteria.s.index) {
+                    // Add the node for the criteria at the start of the group
+                    $$1(criteria.getNode()).insertBefore(this.s.criteria[i].criteria.dom.container);
+                    inserted = true;
+                }
+                else if (i < this.s.criteria.length - 1 &&
+                    this.s.criteria[i].criteria.s.index < criteria.s.index &&
+                    this.s.criteria[i + 1].criteria.s.index > criteria.s.index) {
+                    // Add the node for the criteria in the correct location
+                    $$1(criteria.getNode()).insertAfter(this.s.criteria[i].criteria.dom.container);
+                    inserted = true;
+                }
+            }
+            if (!inserted) {
+                $$1(criteria.getNode()).insertBefore(this.dom.add);
+            }
+            // Add the details for this criteria to the array
+            this.s.criteria.push({
+                criteria: criteria,
+                index: index
+            });
+            this.s.criteria = this.s.criteria.sort(function (a, b) { return a.criteria.s.index - b.criteria.s.index; });
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var opt = _a[_i];
+                if (opt.criteria instanceof Criteria) {
+                    opt.criteria.updateArrows(this.s.criteria.length > 1, redraw);
+                }
+            }
+            this._setCriteriaListeners(criteria);
+            criteria.setListeners();
+            this.setupLogic();
+        };
+        /**
+         * Checks the group to see if it has any filled criteria
+         */
+        Group.prototype.checkFilled = function () {
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                if ((crit.criteria instanceof Criteria && crit.criteria.s.filled) ||
+                    (crit.criteria instanceof Group && crit.criteria.checkFilled())) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        /**
+         * Gets the count for the number of criteria in this group and any sub groups
+         */
+        Group.prototype.count = function () {
+            var count = 0;
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                if (crit.criteria instanceof Group) {
+                    count += crit.criteria.count();
+                }
+                else {
+                    count++;
+                }
+            }
+            return count;
+        };
+        /**
+         * Rebuilds a sub group that previously existed
+         *
+         * @param loadedGroup The details of a group within this group
+         */
+        Group.prototype._addPrevGroup = function (loadedGroup) {
+            var idx = this.s.criteria.length;
+            var group = new Group(this.s.dt, this.c, this.s.topGroup, idx, true, this.s.depth + 1);
+            // Add the new group to the criteria array
+            this.s.criteria.push({
+                criteria: group,
+                index: idx,
+                logic: group.s.logic
+            });
+            // Rebuild it with the previous conditions for that group
+            group.rebuild(loadedGroup);
+            this.s.criteria[idx].criteria = group;
+            $$1(this.s.topGroup).trigger('dtsb-redrawContents');
+            this._setGroupListeners(group);
+        };
+        /**
+         * Rebuilds a criteria of this group that previously existed
+         *
+         * @param loadedCriteria The details of a criteria within the group
+         */
+        Group.prototype._addPrevCriteria = function (loadedCriteria) {
+            var idx = this.s.criteria.length;
+            var criteria = new Criteria(this.s.dt, this.s.opts, this.s.topGroup, idx, this.s.depth);
+            criteria.populate();
+            // Add the new criteria to the criteria array
+            this.s.criteria.push({
+                criteria: criteria,
+                index: idx
+            });
+            // Rebuild it with the previous conditions for that criteria
+            criteria.rebuild(loadedCriteria);
+            this.s.criteria[idx].criteria = criteria;
+            $$1(this.s.topGroup).trigger('dtsb-redrawContents');
+        };
+        /**
+         * Checks And the criteria using AND logic
+         *
+         * @param rowData The row data to be checked against the search criteria
+         * @returns boolean The result of the AND search
+         */
+        Group.prototype._andSearch = function (rowData, rowIdx) {
+            // If there are no criteria then return true for this group
+            if (this.s.criteria.length === 0) {
+                return true;
+            }
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                // If the criteria is not complete then skip it
+                if (crit.criteria instanceof Criteria && !crit.criteria.s.filled) {
+                    continue;
+                }
+                // Otherwise if a single one fails return false
+                else if (!crit.criteria.search(rowData, rowIdx)) {
+                    return false;
+                }
+            }
+            // If we get to here then everything has passed, so return true for the group
+            return true;
+        };
+        /**
+         * Checks And the criteria using OR logic
+         *
+         * @param rowData The row data to be checked against the search criteria
+         * @returns boolean The result of the OR search
+         */
+        Group.prototype._orSearch = function (rowData, rowIdx) {
+            // If there are no criteria in the group then return true
+            if (this.s.criteria.length === 0) {
+                return true;
+            }
+            // This will check to make sure that at least one criteria in the group is complete
+            var filledfound = false;
+            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                if (crit.criteria instanceof Criteria && crit.criteria.s.filled) {
+                    // A completed criteria has been found so set the flag
+                    filledfound = true;
+                    // If the search passes then return true
+                    if (crit.criteria.search(rowData, rowIdx)) {
+                        return true;
+                    }
+                }
+                else if (crit.criteria instanceof Group && crit.criteria.checkFilled()) {
+                    filledfound = true;
+                    if (crit.criteria.search(rowData, rowIdx)) {
+                        return true;
+                    }
+                }
+            }
+            // If we get here we need to return the inverse of filledfound,
+            //  as if any have been found and we are here then none have passed
+            return !filledfound;
+        };
+        /**
+         * Removes a criteria from the group
+         *
+         * @param criteria The criteria instance to be removed
+         */
+        Group.prototype._removeCriteria = function (criteria, group) {
+            if (group === void 0) { group = false; }
+            // If removing a criteria and there is only then then just destroy the group
+            if (this.s.criteria.length <= 1 && this.s.isChild) {
+                this.destroy();
+            }
+            else {
+                // Otherwise splice the given criteria out and redo the indexes
+                var last = void 0;
+                for (var i = 0; i < this.s.criteria.length; i++) {
+                    if (this.s.criteria[i].index === criteria.s.index &&
+                        (!group || this.s.criteria[i].criteria instanceof Group)) {
+                        last = i;
+                    }
+                }
+                // We want to remove the last element with the desired index, as its replacement will be inserted before it
+                if (last !== undefined) {
+                    this.s.criteria.splice(last, 1);
+                }
+                for (var i = 0; i < this.s.criteria.length; i++) {
+                    this.s.criteria[i].index = i;
+                    this.s.criteria[i].criteria.s.index = i;
+                }
+            }
+        };
+        /**
+         * Sets the listeners in group for a criteria
+         *
+         * @param criteria The criteria for the listeners to be set on
+         */
+        Group.prototype._setCriteriaListeners = function (criteria) {
+            var _this = this;
+            $$1(criteria.dom["delete"])
+                .unbind('click')
+                .on('click', function () {
+                _this._removeCriteria(criteria);
+                $$1(criteria.dom.container).remove();
+                for (var _i = 0, _a = _this.s.criteria; _i < _a.length; _i++) {
+                    var crit = _a[_i];
+                    if (crit.criteria instanceof Criteria) {
+                        crit.criteria.updateArrows(_this.s.criteria.length > 1);
+                    }
+                }
+                criteria.destroy();
+                _this.s.dt.draw();
+                $$1(_this.s.topGroup).trigger('dtsb-redrawContents');
+                $$1(_this.s.topGroup).trigger('dtsb-updateTitle');
+                return false;
+            });
+            $$1(criteria.dom.right)
+                .unbind('click')
+                .on('click', function () {
+                var idx = criteria.s.index;
+                var group = new Group(_this.s.dt, _this.s.opts, _this.s.topGroup, criteria.s.index, true, _this.s.depth + 1);
+                // Add the criteria that is to be moved to the new group
+                group.addCriteria(criteria);
+                // Update the details in the current groups criteria array
+                _this.s.criteria[idx].criteria = group;
+                _this.s.criteria[idx].logic = 'AND';
+                $$1(_this.s.topGroup).trigger('dtsb-redrawContents');
+                _this._setGroupListeners(group);
+                return false;
+            });
+            $$1(criteria.dom.left)
+                .unbind('click')
+                .on('click', function () {
+                _this.s.toDrop = new Criteria(_this.s.dt, _this.s.opts, _this.s.topGroup, criteria.s.index);
+                _this.s.toDrop.s = criteria.s;
+                _this.s.toDrop.c = criteria.c;
+                _this.s.toDrop.classes = criteria.classes;
+                _this.s.toDrop.populate();
+                // The dropCriteria event mutates the reference to the index so need to store it
+                var index = _this.s.toDrop.s.index;
+                $$1(_this.dom.container).trigger('dtsb-dropCriteria');
+                criteria.s.index = index;
+                _this._removeCriteria(criteria);
+                // By tracking the top level group we can directly trigger a redraw on it,
+                //  bubbling is also possible, but that is slow with deep levelled groups
+                $$1(_this.s.topGroup).trigger('dtsb-redrawContents');
+                _this.s.dt.draw();
+                return false;
+            });
+        };
+        /**
+         * Set's the listeners for the group clear button
+         */
+        Group.prototype._setClearListener = function () {
+            var _this = this;
+            $$1(this.dom.clear)
+                .unbind('click')
+                .on('click', function () {
+                if (!_this.s.isChild) {
+                    $$1(_this.dom.container).trigger('dtsb-clearContents');
+                    return false;
+                }
+                _this.destroy();
+                $$1(_this.s.topGroup).trigger('dtsb-updateTitle');
+                $$1(_this.s.topGroup).trigger('dtsb-redrawContents');
+                return false;
+            });
+        };
+        /**
+         * Sets listeners for sub groups of this group
+         *
+         * @param group The sub group that the listeners are to be set on
+         */
+        Group.prototype._setGroupListeners = function (group) {
+            var _this = this;
+            // Set listeners for the new group
+            $$1(group.dom.add)
+                .unbind('click')
+                .on('click', function () {
+                _this.setupLogic();
+                $$1(_this.dom.container).trigger('dtsb-add');
+                return false;
+            });
+            $$1(group.dom.container)
+                .unbind('dtsb-add')
+                .on('dtsb-add', function () {
+                _this.setupLogic();
+                $$1(_this.dom.container).trigger('dtsb-add');
+                return false;
+            });
+            $$1(group.dom.container)
+                .unbind('dtsb-destroy')
+                .on('dtsb-destroy', function () {
+                _this._removeCriteria(group, true);
+                $$1(group.dom.container).remove();
+                _this.setupLogic();
+                return false;
+            });
+            $$1(group.dom.container)
+                .unbind('dtsb-dropCriteria')
+                .on('dtsb-dropCriteria', function () {
+                var toDrop = group.s.toDrop;
+                toDrop.s.index = group.s.index;
+                toDrop.updateArrows(_this.s.criteria.length > 1, false);
+                _this.addCriteria(toDrop, false);
+                return false;
+            });
+            group.setListeners();
+        };
+        /**
+         * Sets up the Group instance, setting listeners and appending elements
+         */
+        Group.prototype._setup = function () {
+            this.setListeners();
+            $$1(this.dom.add).text(this.s.dt.i18n('searchBuilder.add', this.c.i18n.add));
+            $$1(this.dom.logic).text(this.c.logic === 'OR'
+                ? this.s.dt.i18n('searchBuilder.logicOr', this.c.i18n.logicOr)
+                : this.s.dt.i18n('searchBuilder.logicAnd', this.c.i18n.logicAnd));
+            this.s.logic = this.c.logic === 'OR' ? 'OR' : 'AND';
+            if (this.c.greyscale) {
+                $$1(this.dom.logic).addClass(this.classes.greyscale);
+            }
+            $$1(this.dom.logicContainer).append(this.dom.logic).append(this.dom.clear);
+            // Only append the logic button immediately if this is a sub group,
+            //  otherwise it will be prepended later when adding a criteria
+            if (this.s.isChild) {
+                $$1(this.dom.container).append(this.dom.logicContainer);
+            }
+            $$1(this.dom.container).append(this.dom.add);
+        };
+        /**
+         * Sets the listener for the logic button
+         */
+        Group.prototype._setLogicListener = function () {
+            var _this = this;
+            $$1(this.dom.logic)
+                .unbind('click')
+                .on('click', function () {
+                _this._toggleLogic();
+                _this.s.dt.draw();
+                for (var _i = 0, _a = _this.s.criteria; _i < _a.length; _i++) {
+                    var crit = _a[_i];
+                    crit.criteria.setListeners();
+                }
+            });
+        };
+        /**
+         * Toggles the logic for the group
+         */
+        Group.prototype._toggleLogic = function () {
+            if (this.s.logic === 'OR') {
+                this.s.logic = 'AND';
+                $$1(this.dom.logic).text(this.s.dt.i18n('searchBuilder.logicAnd', this.c.i18n.logicAnd));
+            }
+            else if (this.s.logic === 'AND') {
+                this.s.logic = 'OR';
+                $$1(this.dom.logic).text(this.s.dt.i18n('searchBuilder.logicOr', this.c.i18n.logicOr));
+            }
+        };
+        Group.version = '1.1.0';
+        Group.classes = {
+            add: 'dtsb-add',
+            button: 'dtsb-button',
+            clearGroup: 'dtsb-clearGroup',
+            greyscale: 'dtsb-greyscale',
+            group: 'dtsb-group',
+            inputButton: 'dtsb-iptbtn',
+            logic: 'dtsb-logic',
+            logicContainer: 'dtsb-logicContainer'
+        };
+        Group.defaults = {
+            columns: true,
+            conditions: {
+                'date': Criteria.dateConditions,
+                'html': Criteria.stringConditions,
+                'html-num': Criteria.numConditions,
+                'html-num-fmt': Criteria.numFmtConditions,
+                'luxon': Criteria.luxonDateConditions,
+                'moment': Criteria.momentDateConditions,
+                'num': Criteria.numConditions,
+                'num-fmt': Criteria.numFmtConditions,
+                'string': Criteria.stringConditions
+            },
+            depthLimit: false,
+            enterSearch: false,
+            filterChanged: undefined,
+            greyscale: false,
+            i18n: {
+                add: 'Add Condition',
+                button: {
+                    0: 'Search Builder',
+                    _: 'Search Builder (%d)'
+                },
+                clearAll: 'Clear All',
+                condition: 'Condition',
+                data: 'Data',
+                deleteTitle: 'Delete filtering rule',
+                leftTitle: 'Outdent criteria',
+                logicAnd: 'And',
+                logicOr: 'Or',
+                rightTitle: 'Indent criteria',
+                title: {
+                    0: 'Custom Search Builder',
+                    _: 'Custom Search Builder (%d)'
+                },
+                value: 'Value',
+                valueJoiner: 'and'
+            },
+            logic: 'AND',
+            orthogonal: {
+                display: 'display',
+                search: 'filter'
+            },
+            preDefined: false
+        };
+        return Group;
+    }());
+
+    var $;
+    var dataTable;
+    /**
+     * Sets the value of jQuery for use in the file
+     *
+     * @param jq the instance of jQuery to be set
+     */
+    function setJQuery(jq) {
+        $ = jq;
+        dataTable = jq.fn.DataTable;
+    }
+    /**
+     * SearchBuilder class for DataTables.
+     * Allows for complex search queries to be constructed and implemented on a DataTable
+     */
+    var SearchBuilder = /** @class */ (function () {
+        function SearchBuilder(builderSettings, opts) {
+            var _this = this;
+            // Check that the required version of DataTables is included
+            if (!dataTable || !dataTable.versionCheck || !dataTable.versionCheck('1.10.0')) {
+                throw new Error('SearchBuilder requires DataTables 1.10 or newer');
+            }
+            var table = new dataTable.Api(builderSettings);
+            this.classes = $.extend(true, {}, SearchBuilder.classes);
+            // Get options from user
+            this.c = $.extend(true, {}, SearchBuilder.defaults, opts);
+            this.dom = {
+                clearAll: $('<button type="button">' + table.i18n('searchBuilder.clearAll', this.c.i18n.clearAll) + '</button>')
+                    .addClass(this.classes.clearAll)
+                    .addClass(this.classes.button)
+                    .attr('type', 'button'),
+                container: $('<div/>')
+                    .addClass(this.classes.container),
+                title: $('<div/>')
+                    .addClass(this.classes.title),
+                titleRow: $('<div/>')
+                    .addClass(this.classes.titleRow),
+                topGroup: undefined
+            };
+            this.s = {
+                dt: table,
+                opts: opts,
+                search: undefined,
+                topGroup: undefined
+            };
+            // If searchbuilder is already defined for this table then return
+            if (table.settings()[0]._searchBuilder !== undefined) {
+                return;
+            }
+            table.settings()[0]._searchBuilder = this;
+            // Run the remaining setup when the table is initialised
+            if (this.s.dt.settings()[0]._bInitComplete) {
+                this._setUp();
+            }
+            else {
+                table.one('init.dt', function () {
+                    _this._setUp();
+                });
+            }
+            return this;
+        }
+        /**
+         * Gets the details required to rebuild the SearchBuilder as it currently is
+         */
+        // eslint upset at empty object but that is what it is
+        // eslint-disable-next-line @typescript-eslint/ban-types
+        SearchBuilder.prototype.getDetails = function () {
+            return this.s.topGroup.getDetails();
+        };
+        /**
+         * Getter for the node of the container for the searchBuilder
+         *
+         * @returns JQuery<HTMLElement> the node of the container
+         */
+        SearchBuilder.prototype.getNode = function () {
+            return this.dom.container;
+        };
+        /**
+         * Rebuilds the SearchBuilder to a state that is provided
+         *
+         * @param details The details required to perform a rebuild
+         */
+        SearchBuilder.prototype.rebuild = function (details) {
+            $(this.dom.clearAll).click();
+            // If there are no details to rebuild then return
+            if (details === undefined || details === null) {
+                return this;
+            }
+            this.s.topGroup.rebuild(details);
+            this.s.dt.draw();
+            this.s.topGroup.setListeners();
+            return this;
+        };
+        /**
+         * Applies the defaults to preDefined criteria
+         *
+         * @param preDef the array of criteria to be processed.
+         */
+        SearchBuilder.prototype._applyPreDefDefaults = function (preDef) {
+            var _this = this;
+            if (preDef.criteria !== undefined && preDef.logic === undefined) {
+                preDef.logic = 'AND';
+            }
+            var _loop_1 = function (crit) {
+                // Apply the defaults to any further criteria
+                if (crit.criteria !== undefined) {
+                    crit = this_1._applyPreDefDefaults(crit);
+                }
+                else {
+                    this_1.s.dt.columns().every(function (index) {
+                        if (_this.s.dt.settings()[0].aoColumns[index].sTitle === crit.data) {
+                            crit.dataIdx = index;
+                        }
+                    });
+                }
+            };
+            var this_1 = this;
+            for (var _i = 0, _a = preDef.criteria; _i < _a.length; _i++) {
+                var crit = _a[_i];
+                _loop_1(crit);
+            }
+            return preDef;
+        };
+        /**
+         * Set's up the SearchBuilder
+         */
+        SearchBuilder.prototype._setUp = function (loadState) {
+            var _this = this;
+            if (loadState === void 0) { loadState = true; }
+            // Register an Api method for getting the column type
+            $.fn.DataTable.Api.registerPlural('columns().type()', 'column().type()', function (selector, opts) {
+                return this.iterator('column', function (settings, column) {
+                    return settings.aoColumns[column].sType;
+                }, 1);
+            });
+            // Check that DateTime is included, If not need to check if it could be used
+            if (!dataTable.DateTime) {
+                var types = this.s.dt.columns().type().toArray();
+                var columnIdxs = this.s.dt.columns().toArray();
+                // If the types are not yet set then draw to see if they can be retrieved then
+                if (types === undefined) {
+                    this.s.dt.draw();
+                    types = this.s.dt.columns().type().toArray();
+                }
+                for (var i = 0; i < columnIdxs[0].length; i++) {
+                    var column = columnIdxs[0][i];
+                    var type = types[column];
+                    if (
+                    // Check if this column can be filtered
+                    (this.c.columns === true ||
+                        (Array.isArray(this.c.columns) &&
+                            this.c.columns.indexOf(i) !== -1)) &&
+                        // Check if the type is one of the restricted types
+                        (type.indexOf('date') !== -1 ||
+                            type.indexOf('moment') !== -1 ||
+                            type.indexOf('luxon') !== -1)) {
+                        alert('SearchBuilder Requires DateTime when used with dates.');
+                        throw new Error('SearchBuilder requires DateTime');
+                    }
+                }
+            }
+            this.s.topGroup = new Group(this.s.dt, this.c, undefined);
+            this._setClearListener();
+            this.s.dt.on('stateSaveParams', function (e, settings, data) {
+                data.searchBuilder = _this.getDetails();
+                data.page = _this.s.dt.page();
+            });
+            this._build();
+            if (loadState) {
+                var loadedState = this.s.dt.state.loaded();
+                // If the loaded State is not null rebuild based on it for statesave
+                if (loadedState !== null && loadedState.searchBuilder !== undefined) {
+                    this.s.topGroup.rebuild(loadedState.searchBuilder);
+                    $(this.s.topGroup.dom.container).trigger('dtsb-redrawContents');
+                    this.s.dt.page(loadedState.page).draw('page');
+                    this.s.topGroup.setListeners();
+                }
+                // Otherwise load any predefined options
+                else if (this.c.preDefined !== false) {
+                    this.c.preDefined = this._applyPreDefDefaults(this.c.preDefined);
+                    this.rebuild(this.c.preDefined);
+                }
+            }
+            this._setEmptyListener();
+            this.s.dt.state.save();
+        };
+        /**
+         * Updates the title of the SearchBuilder
+         *
+         * @param count the number of filters in the SearchBuilder
+         */
+        SearchBuilder.prototype._updateTitle = function (count) {
+            $(this.dom.title).html(this.s.dt.i18n('searchBuilder.title', this.c.i18n.title, count));
+        };
+        /**
+         * Builds all of the dom elements together
+         */
+        SearchBuilder.prototype._build = function () {
+            var _this = this;
+            // Empty and setup the container
+            $(this.dom.clearAll).remove();
+            $(this.dom.container).empty();
+            var count = this.s.topGroup.count();
+            this._updateTitle(count);
+            $(this.dom.titleRow).append(this.dom.title);
+            $(this.dom.container).append(this.dom.titleRow);
+            this.dom.topGroup = this.s.topGroup.getNode();
+            $(this.dom.container).append(this.dom.topGroup);
+            this._setRedrawListener();
+            var tableNode = this.s.dt.table(0).node();
+            if ($.fn.dataTable.ext.search.indexOf(this.s.search) === -1) {
+                // Custom search function for SearchBuilder
+                this.s.search = function (settings, searchData, dataIndex, origData) {
+                    if (settings.nTable !== tableNode) {
+                        return true;
+                    }
+                    return _this.s.topGroup.search(searchData, dataIndex);
+                };
+                // Add SearchBuilder search function to the dataTables search array
+                $.fn.dataTable.ext.search.push(this.s.search);
+            }
+            this.s.dt.on('destroy.dt', function () {
+                $(_this.dom.container).remove();
+                $(_this.dom.clearAll).remove();
+                var searchIdx = $.fn.dataTable.ext.search.indexOf(_this.s.search);
+                while (searchIdx !== -1) {
+                    $.fn.dataTable.ext.search.splice(searchIdx, 1);
+                    searchIdx = $.fn.dataTable.ext.search.indexOf(_this.s.search);
+                }
+            });
+        };
+        /**
+         * Checks if the clearAll button should be added or not
+         */
+        SearchBuilder.prototype._checkClear = function () {
+            if (this.s.topGroup.s.criteria.length > 0) {
+                $(this.dom.clearAll).insertAfter(this.dom.title);
+                this._setClearListener();
+            }
+            else {
+                $(this.dom.clearAll).remove();
+            }
+        };
+        /**
+         * Update the count in the title/button
+         *
+         * @param count Number of filters applied
+         */
+        SearchBuilder.prototype._filterChanged = function (count) {
+            var fn = this.c.filterChanged;
+            if (typeof fn === 'function') {
+                fn(count, this.s.dt.i18n('searchBuilder.button', this.c.i18n.button, count));
+            }
+        };
+        /**
+         * Set the listener for the clear button
+         */
+        SearchBuilder.prototype._setClearListener = function () {
+            var _this = this;
+            $(this.dom.clearAll).unbind('click');
+            $(this.dom.clearAll).on('click', function () {
+                _this.s.topGroup = new Group(_this.s.dt, _this.c, undefined);
+                _this._build();
+                _this.s.dt.draw();
+                _this.s.topGroup.setListeners();
+                $(_this.dom.clearAll).remove();
+                _this._setEmptyListener();
+                _this._filterChanged(0);
+                return false;
+            });
+        };
+        /**
+         * Set the listener for the Redraw event
+         */
+        SearchBuilder.prototype._setRedrawListener = function () {
+            var _this = this;
+            $(this.s.topGroup.dom.container).unbind('dtsb-redrawContents');
+            $(this.s.topGroup.dom.container).on('dtsb-redrawContents', function () {
+                _this._checkClear();
+                _this.s.topGroup.redrawContents();
+                _this.s.topGroup.setupLogic();
+                _this._setEmptyListener();
+                var count = _this.s.topGroup.count();
+                _this._updateTitle(count);
+                _this._filterChanged(count);
+                _this.s.dt.state.save();
+            });
+            $(this.s.topGroup.dom.container).unbind('dtsb-redrawLogic');
+            $(this.s.topGroup.dom.container).on('dtsb-redrawLogic', function () {
+                _this.s.topGroup.redrawLogic();
+                var count = _this.s.topGroup.count();
+                _this._updateTitle(count);
+                _this._filterChanged(count);
+            });
+            $(this.s.topGroup.dom.container).on('dtsb-add', function () {
+                var count = _this.s.topGroup.count();
+                _this._updateTitle(count);
+                _this._filterChanged(count);
+            });
+            $(this.s.dt).on('postEdit postCreate postRemove', function () {
+                _this.s.topGroup.redrawContents();
+            });
+            $(this.s.topGroup.dom.container).unbind('dtsb-clearContents');
+            $(this.s.topGroup.dom.container).on('dtsb-clearContents', function () {
+                _this._setUp(false);
+                _this._filterChanged(0);
+                _this.s.dt.draw();
+            });
+            $(this.s.topGroup.dom.container).on('dtsb-updateTitle', function () {
+                var count = _this.s.topGroup.count();
+                _this._updateTitle(count);
+                _this._filterChanged(count);
+            });
+        };
+        /**
+         * Sets listeners to check whether clearAll should be added or removed
+         */
+        SearchBuilder.prototype._setEmptyListener = function () {
+            var _this = this;
+            $(this.s.topGroup.dom.add).on('click', function () {
+                _this._checkClear();
+            });
+            $(this.s.topGroup.dom.container).on('dtsb-destroy', function () {
+                $(_this.dom.clearAll).remove();
+            });
+        };
+        SearchBuilder.version = '1.1.0';
+        SearchBuilder.classes = {
+            button: 'dtsb-button',
+            clearAll: 'dtsb-clearAll',
+            container: 'dtsb-searchBuilder',
+            inputButton: 'dtsb-iptbtn',
+            title: 'dtsb-title',
+            titleRow: 'dtsb-titleRow'
+        };
+        SearchBuilder.defaults = {
+            columns: true,
+            conditions: {
+                'date': Criteria.dateConditions,
+                'html': Criteria.stringConditions,
+                'html-num': Criteria.numConditions,
+                'html-num-fmt': Criteria.numFmtConditions,
+                'luxon': Criteria.luxonDateConditions,
+                'moment': Criteria.momentDateConditions,
+                'num': Criteria.numConditions,
+                'num-fmt': Criteria.numFmtConditions,
+                'string': Criteria.stringConditions
+            },
+            depthLimit: false,
+            enterSearch: false,
+            filterChanged: undefined,
+            greyscale: false,
+            i18n: {
+                add: 'Add Condition',
+                button: {
+                    0: 'Search Builder',
+                    _: 'Search Builder (%d)'
+                },
+                clearAll: 'Clear All',
+                condition: 'Condition',
+                conditions: {
+                    array: {
+                        contains: 'Contains',
+                        empty: 'Empty',
+                        equals: 'Equals',
+                        not: 'Not',
+                        notEmpty: 'Not Empty',
+                        without: 'Without'
+                    },
+                    date: {
+                        after: 'After',
+                        before: 'Before',
+                        between: 'Between',
+                        empty: 'Empty',
+                        equals: 'Equals',
+                        not: 'Not',
+                        notBetween: 'Not Between',
+                        notEmpty: 'Not Empty'
+                    },
+                    // eslint-disable-next-line id-blacklist
+                    number: {
+                        between: 'Between',
+                        empty: 'Empty',
+                        equals: 'Equals',
+                        gt: 'Greater Than',
+                        gte: 'Greater Than Equal To',
+                        lt: 'Less Than',
+                        lte: 'Less Than Equal To',
+                        not: 'Not',
+                        notBetween: 'Not Between',
+                        notEmpty: 'Not Empty'
+                    },
+                    // eslint-disable-next-line id-blacklist
+                    string: {
+                        contains: 'Contains',
+                        empty: 'Empty',
+                        endsWith: 'Ends With',
+                        equals: 'Equals',
+                        not: 'Not',
+                        notEmpty: 'Not Empty',
+                        startsWith: 'Starts With'
+                    }
+                },
+                data: 'Data',
+                deleteTitle: 'Delete filtering rule',
+                leftTitle: 'Outdent criteria',
+                logicAnd: 'And',
+                logicOr: 'Or',
+                rightTitle: 'Indent criteria',
+                title: {
+                    0: 'Custom Search Builder',
+                    _: 'Custom Search Builder (%d)'
+                },
+                value: 'Value',
+                valueJoiner: 'and'
+            },
+            logic: 'AND',
+            orthogonal: {
+                display: 'display',
+                search: 'filter'
+            },
+            preDefined: false
+        };
+        return SearchBuilder;
+    }());
+
+    /*! SearchBuilder 1.0.1
+     * ©2020 SpryMedia Ltd - datatables.net/license/mit
+     */
+    // DataTables extensions common UMD. Note that this allows for AMD, CommonJS
+    // (with window and jQuery being allowed as parameters to the returned
+    // function) or just default browser loading.
+    (function (factory) {
+        if (typeof define === 'function' && define.amd) {
+            // AMD
+            define(['jquery', 'datatables.net'], function ($) {
+                return factory($, window, document);
+            });
+        }
+        else if (typeof exports === 'object') {
+            // CommonJS
+            module.exports = function (root, $) {
+                if (!root) {
+                    root = window;
+                }
+                if (!$ || !$.fn.dataTable) {
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
+                    $ = require('datatables.net')(root, $).$;
+                }
+                return factory($, root, root.document);
+            };
+        }
+        else {
+            // Browser - assume jQuery has already been loaded
+            factory(window.jQuery, window, document);
+        }
+    }(function ($, window, document) {
+        setJQuery($);
+        setJQuery$1($);
+        setJQuery$2($);
+        var dataTable = $.fn.dataTable;
+        $.fn.dataTable.SearchBuilder = SearchBuilder;
+        $.fn.DataTable.SearchBuilder = SearchBuilder;
+        $.fn.dataTable.Group = Group;
+        $.fn.DataTable.Group = Group;
+        $.fn.dataTable.Criteria = Criteria;
+        $.fn.DataTable.Criteria = Criteria;
+        var apiRegister = $.fn.dataTable.Api.register;
+        // Set up object for plugins
+        $.fn.dataTable.ext.searchBuilder = {
+            conditions: {}
+        };
+        $.fn.dataTable.ext.buttons.searchBuilder = {
+            action: function (e, dt, node, config) {
+                e.stopPropagation();
+                this.popover(config._searchBuilder.getNode(), {
+                    align: 'dt-container'
+                });
+                // Need to redraw the contents to calculate the correct positions for the elements
+                if (config._searchBuilder.s.topGroup !== undefined) {
+                    config._searchBuilder.s.topGroup.dom.container.trigger('dtsb-redrawContents');
+                }
+            },
+            config: {},
+            init: function (dt, node, config) {
+                var sb = new $.fn.dataTable.SearchBuilder(dt, $.extend({
+                    filterChanged: function (count, text) {
+                        dt.button(node).text(text);
+                    }
+                }, config.config));
+                dt.button(node).text(config.text || dt.i18n('searchBuilder.button', sb.c.i18n.button, 0));
+                config._searchBuilder = sb;
+            },
+            text: null
+        };
+        apiRegister('searchBuilder.getDetails()', function () {
+            var ctx = this.context[0];
+            // If SearchBuilder has not been initialised on this instance then return
+            return ctx._searchBuilder ?
+                ctx._searchBuilder.getDetails() :
+                null;
+        });
+        apiRegister('searchBuilder.rebuild()', function (details) {
+            var ctx = this.context[0];
+            // If SearchBuilder has not been initialised on this instance then return
+            if (ctx._searchBuilder === undefined) {
+                return null;
+            }
+            ctx._searchBuilder.rebuild(details);
+            return this;
+        });
+        apiRegister('searchBuilder.container()', function () {
+            var ctx = this.context[0];
+            // If SearchBuilder has not been initialised on this instance then return
+            return ctx._searchBuilder ?
+                ctx._searchBuilder.getNode() :
+                null;
+        });
+        /**
+         * Init function for SearchBuilder
+         *
+         * @param settings the settings to be applied
+         * @param options the options for SearchBuilder
+         * @returns JQUERY<HTMLElement> Returns the node of the SearchBuilder
+         */
+        function _init(settings, options) {
+            var api = new dataTable.Api(settings);
+            var opts = options
+                ? options
+                : api.init().searchBuilder || dataTable.defaults.searchBuilder;
+            var searchBuilder = new SearchBuilder(api, opts);
+            var node = searchBuilder.getNode();
+            return node;
+        }
+        // Attach a listener to the document which listens for DataTables initialisation
+        // events so we can automatically initialise
+        $(document).on('preInit.dt.dtsp', function (e, settings, json) {
+            if (e.namespace !== 'dt') {
+                return;
+            }
+            if (settings.oInit.searchBuilder ||
+                dataTable.defaults.searchBuilder) {
+                if (!settings._searchBuilder) {
+                    _init(settings);
+                }
+            }
+        });
+        // DataTables `dom` feature option
+        dataTable.ext.feature.push({
+            cFeature: 'Q',
+            fnInit: _init
+        });
+        // DataTables 2 layout feature
+        if (dataTable.ext.features) {
+            dataTable.ext.features.register('searchBuilder', _init);
+        }
+    }));
+
+}());
+
+/*!
+ SearchBuilder 1.0.1
+ ©2020 SpryMedia Ltd - datatables.net/license/mit
+*/
+(function(){var d,p,n=window.moment,m=window.luxon,l,c=function(a,b,e,g,f){var i=this;void 0===g&&(g=0);void 0===f&&(f=1);if(!p||!p.versionCheck||!p.versionCheck("1.10.0"))throw Error("SearchPane requires DataTables 1.10 or newer");this.classes=d.extend(!0,{},c.classes);this.c=d.extend(!0,{},c.defaults,d.fn.dataTable.ext.searchBuilder,b);b=this.c.i18n;this.s={condition:void 0,conditions:{},data:void 0,dataIdx:-1,dataPoints:[],dateFormat:!1,depth:f,dt:a,filled:!1,index:g,topGroup:e,type:"",value:[]};
+this.dom={buttons:d("<div/>").addClass(this.classes.buttonContainer),condition:d("<select disabled/>").addClass(this.classes.condition).addClass(this.classes.dropDown).addClass(this.classes.italic).attr("autocomplete","hacking"),conditionTitle:d('<option value="" disabled selected hidden/>').text(this.s.dt.i18n("searchBuilder.condition",b.condition)),container:d("<div/>").addClass(this.classes.container),data:d("<select/>").addClass(this.classes.data).addClass(this.classes.dropDown).addClass(this.classes.italic),
+dataTitle:d('<option value="" disabled selected hidden/>').text(this.s.dt.i18n("searchBuilder.data",b.data)),defaultValue:d("<select disabled/>").addClass(this.classes.value).addClass(this.classes.dropDown).addClass(this.classes.select),"delete":d("<button>&times</button>").addClass(this.classes["delete"]).addClass(this.classes.button).attr("title",this.s.dt.i18n("searchBuilder.deleteTitle",b.deleteTitle)).attr("type","button"),left:d("<button><</button>").addClass(this.classes.left).addClass(this.classes.button).attr("title",
+this.s.dt.i18n("searchBuilder.leftTitle",b.leftTitle)).attr("type","button"),right:d("<button>></button>").addClass(this.classes.right).addClass(this.classes.button).attr("title",this.s.dt.i18n("searchBuilder.rightTitle",b.rightTitle)).attr("type","button"),value:[d("<select disabled/>").addClass(this.classes.value).addClass(this.classes.dropDown).addClass(this.classes.italic).addClass(this.classes.select)],valueTitle:d('<option value="--valueTitle--" selected/>').text(this.s.dt.i18n("searchBuilder.value",
+b.value))};if(this.c.greyscale){d(this.dom.data).addClass(this.classes.greyscale);d(this.dom.condition).addClass(this.classes.greyscale);d(this.dom.defaultValue).addClass(this.classes.greyscale);a=0;for(e=this.dom.value;a<e.length;a++)d(e[a]).addClass(this.classes.greyscale)}this.s.dt.on("draw.dtsp",function(){i._adjustCriteria()});this.s.dt.on("buttons-action",function(){i._adjustCriteria()});d(window).on("resize.dtsp",p.util.throttle(function(){i._adjustCriteria()}));this._buildCriteria();return this};
+c.prototype.updateArrows=function(a,b){void 0===a&&(a=!1);void 0===b&&(b=!0);d(this.dom.container).empty().append(this.dom.data).append(this.dom.condition).append(this.dom.value[0]);this.setListeners();d(this.dom.value[0]).trigger("dtsb-inserted");for(var e=1;e<this.dom.value.length;e++)d(this.dom.container).append(this.dom.value[e]),d(this.dom.value[e]).trigger("dtsb-inserted");1<this.s.depth&&d(this.dom.buttons).append(this.dom.left);(!1===this.c.depthLimit||this.s.depth<this.c.depthLimit)&&a?d(this.dom.buttons).append(this.dom.right):
+d(this.dom.right).remove();d(this.dom.buttons).append(this.dom["delete"]);d(this.dom.container).append(this.dom.buttons);b&&this._adjustCriteria()};c.prototype.destroy=function(){d(this.dom.data).off(".dtsb");d(this.dom.condition).off(".dtsb");d(this.dom["delete"]).off(".dtsb");for(var a=0,b=this.dom.value;a<b.length;a++)d(b[a]).off(".dtsb");d(this.dom.container).remove()};c.prototype.search=function(a,b){var e=this.s.conditions[this.s.condition];if(void 0!==this.s.condition&&void 0!==e){var g=a[this.s.dataIdx];
+if(-1!==this.s.type.indexOf("num")&&(""!==this.s.dt.settings()[0].oLanguage.sDecimal||""!==this.s.dt.settings()[0].oLanguage.sThousands)){g=[a[this.s.dataIdx]];""!==this.s.dt.settings()[0].oLanguage.sDecimal&&(g=a[this.s.dataIdx].split(this.s.dt.settings()[0].oLanguage.sDecimal));if(""!==this.s.dt.settings()[0].oLanguage.sThousands)for(var c=0;c<g.length;c++)g[c]=g[c].replace(this.s.dt.settings()[0].oLanguage.sThousands,",");g=g.join(".")}"filter"!==this.c.orthogonal.search&&(g=this.s.dt.settings()[0],
+g=g.oApi._fnGetCellData(g,b,this.s.dataIdx,"string"===typeof this.c.orthogonal?this.c.orthogonal:this.c.orthogonal.search));if("array"===this.s.type){Array.isArray(g)||(g=[g]);g.sort();for(var c=0,d=g;c<d.length;c++){var h=d[c];h&&h.replace(/[\r\n\u2028]/g," ")}}else null!==g&&(g=g.replace(/[\r\n\u2028]/g," "));-1!==this.s.type.indexOf("html")&&(g=g.replace(/(<([^>]+)>)/ig,""));null===g&&(g="");return e.search(g,this.s.value,this)}};c.prototype.getDetails=function(){var a=this.s.value;if(-1!==this.s.type.indexOf("num")&&
+(""!==this.s.dt.settings()[0].oLanguage.sDecimal||""!==this.s.dt.settings()[0].oLanguage.sThousands))for(var b=0;b<this.s.value.length;b++){var e=[this.s.value[b].toString()];""!==this.s.dt.settings()[0].oLanguage.sDecimal&&(e=this.s.value[b].split(this.s.dt.settings()[0].oLanguage.sDecimal));if(""!==this.s.dt.settings()[0].oLanguage.sThousands)for(var g=0;g<e.length;g++)e[g]=e[g].replace(this.s.dt.settings()[0].oLanguage.sThousands,",");this.s.value[b]=e.join(".")}return{condition:this.s.condition,
+data:this.s.data,value:a}};c.prototype.getNode=function(){return this.dom.container};c.prototype.populate=function(){this._populateData();-1!==this.s.dataIdx&&(this._populateCondition(),void 0!==this.s.condition&&this._populateValue())};c.prototype.rebuild=function(a){var b=!1,e;this._populateData();if(void 0!==a.data){var g=this.classes.italic,c=this.dom.data;d(this.dom.data).children("option").each(function(){d(this).text()===a.data&&(d(this).attr("selected",!0),d(c).removeClass(g),b=!0,e=d(this).val())})}if(b){this.s.data=
+a.data;this.s.dataIdx=e;this.c.orthogonal=this._getOptions().orthogonal;d(this.dom.dataTitle).remove();this._populateCondition();d(this.dom.conditionTitle).remove();var i;d(this.dom.condition).children("option").each(function(){void 0!==a.condition&&(d(this).val()===a.condition&&"string"===typeof a.condition)&&(d(this).attr("selected",!0),i=d(this).val())});this.s.condition=i;void 0!==this.s.condition?(d(this.dom.conditionTitle).remove(),d(this.dom.condition).removeClass(this.classes.italic),this._populateValue(a)):
+d(this.dom.conditionTitle).prependTo(this.dom.condition).attr("selected",!0)}};c.prototype.setListeners=function(){var a=this;d(this.dom.data).unbind("input change").on("input change",function(){d(a.dom.dataTitle).attr("selected",!1);d(a.dom.data).removeClass(a.classes.italic);a.s.dataIdx=d(a.dom.data).children("option:selected").val();a.s.data=d(a.dom.data).children("option:selected").text();a.c.orthogonal=a._getOptions().orthogonal;a._clearCondition();a._clearValue();a._populateCondition();a.s.filled&&
+(a.s.filled=!1,a.s.dt.draw(),a.setListeners());a.s.dt.state.save()});d(this.dom.condition).unbind("input change").on("input change",function(){d(a.dom.conditionTitle).attr("selected",!1);d(a.dom.condition).removeClass(a.classes.italic);for(var b=d(a.dom.condition).children("option:selected").val(),e=0,c=Object.keys(a.s.conditions);e<c.length;e++)if(c[e]===b){a.s.condition=b;break}a._clearValue();a._populateValue();b=0;for(e=a.dom.value;b<e.length;b++)c=e[b],a.s.filled&&0!==d(a.dom.container).has(c).length&&
+(a.s.filled=!1,a.s.dt.draw(),a.setListeners());a.s.dt.draw()})};c.prototype._adjustCriteria=function(){if(0!==d(document).has(this.dom.container).length){var a,b;a=this.dom.value[this.dom.value.length-1];if(0!==d(this.dom.container).has(a).length){b=d(a).outerWidth(!0);a=d(a).offset().left+b;var e=d(this.dom.left).offset(),c=d(this.dom.right).offset(),f=d(this.dom["delete"]).offset(),i=0!==d(this.dom.container).has(this.dom.left).length,h=0!==d(this.dom.container).has(this.dom.right).length,j=i?e.left:
+h?c.left:f.left;(15>j-a||i&&e.top!==f.top||h&&c.top!==f.top)&&!d(this.dom.container).parent().hasClass(this.classes.vertical)?(d(this.dom.container).parent().addClass(this.classes.vertical),d(this.s.topGroup).trigger("dtsb-redrawContents")):15<j-(d(this.dom.data).offset().left+d(this.dom.data).outerWidth(!0)+d(this.dom.condition).outerWidth(!0)+b)&&d(this.dom.container).parent().hasClass(this.classes.vertical)&&(d(this.dom.container).parent().removeClass(this.classes.vertical),d(this.s.topGroup).trigger("dtsb-redrawContents"))}}};
+c.prototype._buildCriteria=function(){d(this.dom.data).append(this.dom.dataTitle);d(this.dom.condition).append(this.dom.conditionTitle);d(this.dom.container).append(this.dom.data).append(this.dom.condition);for(var a=0,b=this.dom.value;a<b.length;a++){var e=b[a];d(e).append(this.dom.valueTitle);d(this.dom.container).append(e)}d(this.dom.container).append(this.dom["delete"]).append(this.dom.right);this.setListeners()};c.prototype._clearCondition=function(){d(this.dom.condition).empty();d(this.dom.conditionTitle).attr("selected",
+!0).attr("disabled",!0);d(this.dom.condition).prepend(this.dom.conditionTitle).prop("selectedIndex",0);this.s.conditions={};this.s.condition=void 0};c.prototype._clearValue=function(){if(void 0!==this.s.condition){for(var a=function(a){setTimeout(function(){d(a).remove()},50)},b=0,e=this.dom.value;b<e.length;b++){var g=e[b];a(g)}this.dom.value=[].concat(this.s.conditions[this.s.condition].init(this,c.updateListener));d(this.dom.value[0]).insertAfter(this.dom.condition).trigger("dtsb-inserted");for(g=
+1;g<this.dom.value.length;g++)d(this.dom.value[g]).insertAfter(this.dom.value[g-1]).trigger("dtsb-inserted")}else{a=function(a){setTimeout(function(){d(a).remove()},50)};b=0;for(e=this.dom.value;b<e.length;b++)g=e[b],a(g);d(this.dom.valueTitle).attr("selected",!0);d(this.dom.defaultValue).append(this.dom.valueTitle).insertAfter(this.dom.condition)}this.s.value=[];this.dom.value=[d("<select disabled/>").addClass(this.classes.value).addClass(this.classes.dropDown).addClass(this.classes.italic).addClass(this.classes.select).append(d(this.dom.valueTitle).clone())]};
+c.prototype._getOptions=function(){return d.extend(!0,{},c.defaults,this.s.dt.settings()[0].aoColumns[this.s.dataIdx].searchBuilder)};c.prototype._populateCondition=function(){var a=[],b=Object.keys(this.s.conditions).length;if(0===b){b=d(this.dom.data).children("option:selected").val();this.s.type=this.s.dt.columns().type().toArray()[b];null===this.s.type&&(this.s.dt.draw(),this.setListeners(),this.s.type=this.s.dt.columns().type().toArray()[b]);d(this.dom.condition).attr("disabled",!1).empty().append(this.dom.conditionTitle).addClass(this.classes.italic);
+d(this.dom.conditionTitle).attr("selected",!0);b=this.s.dt.settings()[0].oLanguage.sDecimal;""!==b&&this.s.type.indexOf(b)===this.s.type.length-b.length&&(-1!==this.s.type.indexOf("num-fmt")?this.s.type=this.s.type.replace(b,""):-1!==this.s.type.indexOf("num")&&(this.s.type=this.s.type.replace(b,"")));var e=void 0!==this.c.conditions[this.s.type]?this.c.conditions[this.s.type]:-1!==this.s.type.indexOf("moment")?this.c.conditions.moment:-1!==this.s.type.indexOf("luxon")?this.c.conditions.luxon:this.c.conditions.string;
+-1!==this.s.type.indexOf("moment")?this.s.dateFormat=this.s.type.replace(/moment-/g,""):-1!==this.s.type.indexOf("luxon")&&(this.s.dateFormat=this.s.type.replace(/luxon-/g,""));for(var c=0,f=Object.keys(e);c<f.length;c++){var i=f[c];null!==e[i]&&(this.s.conditions[i]=e[i],b=e[i].conditionName,"function"===typeof b&&(b=b(this.s.dt,this.c.i18n)),a.push(d("<option>",{text:b,value:i}).addClass(this.classes.option).addClass(this.classes.notItalic)))}}else if(0<b){d(this.dom.condition).empty().attr("disabled",
+!1).addClass(this.classes.italic);e=0;for(c=Object.keys(this.s.conditions);e<c.length;e++)i=c[e],b=this.s.conditions[i].conditionName,"function"===typeof b&&(b=b(this.s.dt,this.c.i18n)),i=d("<option>",{text:b,value:i}).addClass(this.classes.option).addClass(this.classes.notItalic),void 0!==this.s.condition&&this.s.condition===b&&(d(i).attr("selected",!0),d(this.dom.condition).removeClass(this.classes.italic)),a.push(i)}else{d(this.dom.condition).attr("disabled",!0).addClass(this.classes.italic);return}for(b=
+0;b<a.length;b++)i=a[b],d(this.dom.condition).append(i);d(this.dom.condition).prop("selectedIndex",0)};c.prototype._populateData=function(){var a=this;d(this.dom.data).empty().append(this.dom.dataTitle);if(0===this.s.dataPoints.length)this.s.dt.columns().every(function(b){if(!0===a.c.columns||-1!==a.s.dt.columns(a.c.columns).indexes().toArray().indexOf(b)){for(var e=!1,c=0,g=a.s.dataPoints;c<g.length;c++)if(g[c].index===b){e=!0;break}e||(e=a.s.dt.settings()[0].aoColumns[b],b={index:b,text:(void 0===
+e.searchBuilderTitle?e.sTitle:e.searchBuilderTitle).replace(/(<([^>]+)>)/ig,"")},a.s.dataPoints.push(b),d(a.dom.data).append(d("<option>",{text:b.text,value:b.index}).addClass(a.classes.option).addClass(a.classes.notItalic)))}});else for(var b=function(b){e.s.dt.columns().every(function(e){var c=a.s.dt.settings()[0].aoColumns[e];if((void 0===c.searchBuilderTitle?c.sTitle:c.searchBuilderTitle).replace(/(<([^>]+)>)/ig,"")===b.text)b.index=e});var c=d("<option>",{text:b.text.replace(/(<([^>]+)>)/ig,
+""),value:b.index}).addClass(e.classes.option).addClass(e.classes.notItalic);e.s.data===b.text&&(e.s.dataIdx=b.index,d(c).attr("selected",!0),d(e.dom.data).removeClass(e.classes.italic));d(e.dom.data).append(c)},e=this,c=0,f=this.s.dataPoints;c<f.length;c++)b(f[c])};c.prototype._populateValue=function(a){var b=this,e=this.s.filled;this.s.filled=!1;setTimeout(function(){d(b.dom.defaultValue).remove()},50);for(var g=function(a){setTimeout(function(){d(a).remove()},50)},f=0,i=this.dom.value;f<i.length;f++)g(i[f]);
+g=d(this.dom.container).children();if(3<g.length)for(f=2;f<g.length-1;f++)d(g[f]).remove();void 0!==a&&this.s.dt.columns().every(function(e){b.s.dt.settings()[0].aoColumns[e].sTitle===a.data&&(b.s.dataIdx=e)});this.dom.value=[].concat(this.s.conditions[this.s.condition].init(this,c.updateListener,void 0!==a?a.value:void 0));void 0!==a&&void 0!==a.value&&(this.s.value=a.value);d(this.dom.value[0]).insertAfter(this.dom.condition).trigger("dtsb-inserted");for(f=1;f<this.dom.value.length;f++)d(this.dom.value[f]).insertAfter(this.dom.value[f-
+1]).trigger("dtsb-inserted");this.s.filled=this.s.conditions[this.s.condition].isInputValid(this.dom.value,this);this.setListeners();e!==this.s.filled&&(this.s.dt.draw(),this.setListeners())};c.version="1.1.0";c.classes={button:"dtsb-button",buttonContainer:"dtsb-buttonContainer",condition:"dtsb-condition",container:"dtsb-criteria",data:"dtsb-data","delete":"dtsb-delete",dropDown:"dtsb-dropDown",greyscale:"dtsb-greyscale",input:"dtsb-input",italic:"dtsb-italic",joiner:"dtsp-joiner",left:"dtsb-left",
+notItalic:"dtsb-notItalic",option:"dtsb-option",right:"dtsb-right",select:"dtsb-select",value:"dtsb-value",vertical:"dtsb-vertical"};c.initSelect=function(a,b,e,g){void 0===e&&(e=null);void 0===g&&(g=!1);var f=d(a.dom.data).children("option:selected").val(),i=a.s.dt.rows().indexes().toArray(),h=a.s.dt.settings()[0],j=d("<select/>").addClass(c.classes.value).addClass(c.classes.dropDown).addClass(c.classes.italic).addClass(c.classes.select).append(a.dom.valueTitle).on("input change",function(){d(this).removeClass(c.classes.italic);
+b(a,this)});a.c.greyscale&&d(j).addClass(c.classes.greyscale);for(var k=[],l=[],o=0;o<i.length;o++){var n=i[o],m=h.oApi._fnGetCellData(h,n,f,"string"===typeof a.c.orthogonal?a.c.orthogonal:a.c.orthogonal.search),m="string"===typeof m?m.replace(/[\r\n\u2028]/g," "):m,n=h.oApi._fnGetCellData(h,n,f,"string"===typeof a.c.orthogonal?a.c.orthogonal:a.c.orthogonal.display);"array"===a.s.type&&(m=!Array.isArray(m)?[m]:m=m.sort(),n=!Array.isArray(n)?[n]:n=n.sort());var q=function(b,g){var f=d("<option>",{type:Array.isArray(b)?
+"Array":"String",value:a.s.type.indexOf("html")!==-1&&b!==null&&typeof b==="string"?b.replace(/(<([^>]+)>)/ig,""):b}).addClass(a.classes.option).addClass(a.classes.notItalic).html(typeof g==="string"?g.replace(/(<([^>]+)>)/ig,""):g),i=d(f).val();if(k.indexOf(i)===-1){k.push(i);l.push(f);e!==null&&Array.isArray(e[0])&&(e[0]=e[0].sort().join(","));if(e!==null&&f.val()===e[0]){f.attr("selected",true);d(j).removeClass(c.classes.italic)}}};if(g)for(var p=0;p<m.length;p++)q(m[p],n[p]);else q(m,n)}l.sort(function(b,
+e){if("array"===a.s.type||"string"===a.s.type||"num"===a.s.type||"html"===a.s.type||"html-num"===a.s.type)return d(b).val()<d(e).val()?-1:d(b).val()>d(e).val()?1:0;if("num-fmt"===a.s.type||"html-num-fmt"===a.s.type)return+d(b).val().replace(/[^0-9.]/g,"")<+d(e).val().replace(/[^0-9.]/g,"")?-1:+d(b).val().replace(/[^0-9.]/g,"")>+d(e).val().replace(/[^0-9.]/g,"")?1:0});for(g=0;g<l.length;g++)f=l[g],d(j).append(f);return j};c.initSelectArray=function(a,b,e){void 0===e&&(e=null);return c.initSelect(a,
+b,e,!0)};c.initInput=function(a,b,e){var g=this;void 0===e&&(e=null);var f=a.s.dt.settings()[0].searchDelay,f=d("<input/>").addClass(c.classes.value).addClass(c.classes.input).on("input keypress",!a.c.enterSearch||null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):a.c.enterSearch?function(e){13===(e.keyCode||e.which)&&b(a,g)}:function(){b(a,g)});a.c.greyscale&&d(f).addClass(c.classes.greyscale);null!==e&&d(f).val(e[0]);a.s.dt.one("draw",function(){d(a.s.topGroup).trigger("dtsb-redrawLogic")});
+return f};c.init2Input=function(a,b,e){var g=this;void 0===e&&(e=null);var f=a.s.dt.settings()[0].searchDelay,f=[d("<input/>").addClass(c.classes.value).addClass(c.classes.input).on("input keypress",null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):a.c.enterSearch?function(e){13===(e.keyCode||e.which)&&b(a,g)}:function(){b(a,g)}),d("<span>").addClass(a.classes.joiner).text(a.s.dt.i18n("searchBuilder.valueJoiner",a.c.i18n.valueJoiner)),d("<input/>").addClass(c.classes.value).addClass(c.classes.input).on("input keypress",
+null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):a.c.enterSearch?function(e){13===(e.keyCode||e.which)&&b(a,g)}:function(){b(a,g)})];a.c.greyscale&&(d(f[0]).addClass(c.classes.greyscale),d(f[2]).addClass(c.classes.greyscale));null!==e&&(d(f[0]).val(e[0]),d(f[2]).val(e[1]));a.s.dt.one("draw",function(){d(a.s.topGroup).trigger("dtsb-redrawLogic")});return f};c.initDate=function(a,b,e){var g=this;void 0===e&&(e=null);var f=a.s.dt.settings()[0].searchDelay,f=d("<input/>").addClass(c.classes.value).addClass(c.classes.input).dtDateTime({attachTo:"input",
+format:a.s.dateFormat?a.s.dateFormat:void 0}).on("change",null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):function(){b(a,g)}).on("input keypress",!a.c.enterSearch&&null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):a.c.enterSearch?function(e){13===(e.keyCode||e.which)&&b(a,g)}:function(){b(a,g)});a.c.greyscale&&d(f).addClass(c.classes.greyscale);null!==e&&d(f).val(e[0]);a.s.dt.one("draw",function(){d(a.s.topGroup).trigger("dtsb-redrawLogic")});
+return f};c.initNoValue=function(a){a.s.dt.one("draw",function(){d(a.s.topGroup).trigger("dtsb-redrawLogic")})};c.init2Date=function(a,b,e){var g=this;void 0===e&&(e=null);var f=a.s.dt.settings()[0].searchDelay,f=[d("<input/>").addClass(c.classes.value).addClass(c.classes.input).dtDateTime({attachTo:"input",format:a.s.dateFormat?a.s.dateFormat:void 0}).on("change",null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):function(){b(a,g)}).on("input keypress",!a.c.enterSearch&&
+null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):a.c.enterSearch?function(e){13===(e.keyCode||e.which)&&b(a,g)}:function(){b(a,g)}),d("<span>").addClass(a.classes.joiner).text(a.s.dt.i18n("searchBuilder.valueJoiner",a.c.i18n.valueJoiner)),d("<input/>").addClass(c.classes.value).addClass(c.classes.input).dtDateTime({attachTo:"input",format:a.s.dateFormat?a.s.dateFormat:void 0}).on("change",null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):
+function(){b(a,g)}).on("input keypress",!a.c.enterSearch&&null!==f?a.s.dt.settings()[0].oApi._fnThrottle(function(){return b(a,this)},f):a.c.enterSearch?function(e){13===(e.keyCode||e.which)&&b(a,g)}:function(){b(a,g)})];a.c.greyscale&&(d(f[0]).addClass(c.classes.greyscale),d(f[2]).addClass(c.classes.greyscale));null!==e&&0<e.length&&(d(f[0]).val(e[0]),d(f[2]).val(e[1]));a.s.dt.one("draw",function(){d(a.s.topGroup).trigger("dtsb-redrawLogic")});return f};c.isInputValidSelect=function(a){for(var b=
+!0,e=0;e<a.length;e++){var g=a[e];d(g).children("option:selected").length===d(g).children("option").length-d(g).children("option."+c.classes.notItalic).length&&(1===d(g).children("option:selected").length&&d(g).children("option:selected")[0]===d(g).children("option:hidden")[0])&&(b=!1)}return b};c.isInputValidInput=function(a){for(var b=!0,e=0;e<a.length;e++){var c=a[e];d(c).is("input")&&0===d(c).val().length&&(b=!1)}return b};c.inputValueSelect=function(a){for(var b=[],e=0;e<a.length;e++){var c=
+a[e];if(d(c).is("select")){var f=d(c).children("option:selected").val();b.push("Array"===d(c).children("option:selected").attr("type")?f.split(",").sort():f)}}return b};c.inputValueInput=function(a){for(var b=[],e=0;e<a.length;e++){var c=a[e];d(c).is("input")&&b.push(d(c).val())}return b};c.updateListener=function(a,b){var e=a.s.conditions[a.s.condition];a.s.filled=e.isInputValid(a.dom.value,a);a.s.value=e.inputValue(a.dom.value,a);Array.isArray(a.s.value)||(a.s.value=[a.s.value]);for(e=0;e<a.s.value.length;e++)if(Array.isArray(a.s.value[e]))a.s.value[e].sort();
+else if(-1!==a.s.type.indexOf("num")&&(""!==a.s.dt.settings()[0].oLanguage.sDecimal||""!==a.s.dt.settings()[0].oLanguage.sThousands)){var c=[a.s.value[e].toString()];""!==a.s.dt.settings()[0].oLanguage.sDecimal&&(c=a.s.value[e].split(a.s.dt.settings()[0].oLanguage.sDecimal));if(""!==a.s.dt.settings()[0].oLanguage.sThousands)for(var f=0;f<c.length;f++)c[f]=c[f].replace(a.s.dt.settings()[0].oLanguage.sThousands,",");a.s.value[e]=c.join(".")}f=c=null;for(e=0;e<a.dom.value.length;e++)b===a.dom.value[e][0]&&
+(c=e,void 0!==b.selectionStart&&(f=b.selectionStart));a.s.dt.draw();null!==c&&(d(a.dom.value[c]).removeClass(a.classes.italic),d(a.dom.value[c]).focus(),null!==f&&d(a.dom.value[c])[0].setSelectionRange(f,f))};c.dateConditions={"=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.equals",b.conditions.date.equals)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){a=a.replace(/(\/|-|,)/g,"-");return a===b[0]}},"!=":{conditionName:function(a,
+b){return a.i18n("searchBuilder.conditions.date.not",b.conditions.date.not)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){a=a.replace(/(\/|-|,)/g,"-");return a!==b[0]}},"<":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.before",b.conditions.date.before)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){a=a.replace(/(\/|-|,)/g,"-");return a<b[0]}},">":{conditionName:function(a,
+b){return a.i18n("searchBuilder.conditions.date.after",b.conditions.date.after)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){a=a.replace(/(\/|-|,)/g,"-");return a>b[0]}},between:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.between",b.conditions.date.between)},init:c.init2Date,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){a=a.replace(/(\/|-|,)/g,"-");return b[0]<b[1]?b[0]<=a&&a<=
+b[1]:b[1]<=a&&a<=b[0]}},"!between":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.notBetween",b.conditions.date.notBetween)},init:c.init2Date,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){a=a.replace(/(\/|-|,)/g,"-");return b[0]<b[1]?!(b[0]<=a&&a<=b[1]):!(b[1]<=a&&a<=b[0])}},"null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.empty",b.conditions.date.empty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},
+search:function(a){return null===a||void 0===a||0===a.length}},"!null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.notEmpty",b.conditions.date.notEmpty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return!(null===a||void 0===a||0===a.length)}}};c.momentDateConditions={"=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.equals",b.conditions.date.equals)},init:c.initDate,inputValue:c.inputValueInput,
+isInputValid:c.isInputValidInput,search:function(a,b,e){return n(a,e.s.dateFormat).valueOf()===n(b[0],e.s.dateFormat).valueOf()}},"!=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.not",b.conditions.date.not)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){return n(a,e.s.dateFormat).valueOf()!==n(b[0],e.s.dateFormat).valueOf()}},"<":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.before",b.conditions.date.before)},
+init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){return n(a,e.s.dateFormat).valueOf()<n(b[0],e.s.dateFormat).valueOf()}},">":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.after",b.conditions.date.after)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){return n(a,e.s.dateFormat).valueOf()>n(b[0],e.s.dateFormat).valueOf()}},between:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.between",
+b.conditions.date.between)},init:c.init2Date,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){var a=n(a,e.s.dateFormat).valueOf(),c=n(b[0],e.s.dateFormat).valueOf(),b=n(b[1],e.s.dateFormat).valueOf();return c<b?c<=a&&a<=b:b<=a&&a<=c}},"!between":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.notBetween",b.conditions.date.notBetween)},init:c.init2Date,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){var a=
+n(a,e.s.dateFormat).valueOf(),c=n(b[0],e.s.dateFormat).valueOf(),b=n(b[1],e.s.dateFormat).valueOf();return c<b?!(+c<=+a&&+a<=+b):!(+b<=+a&&+a<=+c)}},"null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.empty",b.conditions.date.empty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return null===a||void 0===a||0===a.length}},"!null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.notEmpty",b.conditions.date.notEmpty)},
+init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return!(null===a||void 0===a||0===a.length)}}};c.luxonDateConditions={"=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.equals",b.conditions.date.equals)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){return m.DateTime.fromFormat(a,e.s.dateFormat).ts===m.DateTime.fromFormat(b[0],e.s.dateFormat).ts}},"!=":{conditionName:function(a,
+b){return a.i18n("searchBuilder.conditions.date.not",b.conditions.date.not)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){return m.DateTime.fromFormat(a,e.s.dateFormat).ts!==m.DateTime.fromFormat(b[0],e.s.dateFormat).ts}},"<":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.before",b.conditions.date.before)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){return m.DateTime.fromFormat(a,
+e.s.dateFormat).ts<m.DateTime.fromFormat(b[0],e.s.dateFormat).ts}},">":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.after",b.conditions.date.after)},init:c.initDate,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){return m.DateTime.fromFormat(a,e.s.dateFormat).ts>m.DateTime.fromFormat(b[0],e.s.dateFormat).ts}},between:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.between",b.conditions.date.between)},init:c.init2Date,
+inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){var a=m.DateTime.fromFormat(a,e.s.dateFormat).ts,c=m.DateTime.fromFormat(b[0],e.s.dateFormat).ts,b=m.DateTime.fromFormat(b[1],e.s.dateFormat).ts;return c<b?c<=a&&a<=b:b<=a&&a<=c}},"!between":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.notBetween",b.conditions.date.notBetween)},init:c.init2Date,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b,e){var a=
+m.DateTime.fromFormat(a,e.s.dateFormat).ts,c=m.DateTime.fromFormat(b[0],e.s.dateFormat).ts,b=m.DateTime.fromFormat(b[1],e.s.dateFormat).ts;return c<b?!(+c<=+a&&+a<=+b):!(+b<=+a&&+a<=+c)}},"null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.empty",b.conditions.date.empty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return null===a||void 0===a||0===a.length}},"!null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.date.notEmpty",
+b.conditions.date.notEmpty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return!(null===a||void 0===a||0===a.length)}}};c.numConditions={"=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.equals",b.conditions.number.equals)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){return+a===+b[0]}},"!=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.not",
+b.conditions.number.not)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){return+a!==+b[0]}},"<":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.lt",b.conditions.number.lt)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){return+a<+b[0]}},"<=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.lte",b.conditions.number.lte)},init:c.initInput,
+inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){return+a<=+b[0]}},">=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.gte",b.conditions.number.gte)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){return+a>=+b[0]}},">":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.gt",b.conditions.number.gt)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,
+search:function(a,b){return+a>+b[0]}},between:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.between",b.conditions.number.between)},init:c.init2Input,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){return+b[0]<+b[1]?+b[0]<=+a&&+a<=+b[1]:+b[1]<=+a&&+a<=+b[0]}},"!between":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.notBetween",b.conditions.number.notBetween)},init:c.init2Input,inputValue:c.inputValueInput,
+isInputValid:c.isInputValidInput,search:function(a,b){return+b[0]<+b[1]?!(+b[0]<=+a&&+a<=+b[1]):!(+b[1]<=+a&&+a<=+b[0])}},"null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.empty",b.conditions.number.empty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return null===a||void 0===a||0===a.length}},"!null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.notEmpty",b.conditions.number.notEmpty)},
+init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return!(null===a||void 0===a||0===a.length)}}};c.numFmtConditions={"=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.equals",b.conditions.number.equals)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,
+""):b[0].replace(/[^0-9.]/g,"");return+e===+c}},"!=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.not",b.conditions.number.not)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,""):b[0].replace(/[^0-9.]/g,"");return+e!==+c}},"<":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.lt",
+b.conditions.number.lt)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,""):b[0].replace(/[^0-9.]/g,"");return+e<+c}},"<=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.lte",b.conditions.number.lte)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,
+b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,""):b[0].replace(/[^0-9.]/g,"");return+e<=+c}},">=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.gte",b.conditions.number.gte)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,
+""):b[0].replace(/[^0-9.]/g,"");return+e>=+c}},">":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.gt",b.conditions.number.gt)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,""):b[0].replace(/[^0-9.]/g,"");return+e>+c}},between:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.between",
+b.conditions.number.between)},init:c.init2Input,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,""):b[0].replace(/[^0-9.]/g,""),d=0===b[1].indexOf("-")?"-"+b[1].replace(/[^0-9.]/g,""):b[1].replace(/[^0-9.]/g,"");return+c<+d?+c<=+e&&+e<=+d:+d<=+e&&+e<=+c}},"!between":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.notBetween",
+b.conditions.number.notBetween)},init:c.init2Input,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){var e=0===a.indexOf("-")?"-"+a.replace(/[^0-9.]/g,""):a.replace(/[^0-9.]/g,""),c=0===b[0].indexOf("-")?"-"+b[0].replace(/[^0-9.]/g,""):b[0].replace(/[^0-9.]/g,""),d=0===b[1].indexOf("-")?"-"+b[1].replace(/[^0-9.]/g,""):b[1].replace(/[^0-9.]/g,"");return+c<+d?!(+c<=+e&&+e<=+d):!(+d<=+e&&+e<=+c)}},"null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.empty",
+b.conditions.number.empty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return null===a||void 0===a||0===a.length}},"!null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.number.notEmpty",b.conditions.number.notEmpty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return!(null===a||void 0===a||0===a.length)}}};c.stringConditions={"=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.string.equals",
+b.conditions.string.equals)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){return a===b[0]}},"!=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.string.not",b.conditions.string.not)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidInput,search:function(a,b){return a!==b[0]}},starts:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.string.startsWith",b.conditions.string.startsWith)},
+init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){return 0===a.toLowerCase().indexOf(b[0].toLowerCase())}},contains:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.string.contains",b.conditions.string.contains)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){return-1!==a.toLowerCase().indexOf(b[0].toLowerCase())}},ends:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.string.endsWith",
+b.conditions.string.endsWith)},init:c.initInput,inputValue:c.inputValueInput,isInputValid:c.isInputValidInput,search:function(a,b){return a.toLowerCase().endsWith(b[0].toLowerCase())}},"null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.string.empty",b.conditions.string.empty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return null===a||void 0===a||0===a.length}},"!null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.string.notEmpty",
+b.conditions.string.notEmpty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return!(null===a||void 0===a||0===a.length)}}};c.arrayConditions={contains:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.array.contains",b.conditions.array.contains)},init:c.initSelectArray,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){return-1!==a.indexOf(b[0])}},without:{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.array.without",
+b.conditions.array.without)},init:c.initSelectArray,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){return-1===a.indexOf(b[0])}},"=":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.array.equals",b.conditions.array.equals)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){if(a.length===b[0].length){for(var e=0;e<a.length;e++)if(a[e]!==b[0][e])return!1;return!0}return!1}},"!=":{conditionName:function(a,
+b){return a.i18n("searchBuilder.conditions.array.not",b.conditions.array.not)},init:c.initSelect,inputValue:c.inputValueSelect,isInputValid:c.isInputValidSelect,search:function(a,b){if(a.length===b[0].length){for(var e=0;e<a.length;e++)if(a[e]!==b[0][e])return!0;return!1}return!0}},"null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.array.empty",b.conditions.array.empty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return null===
+a||void 0===a||0===a.length}},"!null":{conditionName:function(a,b){return a.i18n("searchBuilder.conditions.array.notEmpty",b.conditions.array.notEmpty)},init:c.initNoValue,inputValue:function(){},isInputValid:function(){return!0},search:function(a){return null!==a&&void 0!==a&&0!==a.length}}};c.defaults={columns:!0,conditions:{array:c.arrayConditions,date:c.dateConditions,html:c.stringConditions,"html-num":c.numConditions,"html-num-fmt":c.numFmtConditions,luxon:c.luxonDateConditions,moment:c.momentDateConditions,
+num:c.numConditions,"num-fmt":c.numFmtConditions,string:c.stringConditions},depthLimit:!1,enterSearch:!1,filterChanged:void 0,greyscale:!1,i18n:{add:"Add Condition",button:{"0":"Search Builder",_:"Search Builder (%d)"},clearAll:"Clear All",condition:"Condition",data:"Data",deleteTitle:"Delete filtering rule",leftTitle:"Outdent criteria",logicAnd:"And",logicOr:"Or",rightTitle:"Indent criteria",title:{"0":"Custom Search Builder",_:"Custom Search Builder (%d)"},value:"Value",valueJoiner:"and"},logic:"AND",
+orthogonal:{display:"display",search:"filter"},preDefined:!1};l=c;var h,s,r,k=function(a,b,e,c,d,i){void 0===c&&(c=0);void 0===d&&(d=!1);void 0===i&&(i=1);if(!s||!s.versionCheck||!s.versionCheck("1.10.0"))throw Error("SearchBuilder requires DataTables 1.10 or newer");this.classes=h.extend(!0,{},k.classes);this.c=h.extend(!0,{},k.defaults,b);this.s={criteria:[],depth:i,dt:a,index:c,isChild:d,logic:void 0,opts:b,toDrop:void 0,topGroup:e};this.dom={add:h("<button/>").addClass(this.classes.add).addClass(this.classes.button).attr("type",
+"button"),clear:h("<button>&times</button>").addClass(this.classes.button).addClass(this.classes.clearGroup).attr("type","button"),container:h("<div/>").addClass(this.classes.group),logic:h("<button/>").addClass(this.classes.logic).addClass(this.classes.button).attr("type","button"),logicContainer:h("<div/>").addClass(this.classes.logicContainer)};void 0===this.s.topGroup&&(this.s.topGroup=this.dom.container);this._setup();return this};k.prototype.destroy=function(){h(this.dom.add).off(".dtsb");h(this.dom.logic).off(".dtsb");
+h(this.dom.container).trigger("dtsb-destroy").remove();this.s.criteria=[]};k.prototype.getDetails=function(){if(0===this.s.criteria.length)return{};for(var a={criteria:[],logic:this.s.logic},b=0,c=this.s.criteria;b<c.length;b++)a.criteria.push(c[b].criteria.getDetails());return a};k.prototype.getNode=function(){return this.dom.container};k.prototype.rebuild=function(a){if(!(void 0===a.criteria||null===a.criteria||Array.isArray(a.criteria)&&0===a.criteria.length)){this.s.logic=a.logic;h(this.dom.logic).text("OR"===
+this.s.logic?this.s.dt.i18n("searchBuilder.logicOr",this.c.i18n.logicOr):this.s.dt.i18n("searchBuilder.logicAnd",this.c.i18n.logicAnd));if(Array.isArray(a.criteria))for(var b=0,c=a.criteria;b<c.length;b++)a=c[b],void 0!==a.logic?this._addPrevGroup(a):void 0===a.logic&&this._addPrevCriteria(a);b=0;for(c=this.s.criteria;b<c.length;b++)a=c[b],a.criteria instanceof l&&(a.criteria.updateArrows(1<this.s.criteria.length,!1),this._setCriteriaListeners(a.criteria))}};k.prototype.redrawContents=function(){h(this.dom.container).empty().append(this.dom.logicContainer).append(this.dom.add);
+this.s.criteria.sort(function(a,b){return a.criteria.s.index<b.criteria.s.index?-1:a.criteria.s.index>b.criteria.s.index?1:0});this.setListeners();for(var a=0;a<this.s.criteria.length;a++){var b=this.s.criteria[a].criteria;b instanceof l?(this.s.criteria[a].index=a,this.s.criteria[a].criteria.s.index=a,h(this.s.criteria[a].criteria.dom.container).insertBefore(this.dom.add),this._setCriteriaListeners(b),this.s.criteria[a].criteria.rebuild(this.s.criteria[a].criteria.getDetails())):b instanceof k&&
+0<b.s.criteria.length?(this.s.criteria[a].index=a,this.s.criteria[a].criteria.s.index=a,h(this.s.criteria[a].criteria.dom.container).insertBefore(this.dom.add),b.redrawContents(),this._setGroupListeners(b)):(this.s.criteria.splice(a,1),a--)}this.setupLogic()};k.prototype.redrawLogic=function(){for(var a=0,b=this.s.criteria;a<b.length;a++){var c=b[a];c instanceof k&&c.redrawLogic()}this.setupLogic()};k.prototype.search=function(a,b){return"AND"===this.s.logic?this._andSearch(a,b):"OR"===this.s.logic?
+this._orSearch(a,b):!0};k.prototype.setupLogic=function(){h(this.dom.logicContainer).remove();h(this.dom.clear).remove();if(1>this.s.criteria.length)this.s.isChild||(h(this.dom.container).trigger("dtsb-destroy"),h(this.dom.container).css("margin-left",0));else{var a=h(this.dom.container).height()-1;h(this.dom.clear).height("0px");h(this.dom.logicContainer).append(this.dom.clear).width(a);h(this.dom.container).prepend(this.dom.logicContainer);this._setLogicListener();h(this.dom.container).css("margin-left",
+h(this.dom.logicContainer).outerHeight(!0));var a=h(this.dom.logicContainer).offset(),b=a.left,c=h(this.dom.container).offset().left,b=b-(b-c)-h(this.dom.logicContainer).outerHeight(!0);h(this.dom.logicContainer).offset({left:b});b=h(this.dom.logicContainer).next();a=a.top;b=h(b).offset().top;a-=a-b;h(this.dom.logicContainer).offset({top:a});h(this.dom.clear).outerHeight(h(this.dom.logicContainer).height());this._setClearListener()}};k.prototype.setListeners=function(){var a=this;h(this.dom.add).unbind("click");
+h(this.dom.add).on("click",function(){a.s.isChild||h(a.dom.container).prepend(a.dom.logicContainer);a.addCriteria();h(a.dom.container).trigger("dtsb-add");a.s.dt.state.save();return!1});for(var b=0,c=this.s.criteria;b<c.length;b++)c[b].criteria.setListeners();this._setClearListener();this._setLogicListener()};k.prototype.addCriteria=function(a,b){void 0===a&&(a=null);void 0===b&&(b=!0);var c=null===a?this.s.criteria.length:a.s.index,d=new l(this.s.dt,this.s.opts,this.s.topGroup,c,this.s.depth);null!==
+a&&(d.c=a.c,d.s=a.s,d.s.depth=this.s.depth,d.classes=a.classes);d.populate();for(var f=!1,i=0;i<this.s.criteria.length;i++)0===i&&this.s.criteria[i].criteria.s.index>d.s.index?(h(d.getNode()).insertBefore(this.s.criteria[i].criteria.dom.container),f=!0):i<this.s.criteria.length-1&&(this.s.criteria[i].criteria.s.index<d.s.index&&this.s.criteria[i+1].criteria.s.index>d.s.index)&&(h(d.getNode()).insertAfter(this.s.criteria[i].criteria.dom.container),f=!0);f||h(d.getNode()).insertBefore(this.dom.add);
+this.s.criteria.push({criteria:d,index:c});this.s.criteria=this.s.criteria.sort(function(a,b){return a.criteria.s.index-b.criteria.s.index});c=0;for(f=this.s.criteria;c<f.length;c++)i=f[c],i.criteria instanceof l&&i.criteria.updateArrows(1<this.s.criteria.length,b);this._setCriteriaListeners(d);d.setListeners();this.setupLogic()};k.prototype.checkFilled=function(){for(var a=0,b=this.s.criteria;a<b.length;a++){var c=b[a];if(c.criteria instanceof l&&c.criteria.s.filled||c.criteria instanceof k&&c.criteria.checkFilled())return!0}return!1};
+k.prototype.count=function(){for(var a=0,b=0,c=this.s.criteria;b<c.length;b++){var d=c[b];d.criteria instanceof k?a+=d.criteria.count():a++}return a};k.prototype._addPrevGroup=function(a){var b=this.s.criteria.length,c=new k(this.s.dt,this.c,this.s.topGroup,b,!0,this.s.depth+1);this.s.criteria.push({criteria:c,index:b,logic:c.s.logic});c.rebuild(a);this.s.criteria[b].criteria=c;h(this.s.topGroup).trigger("dtsb-redrawContents");this._setGroupListeners(c)};k.prototype._addPrevCriteria=function(a){var b=
+this.s.criteria.length,c=new l(this.s.dt,this.s.opts,this.s.topGroup,b,this.s.depth);c.populate();this.s.criteria.push({criteria:c,index:b});c.rebuild(a);this.s.criteria[b].criteria=c;h(this.s.topGroup).trigger("dtsb-redrawContents")};k.prototype._andSearch=function(a,b){if(0===this.s.criteria.length)return!0;for(var c=0,d=this.s.criteria;c<d.length;c++){var f=d[c];if((!(f.criteria instanceof l)||f.criteria.s.filled)&&!f.criteria.search(a,b))return!1}return!0};k.prototype._orSearch=function(a,b){if(0===
+this.s.criteria.length)return!0;for(var c=!1,d=0,f=this.s.criteria;d<f.length;d++){var i=f[d];if(i.criteria instanceof l&&i.criteria.s.filled){if(c=!0,i.criteria.search(a,b))return!0}else if(i.criteria instanceof k&&i.criteria.checkFilled()&&(c=!0,i.criteria.search(a,b)))return!0}return!c};k.prototype._removeCriteria=function(a,b){void 0===b&&(b=!1);if(1>=this.s.criteria.length&&this.s.isChild)this.destroy();else{for(var c=void 0,d=0;d<this.s.criteria.length;d++)if(this.s.criteria[d].index===a.s.index&&
+(!b||this.s.criteria[d].criteria instanceof k))c=d;void 0!==c&&this.s.criteria.splice(c,1);for(d=0;d<this.s.criteria.length;d++)this.s.criteria[d].index=d,this.s.criteria[d].criteria.s.index=d}};k.prototype._setCriteriaListeners=function(a){var b=this;h(a.dom["delete"]).unbind("click").on("click",function(){b._removeCriteria(a);h(a.dom.container).remove();for(var c=0,d=b.s.criteria;c<d.length;c++){var f=d[c];f.criteria instanceof l&&f.criteria.updateArrows(1<b.s.criteria.length)}a.destroy();b.s.dt.draw();
+h(b.s.topGroup).trigger("dtsb-redrawContents");h(b.s.topGroup).trigger("dtsb-updateTitle");return!1});h(a.dom.right).unbind("click").on("click",function(){var c=a.s.index,d=new k(b.s.dt,b.s.opts,b.s.topGroup,a.s.index,!0,b.s.depth+1);d.addCriteria(a);b.s.criteria[c].criteria=d;b.s.criteria[c].logic="AND";h(b.s.topGroup).trigger("dtsb-redrawContents");b._setGroupListeners(d);return!1});h(a.dom.left).unbind("click").on("click",function(){b.s.toDrop=new l(b.s.dt,b.s.opts,b.s.topGroup,a.s.index);b.s.toDrop.s=
+a.s;b.s.toDrop.c=a.c;b.s.toDrop.classes=a.classes;b.s.toDrop.populate();var c=b.s.toDrop.s.index;h(b.dom.container).trigger("dtsb-dropCriteria");a.s.index=c;b._removeCriteria(a);h(b.s.topGroup).trigger("dtsb-redrawContents");b.s.dt.draw();return!1})};k.prototype._setClearListener=function(){var a=this;h(this.dom.clear).unbind("click").on("click",function(){if(!a.s.isChild)return h(a.dom.container).trigger("dtsb-clearContents"),!1;a.destroy();h(a.s.topGroup).trigger("dtsb-updateTitle");h(a.s.topGroup).trigger("dtsb-redrawContents");
+return!1})};k.prototype._setGroupListeners=function(a){var b=this;h(a.dom.add).unbind("click").on("click",function(){b.setupLogic();h(b.dom.container).trigger("dtsb-add");return!1});h(a.dom.container).unbind("dtsb-add").on("dtsb-add",function(){b.setupLogic();h(b.dom.container).trigger("dtsb-add");return!1});h(a.dom.container).unbind("dtsb-destroy").on("dtsb-destroy",function(){b._removeCriteria(a,!0);h(a.dom.container).remove();b.setupLogic();return!1});h(a.dom.container).unbind("dtsb-dropCriteria").on("dtsb-dropCriteria",
+function(){var c=a.s.toDrop;c.s.index=a.s.index;c.updateArrows(1<b.s.criteria.length,!1);b.addCriteria(c,!1);return!1});a.setListeners()};k.prototype._setup=function(){this.setListeners();h(this.dom.add).text(this.s.dt.i18n("searchBuilder.add",this.c.i18n.add));h(this.dom.logic).text("OR"===this.c.logic?this.s.dt.i18n("searchBuilder.logicOr",this.c.i18n.logicOr):this.s.dt.i18n("searchBuilder.logicAnd",this.c.i18n.logicAnd));this.s.logic="OR"===this.c.logic?"OR":"AND";this.c.greyscale&&h(this.dom.logic).addClass(this.classes.greyscale);
+h(this.dom.logicContainer).append(this.dom.logic).append(this.dom.clear);this.s.isChild&&h(this.dom.container).append(this.dom.logicContainer);h(this.dom.container).append(this.dom.add)};k.prototype._setLogicListener=function(){var a=this;h(this.dom.logic).unbind("click").on("click",function(){a._toggleLogic();a.s.dt.draw();for(var b=0,c=a.s.criteria;b<c.length;b++)c[b].criteria.setListeners()})};k.prototype._toggleLogic=function(){"OR"===this.s.logic?(this.s.logic="AND",h(this.dom.logic).text(this.s.dt.i18n("searchBuilder.logicAnd",
+this.c.i18n.logicAnd))):"AND"===this.s.logic&&(this.s.logic="OR",h(this.dom.logic).text(this.s.dt.i18n("searchBuilder.logicOr",this.c.i18n.logicOr)))};k.version="1.1.0";k.classes={add:"dtsb-add",button:"dtsb-button",clearGroup:"dtsb-clearGroup",greyscale:"dtsb-greyscale",group:"dtsb-group",inputButton:"dtsb-iptbtn",logic:"dtsb-logic",logicContainer:"dtsb-logicContainer"};k.defaults={columns:!0,conditions:{date:l.dateConditions,html:l.stringConditions,"html-num":l.numConditions,"html-num-fmt":l.numFmtConditions,
+luxon:l.luxonDateConditions,moment:l.momentDateConditions,num:l.numConditions,"num-fmt":l.numFmtConditions,string:l.stringConditions},depthLimit:!1,enterSearch:!1,filterChanged:void 0,greyscale:!1,i18n:{add:"Add Condition",button:{"0":"Search Builder",_:"Search Builder (%d)"},clearAll:"Clear All",condition:"Condition",data:"Data",deleteTitle:"Delete filtering rule",leftTitle:"Outdent criteria",logicAnd:"And",logicOr:"Or",rightTitle:"Indent criteria",title:{"0":"Custom Search Builder",_:"Custom Search Builder (%d)"},
+value:"Value",valueJoiner:"and"},logic:"AND",orthogonal:{display:"display",search:"filter"},preDefined:!1};r=k;var j,q,t,o=function(a,b){var c=this;if(!q||!q.versionCheck||!q.versionCheck("1.10.0"))throw Error("SearchBuilder requires DataTables 1.10 or newer");var d=new q.Api(a);this.classes=j.extend(!0,{},o.classes);this.c=j.extend(!0,{},o.defaults,b);this.dom={clearAll:j('<button type="button">'+d.i18n("searchBuilder.clearAll",this.c.i18n.clearAll)+"</button>").addClass(this.classes.clearAll).addClass(this.classes.button).attr("type",
+"button"),container:j("<div/>").addClass(this.classes.container),title:j("<div/>").addClass(this.classes.title),titleRow:j("<div/>").addClass(this.classes.titleRow),topGroup:void 0};this.s={dt:d,opts:b,search:void 0,topGroup:void 0};if(void 0===d.settings()[0]._searchBuilder){d.settings()[0]._searchBuilder=this;if(this.s.dt.settings()[0]._bInitComplete)this._setUp();else d.one("init.dt",function(){c._setUp()});return this}};o.prototype.getDetails=function(){return this.s.topGroup.getDetails()};o.prototype.getNode=
+function(){return this.dom.container};o.prototype.rebuild=function(a){j(this.dom.clearAll).click();if(void 0===a||null===a)return this;this.s.topGroup.rebuild(a);this.s.dt.draw();this.s.topGroup.setListeners();return this};o.prototype._applyPreDefDefaults=function(a){var b=this;void 0!==a.criteria&&void 0===a.logic&&(a.logic="AND");for(var c=function(a){a.criteria!==void 0?a=d._applyPreDefDefaults(a):d.s.dt.columns().every(function(c){if(b.s.dt.settings()[0].aoColumns[c].sTitle===a.data)a.dataIdx=
+c})},d=this,f=0,i=a.criteria;f<i.length;f++)c(i[f]);return a};o.prototype._setUp=function(a){var b=this;void 0===a&&(a=!0);j.fn.DataTable.Api.registerPlural("columns().type()","column().type()",function(){return this.iterator("column",function(a,b){return a.aoColumns[b].sType},1)});if(!q.DateTime){var c=this.s.dt.columns().type().toArray(),d=this.s.dt.columns().toArray();void 0===c&&(this.s.dt.draw(),c=this.s.dt.columns().type().toArray());for(var f=0;f<d[0].length;f++){var i=c[d[0][f]];if((!0===
+this.c.columns||Array.isArray(this.c.columns)&&-1!==this.c.columns.indexOf(f))&&(-1!==i.indexOf("date")||-1!==i.indexOf("moment")||-1!==i.indexOf("luxon")))throw alert("SearchBuilder Requires DateTime when used with dates."),Error("SearchBuilder requires DateTime");}}this.s.topGroup=new r(this.s.dt,this.c,void 0);this._setClearListener();this.s.dt.on("stateSaveParams",function(a,c,d){d.searchBuilder=b.getDetails();d.page=b.s.dt.page()});this._build();a&&(a=this.s.dt.state.loaded(),null!==a&&void 0!==
+a.searchBuilder?(this.s.topGroup.rebuild(a.searchBuilder),j(this.s.topGroup.dom.container).trigger("dtsb-redrawContents"),this.s.dt.page(a.page).draw("page"),this.s.topGroup.setListeners()):!1!==this.c.preDefined&&(this.c.preDefined=this._applyPreDefDefaults(this.c.preDefined),this.rebuild(this.c.preDefined)));this._setEmptyListener();this.s.dt.state.save()};o.prototype._updateTitle=function(a){j(this.dom.title).html(this.s.dt.i18n("searchBuilder.title",this.c.i18n.title,a))};o.prototype._build=function(){var a=
+this;j(this.dom.clearAll).remove();j(this.dom.container).empty();var b=this.s.topGroup.count();this._updateTitle(b);j(this.dom.titleRow).append(this.dom.title);j(this.dom.container).append(this.dom.titleRow);this.dom.topGroup=this.s.topGroup.getNode();j(this.dom.container).append(this.dom.topGroup);this._setRedrawListener();var c=this.s.dt.table(0).node();-1===j.fn.dataTable.ext.search.indexOf(this.s.search)&&(this.s.search=function(b,d,i){return b.nTable!==c?!0:a.s.topGroup.search(d,i)},j.fn.dataTable.ext.search.push(this.s.search));
+this.s.dt.on("destroy.dt",function(){j(a.dom.container).remove();j(a.dom.clearAll).remove();for(var b=j.fn.dataTable.ext.search.indexOf(a.s.search);b!==-1;){j.fn.dataTable.ext.search.splice(b,1);b=j.fn.dataTable.ext.search.indexOf(a.s.search)}})};o.prototype._checkClear=function(){0<this.s.topGroup.s.criteria.length?(j(this.dom.clearAll).insertAfter(this.dom.title),this._setClearListener()):j(this.dom.clearAll).remove()};o.prototype._filterChanged=function(a){var b=this.c.filterChanged;"function"===
+typeof b&&b(a,this.s.dt.i18n("searchBuilder.button",this.c.i18n.button,a))};o.prototype._setClearListener=function(){var a=this;j(this.dom.clearAll).unbind("click");j(this.dom.clearAll).on("click",function(){a.s.topGroup=new r(a.s.dt,a.c,void 0);a._build();a.s.dt.draw();a.s.topGroup.setListeners();j(a.dom.clearAll).remove();a._setEmptyListener();a._filterChanged(0);return!1})};o.prototype._setRedrawListener=function(){var a=this;j(this.s.topGroup.dom.container).unbind("dtsb-redrawContents");j(this.s.topGroup.dom.container).on("dtsb-redrawContents",
+function(){a._checkClear();a.s.topGroup.redrawContents();a.s.topGroup.setupLogic();a._setEmptyListener();var b=a.s.topGroup.count();a._updateTitle(b);a._filterChanged(b);a.s.dt.state.save()});j(this.s.topGroup.dom.container).unbind("dtsb-redrawLogic");j(this.s.topGroup.dom.container).on("dtsb-redrawLogic",function(){a.s.topGroup.redrawLogic();var b=a.s.topGroup.count();a._updateTitle(b);a._filterChanged(b)});j(this.s.topGroup.dom.container).on("dtsb-add",function(){var b=a.s.topGroup.count();a._updateTitle(b);
+a._filterChanged(b)});j(this.s.dt).on("postEdit postCreate postRemove",function(){a.s.topGroup.redrawContents()});j(this.s.topGroup.dom.container).unbind("dtsb-clearContents");j(this.s.topGroup.dom.container).on("dtsb-clearContents",function(){a._setUp(!1);a._filterChanged(0);a.s.dt.draw()});j(this.s.topGroup.dom.container).on("dtsb-updateTitle",function(){var b=a.s.topGroup.count();a._updateTitle(b);a._filterChanged(b)})};o.prototype._setEmptyListener=function(){var a=this;j(this.s.topGroup.dom.add).on("click",
+function(){a._checkClear()});j(this.s.topGroup.dom.container).on("dtsb-destroy",function(){j(a.dom.clearAll).remove()})};o.version="1.1.0";o.classes={button:"dtsb-button",clearAll:"dtsb-clearAll",container:"dtsb-searchBuilder",inputButton:"dtsb-iptbtn",title:"dtsb-title",titleRow:"dtsb-titleRow"};o.defaults={columns:!0,conditions:{date:l.dateConditions,html:l.stringConditions,"html-num":l.numConditions,"html-num-fmt":l.numFmtConditions,luxon:l.luxonDateConditions,moment:l.momentDateConditions,num:l.numConditions,
+"num-fmt":l.numFmtConditions,string:l.stringConditions},depthLimit:!1,enterSearch:!1,filterChanged:void 0,greyscale:!1,i18n:{add:"Add Condition",button:{"0":"Search Builder",_:"Search Builder (%d)"},clearAll:"Clear All",condition:"Condition",conditions:{array:{contains:"Contains",empty:"Empty",equals:"Equals",not:"Not",notEmpty:"Not Empty",without:"Without"},date:{after:"After",before:"Before",between:"Between",empty:"Empty",equals:"Equals",not:"Not",notBetween:"Not Between",notEmpty:"Not Empty"},
+number:{between:"Between",empty:"Empty",equals:"Equals",gt:"Greater Than",gte:"Greater Than Equal To",lt:"Less Than",lte:"Less Than Equal To",not:"Not",notBetween:"Not Between",notEmpty:"Not Empty"},string:{contains:"Contains",empty:"Empty",endsWith:"Ends With",equals:"Equals",not:"Not",notEmpty:"Not Empty",startsWith:"Starts With"}},data:"Data",deleteTitle:"Delete filtering rule",leftTitle:"Outdent criteria",logicAnd:"And",logicOr:"Or",rightTitle:"Indent criteria",title:{"0":"Custom Search Builder",
+_:"Custom Search Builder (%d)"},value:"Value",valueJoiner:"and"},logic:"AND",orthogonal:{display:"display",search:"filter"},preDefined:!1};t=o;var u=function(a,b,c){function g(a,b){var c=new f.Api(a),d=b?b:c.init().searchBuilder||f.defaults.searchBuilder;return(new t(c,d)).getNode()}j=a;q=a.fn.DataTable;h=a;s=a.fn.dataTable;d=a;var f=p=a.fn.dataTable;a.fn.dataTable.SearchBuilder=t;a.fn.DataTable.SearchBuilder=t;a.fn.dataTable.Group=r;a.fn.DataTable.Group=r;a.fn.dataTable.Criteria=l;a.fn.DataTable.Criteria=
+l;b=a.fn.dataTable.Api.register;a.fn.dataTable.ext.searchBuilder={conditions:{}};a.fn.dataTable.ext.buttons.searchBuilder={action:function(a,b,c,d){a.stopPropagation();this.popover(d._searchBuilder.getNode(),{align:"dt-container"});void 0!==d._searchBuilder.s.topGroup&&d._searchBuilder.s.topGroup.dom.container.trigger("dtsb-redrawContents")},config:{},init:function(b,c,d){var e=new a.fn.dataTable.SearchBuilder(b,a.extend({filterChanged:function(a,d){b.button(c).text(d)}},d.config));b.button(c).text(d.text||
+b.i18n("searchBuilder.button",e.c.i18n.button,0));d._searchBuilder=e},text:null};b("searchBuilder.getDetails()",function(){var a=this.context[0];return a._searchBuilder?a._searchBuilder.getDetails():null});b("searchBuilder.rebuild()",function(a){var b=this.context[0];if(void 0===b._searchBuilder)return null;b._searchBuilder.rebuild(a);return this});b("searchBuilder.container()",function(){var a=this.context[0];return a._searchBuilder?a._searchBuilder.getNode():null});a(c).on("preInit.dt.dtsp",function(a,
+b){if("dt"===a.namespace&&(b.oInit.searchBuilder||f.defaults.searchBuilder))b._searchBuilder||g(b)});f.ext.feature.push({cFeature:"Q",fnInit:g});f.ext.features&&f.ext.features.register("searchBuilder",g)};"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(a){return u(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net")(a,b).$;return u(b,a,a.document)}:u(window.jQuery,window,document)})();
 
 (function (factory) {
     if (typeof define === 'function' && define.amd) {
@@ -77588,6 +94577,3046 @@ return $.fn.dataTable;
 
 (function(b){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-searchbuilder"],function(a){return b(a,window,document)}):"object"===typeof exports?module.exports=function(a,c){a||(a=window);if(!c||!c.fn.dataTable)c=require("datatables.net-bs4")(a,c).$;c.fn.dataTable.searchBuilder||require("datatables.net-searchbuilder")(a,c);return b(c,a,a.document)}:b(jQuery,window,document)})(function(b){var a=b.fn.dataTable;b.extend(!0,a.SearchBuilder.classes,{clearAll:"btn btn-light dtsb-clearAll"});
 b.extend(!0,a.Group.classes,{add:"btn btn-light dtsb-add",clearGroup:"btn btn-light dtsb-clearGroup",logic:"btn btn-light dtsb-logic"});b.extend(!0,a.Criteria.classes,{condition:"form-control dtsb-condition",data:"form-control dtsb-data","delete":"btn btn-light dtsb-delete",left:"btn btn-light dtsb-left",right:"btn btn-light dtsb-right",value:"form-control dtsb-value"});return a.searchPanes});
+
+/*! SearchPanes 1.3.0
+ * 2019-2020 SpryMedia Ltd - datatables.net/license
+ */
+(function () {
+    'use strict';
+
+    var $;
+    var dataTable;
+    function setJQuery(jq) {
+        $ = jq;
+        dataTable = jq.fn.dataTable;
+    }
+    var SearchPane = /** @class */ (function () {
+        /**
+         * Creates the panes, sets up the search function
+         *
+         * @param paneSettings The settings for the searchPanes
+         * @param opts The options for the default features
+         * @param idx the index of the column for this pane
+         * @returns {object} the pane that has been created, including the table and the index of the pane
+         */
+        function SearchPane(paneSettings, opts, idx, layout, panesContainer, panes) {
+            var _this = this;
+            if (panes === void 0) { panes = null; }
+            // Check that the required version of DataTables is included
+            if (!dataTable || !dataTable.versionCheck || !dataTable.versionCheck('1.10.0')) {
+                throw new Error('SearchPane requires DataTables 1.10 or newer');
+            }
+            // Check that Select is included
+            if (!dataTable.select) {
+                throw new Error('SearchPane requires Select');
+            }
+            var table = new dataTable.Api(paneSettings);
+            this.classes = $.extend(true, {}, SearchPane.classes);
+            // Get options from user
+            this.c = $.extend(true, {}, SearchPane.defaults, opts);
+            if (opts !== undefined && opts.hideCount !== undefined && opts.viewCount === undefined) {
+                this.c.viewCount = !this.c.hideCount;
+            }
+            this.customPaneSettings = panes;
+            this.s = {
+                cascadeRegen: false,
+                clearing: false,
+                colOpts: [],
+                deselect: false,
+                displayed: false,
+                dt: table,
+                dtPane: undefined,
+                filteringActive: false,
+                forceViewTotal: false,
+                index: idx,
+                indexes: [],
+                lastCascade: false,
+                lastSelect: false,
+                listSet: false,
+                name: undefined,
+                redraw: false,
+                rowData: {
+                    arrayFilter: [],
+                    arrayOriginal: [],
+                    arrayTotals: [],
+                    bins: {},
+                    binsOriginal: {},
+                    binsTotal: {},
+                    filterMap: new Map(),
+                    totalOptions: 0
+                },
+                scrollTop: 0,
+                searchFunction: undefined,
+                selectPresent: false,
+                serverSelect: [],
+                serverSelecting: false,
+                showFiltered: false,
+                tableLength: null,
+                updating: false
+            };
+            var rowLength = table.columns().eq(0).toArray().length;
+            this.colExists = this.s.index < rowLength;
+            // Add extra elements to DOM object including clear and hide buttons
+            this.c.layout = layout;
+            var layVal = parseInt(layout.split('-')[1], 10);
+            this.dom = {
+                buttonGroup: $('<div/>').addClass(this.classes.buttonGroup),
+                clear: $('<button type="button">&#215;</button>')
+                    .addClass(this.classes.disabledButton)
+                    .attr('disabled', 'true')
+                    .addClass(this.classes.paneButton)
+                    .addClass(this.classes.clearButton),
+                container: $('<div/>')
+                    .addClass(this.classes.container)
+                    .addClass(this.classes.layout +
+                    (layVal < 10 ? layout : layout.split('-')[0] + '-9')),
+                countButton: $('<button type="button"></button>')
+                    .addClass(this.classes.paneButton)
+                    .addClass(this.classes.countButton),
+                dtP: $('<table><thead><tr><th>' +
+                    (this.colExists
+                        ? $(table.column(this.colExists ? this.s.index : 0).header()).text()
+                        : this.customPaneSettings.header || 'Custom Pane') + '</th><th/></tr></thead></table>'),
+                lower: $('<div/>').addClass(this.classes.subRow2).addClass(this.classes.narrowButton),
+                nameButton: $('<button type="button"></button>')
+                    .addClass(this.classes.paneButton)
+                    .addClass(this.classes.nameButton),
+                panesContainer: panesContainer,
+                searchBox: $('<input/>').addClass(this.classes.paneInputButton).addClass(this.classes.search),
+                searchButton: $('<button type = "button" class="' + this.classes.searchIcon + '"></button>')
+                    .addClass(this.classes.paneButton),
+                searchCont: $('<div/>').addClass(this.classes.searchCont),
+                searchLabelCont: $('<div/>').addClass(this.classes.searchLabelCont),
+                topRow: $('<div/>').addClass(this.classes.topRow),
+                upper: $('<div/>').addClass(this.classes.subRow1).addClass(this.classes.narrowSearch)
+            };
+            this.s.displayed = false;
+            table = this.s.dt;
+            this.selections = [];
+            this.s.colOpts = this.colExists ? this._getOptions() : this._getBonusOptions();
+            var colOpts = this.s.colOpts;
+            var clear = $('<button type="button">X</button>').addClass(this.classes.paneButton);
+            $(clear).text(table.i18n('searchPanes.clearPane', this.c.i18n.clearPane));
+            this.dom.container.addClass(colOpts.className);
+            this.dom.container.addClass((this.customPaneSettings !== null && this.customPaneSettings.className !== undefined)
+                ? this.customPaneSettings.className
+                : '');
+            // Set the value of name incase ordering is desired
+            if (this.s.colOpts.name !== undefined) {
+                this.s.name = this.s.colOpts.name;
+            }
+            else if (this.customPaneSettings !== null && this.customPaneSettings.name !== undefined) {
+                this.s.name = this.customPaneSettings.name;
+            }
+            else {
+                this.s.name = this.colExists ?
+                    $(table.column(this.s.index).header()).text() :
+                    this.customPaneSettings.header || 'Custom Pane';
+            }
+            $(panesContainer).append(this.dom.container);
+            var tableNode = table.table(0).node();
+            // Custom search function for table
+            this.s.searchFunction = function (settings, searchData, dataIndex, origData) {
+                // If no data has been selected then show all
+                if (_this.selections.length === 0) {
+                    return true;
+                }
+                if (settings.nTable !== tableNode) {
+                    return true;
+                }
+                var filter = null;
+                if (_this.colExists) {
+                    // Get the current filtered data
+                    filter = searchData[_this.s.index];
+                    if (colOpts.orthogonal.filter !== 'filter') {
+                        // get the filter value from the map
+                        filter = _this.s.rowData.filterMap.get(dataIndex);
+                        if (filter instanceof $.fn.dataTable.Api) {
+                            filter = filter.toArray();
+                        }
+                    }
+                }
+                return _this._search(filter, dataIndex);
+            };
+            $.fn.dataTable.ext.search.push(this.s.searchFunction);
+            // If the clear button for this pane is clicked clear the selections
+            if (this.c.clear) {
+                $(clear).on('click', function () {
+                    var searches = _this.dom.container.find('.' + _this.classes.search.replace(/\s+/g, '.'));
+                    searches.each(function () {
+                        $(this).val('');
+                        $(this).trigger('input');
+                    });
+                    _this.clearPane();
+                });
+            }
+            // Sometimes the top row of the panes containing the search box and ordering buttons appears
+            //  weird if the width of the panes is lower than expected, this fixes the design.
+            // Equally this may occur when the table is resized.
+            table.on('draw.dtsp', function () {
+                _this.adjustTopRow();
+            });
+            table.on('buttons-action', function () {
+                _this.adjustTopRow();
+            });
+            // When column-reorder is present and the columns are moved, it is necessary to
+            //  reassign all of the panes indexes to the new index of the column.
+            table.on('column-reorder.dtsp', function (e, settings, details) {
+                _this.s.index = details.mapping[_this.s.index];
+            });
+            return this;
+        }
+        /**
+         * Adds a row to the panes table
+         *
+         * @param display the value to be displayed to the user
+         * @param filter the value to be filtered on when searchpanes is implemented
+         * @param shown the number of rows in the table that are currently visible matching this criteria
+         * @param total the total number of rows in the table that match this criteria
+         * @param sort the value to be sorted in the pane table
+         * @param type the value of which the type is to be derived from
+         */
+        SearchPane.prototype.addRow = function (display, filter, shown, total, sort, type, className) {
+            var index;
+            for (var _i = 0, _a = this.s.indexes; _i < _a.length; _i++) {
+                var entry = _a[_i];
+                if (entry.filter === filter) {
+                    index = entry.index;
+                }
+            }
+            if (index === undefined) {
+                index = this.s.indexes.length;
+                this.s.indexes.push({ filter: filter, index: index });
+            }
+            return this.s.dtPane.row.add({
+                className: className,
+                display: display !== '' ?
+                    display :
+                    this.emptyMessage(),
+                filter: filter,
+                index: index,
+                shown: shown,
+                sort: sort,
+                total: total,
+                type: type
+            });
+        };
+        /**
+         * Adjusts the layout of the top row when the screen is resized
+         */
+        SearchPane.prototype.adjustTopRow = function () {
+            var subContainers = this.dom.container.find('.' + this.classes.subRowsContainer.replace(/\s+/g, '.'));
+            var subRow1 = this.dom.container.find('.' + this.classes.subRow1.replace(/\s+/g, '.'));
+            var subRow2 = this.dom.container.find('.' + this.classes.subRow2.replace(/\s+/g, '.'));
+            var topRow = this.dom.container.find('.' + this.classes.topRow.replace(/\s+/g, '.'));
+            // If the width is 0 then it is safe to assume that the pane has not yet been displayed.
+            //  Even if it has, if the width is 0 it won't make a difference if it has the narrow class or not
+            if (($(subContainers[0]).width() < 252 || $(topRow[0]).width() < 252) && $(subContainers[0]).width() !== 0) {
+                $(subContainers[0]).addClass(this.classes.narrow);
+                $(subRow1[0]).addClass(this.classes.narrowSub).removeClass(this.classes.narrowSearch);
+                $(subRow2[0]).addClass(this.classes.narrowSub).removeClass(this.classes.narrowButton);
+            }
+            else {
+                $(subContainers[0]).removeClass(this.classes.narrow);
+                $(subRow1[0]).removeClass(this.classes.narrowSub).addClass(this.classes.narrowSearch);
+                $(subRow2[0]).removeClass(this.classes.narrowSub).addClass(this.classes.narrowButton);
+            }
+        };
+        /**
+         * In the case of a rebuild there is potential for new data to have been included or removed
+         * so all of the rowData must be reset as a precaution.
+         */
+        SearchPane.prototype.clearData = function () {
+            this.s.rowData = {
+                arrayFilter: [],
+                arrayOriginal: [],
+                arrayTotals: [],
+                bins: {},
+                binsOriginal: {},
+                binsTotal: {},
+                filterMap: new Map(),
+                totalOptions: 0
+            };
+        };
+        /**
+         * Clear the selections in the pane
+         */
+        SearchPane.prototype.clearPane = function () {
+            // Deselect all rows which are selected and update the table and filter count.
+            this.s.dtPane.rows({ selected: true }).deselect();
+            this.updateTable();
+            return this;
+        };
+        /**
+         * Strips all of the SearchPanes elements from the document and turns all of the listeners for the buttons off
+         */
+        SearchPane.prototype.destroy = function () {
+            $(this.s.dtPane).off('.dtsp');
+            $(this.s.dt).off('.dtsp');
+            $(this.dom.nameButton).off('.dtsp');
+            $(this.dom.countButton).off('.dtsp');
+            $(this.dom.clear).off('.dtsp');
+            $(this.dom.searchButton).off('.dtsp');
+            $(this.dom.container).remove();
+            var searchIdx = $.fn.dataTable.ext.search.indexOf(this.s.searchFunction);
+            while (searchIdx !== -1) {
+                $.fn.dataTable.ext.search.splice(searchIdx, 1);
+                searchIdx = $.fn.dataTable.ext.search.indexOf(this.s.searchFunction);
+            }
+            // If the datatables have been defined for the panes then also destroy these
+            if (this.s.dtPane !== undefined) {
+                this.s.dtPane.destroy();
+            }
+            this.s.listSet = false;
+        };
+        /**
+         * Getting the legacy message is a little complex due a legacy parameter
+         */
+        SearchPane.prototype.emptyMessage = function () {
+            var def = this.c.i18n.emptyMessage;
+            // Legacy parameter support
+            if (this.c.emptyMessage) {
+                def = this.c.emptyMessage;
+            }
+            // Override per column
+            if (this.s.colOpts.emptyMessage !== false && this.s.colOpts.emptyMessage !== null) {
+                def = this.s.colOpts.emptyMessage;
+            }
+            return this.s.dt.i18n('searchPanes.emptyMessage', def);
+        };
+        /**
+         * Updates the number of filters that have been applied in the title
+         */
+        SearchPane.prototype.getPaneCount = function () {
+            return this.s.dtPane !== undefined ?
+                this.s.dtPane.rows({ selected: true }).data().toArray().length :
+                0;
+        };
+        /**
+         * Rebuilds the panes from the start having deleted the old ones
+         *
+         * @param? last boolean to indicate if this is the last pane a selection was made in
+         * @param? dataIn data to be used in buildPane
+         * @param? init Whether this is the initial draw or not
+         * @param? maintainSelection Whether the current selections are to be maintained over rebuild
+         */
+        SearchPane.prototype.rebuildPane = function (last, dataIn, init, maintainSelection) {
+            if (last === void 0) { last = false; }
+            if (dataIn === void 0) { dataIn = null; }
+            if (init === void 0) { init = null; }
+            if (maintainSelection === void 0) { maintainSelection = false; }
+            this.clearData();
+            var selectedRows = [];
+            this.s.serverSelect = [];
+            var prevEl = null;
+            // When rebuilding strip all of the HTML Elements out of the container and start from scratch
+            if (this.s.dtPane !== undefined) {
+                if (maintainSelection) {
+                    if (!this.s.dt.page.info().serverSide) {
+                        selectedRows = this.s.dtPane.rows({ selected: true }).data().toArray();
+                    }
+                    else {
+                        this.s.serverSelect = this.s.dtPane.rows({ selected: true }).data().toArray();
+                    }
+                }
+                this.s.dtPane.clear().destroy();
+                prevEl = $(this.dom.container).prev();
+                this.destroy();
+                this.s.dtPane = undefined;
+                $.fn.dataTable.ext.search.push(this.s.searchFunction);
+            }
+            this.dom.container.removeClass(this.classes.hidden);
+            this.s.displayed = false;
+            this._buildPane(!this.s.dt.page.info().serverSide ?
+                selectedRows :
+                this.s.serverSelect, last, dataIn, init, prevEl);
+            return this;
+        };
+        /**
+         * removes the pane from the page and sets the displayed property to false.
+         */
+        SearchPane.prototype.removePane = function () {
+            this.s.displayed = false;
+            $(this.dom.container).hide();
+        };
+        /**
+         * Resizes the pane based on the layout that is passed in
+         *
+         * @param layout the layout to be applied to this pane
+         */
+        SearchPane.prototype.resize = function (layout) {
+            this.c.layout = layout;
+            var layVal = parseInt(layout.split('-')[1], 10);
+            $(this.dom.container)
+                .removeClass()
+                .addClass(this.classes.container)
+                .addClass(this.classes.layout +
+                (layVal < 10 ? layout : layout.split('-')[0] + '-9'))
+                .addClass(this.s.colOpts.className)
+                .addClass((this.customPaneSettings !== null && this.customPaneSettings.className !== undefined)
+                ? this.customPaneSettings.className
+                : '')
+                .addClass(this.classes.show);
+            this.adjustTopRow();
+        };
+        /**
+         * Sets the cascadeRegen property of the pane. Accessible from above because as SearchPanes.ts
+         * deals with the rebuilds.
+         *
+         * @param val the boolean value that the cascadeRegen property is to be set to
+         */
+        SearchPane.prototype.setCascadeRegen = function (val) {
+            this.s.cascadeRegen = val;
+        };
+        /**
+         * This function allows the clearing property to be assigned. This is used when implementing cascadePane.
+         * In setting this to true for the clearing of the panes selection on the deselects it forces the pane to
+         * repopulate from the entire dataset not just the displayed values.
+         *
+         * @param val the boolean value which the clearing property is to be assigned
+         */
+        SearchPane.prototype.setClear = function (val) {
+            this.s.clearing = val;
+        };
+        /**
+         * Updates the values of all of the panes
+         *
+         * @param draw whether this has been triggered by a draw event or not
+         */
+        SearchPane.prototype.updatePane = function (draw) {
+            if (draw === void 0) { draw = false; }
+            this.s.updating = true;
+            this._updateCommon(draw);
+            this.s.updating = false;
+        };
+        /**
+         * Updates the panes if one of the options to do so has been set to true
+         * rather than the filtered message when using viewTotal.
+         */
+        SearchPane.prototype.updateTable = function () {
+            var selectedRows = this.s.dtPane.rows({ selected: true }).data().toArray();
+            this.selections = selectedRows;
+            this._searchExtras();
+            // If either of the options that effect how the panes are displayed are selected then update the Panes
+            if (this.c.cascadePanes || this.c.viewTotal) {
+                this.updatePane();
+            }
+        };
+        /**
+         * Sets the listeners for the pane.
+         *
+         * Having it in it's own function makes it easier to only set them once
+         */
+        SearchPane.prototype._setListeners = function () {
+            var _this = this;
+            var rowData = this.s.rowData;
+            var t0;
+            // When an item is selected on the pane, add these to the array which holds selected items.
+            // Custom search will perform.
+            this.s.dtPane.on('select.dtsp', function () {
+                clearTimeout(t0);
+                if (_this.s.dt.page.info().serverSide && !_this.s.updating) {
+                    if (!_this.s.serverSelecting) {
+                        _this.s.serverSelect = _this.s.dtPane.rows({ selected: true }).data().toArray();
+                        _this.s.scrollTop = $(_this.s.dtPane.table().node()).parent()[0].scrollTop;
+                        _this.s.selectPresent = true;
+                        _this.s.dt.draw(false);
+                    }
+                }
+                else {
+                    $(_this.dom.clear).removeClass(_this.classes.disabledButton).removeAttr('disabled');
+                    if (!_this.s.updating) {
+                        _this.s.selectPresent = true;
+                        _this._makeSelection();
+                        _this.s.selectPresent = false;
+                    }
+                }
+            });
+            // When an item is deselected on the pane, re add the currently selected items to the array
+            // which holds selected items. Custom search will be performed.
+            this.s.dtPane.on('deselect.dtsp', function () {
+                t0 = setTimeout(function () {
+                    if (_this.s.dt.page.info().serverSide && !_this.s.updating) {
+                        if (!_this.s.serverSelecting) {
+                            _this.s.serverSelect = _this.s.dtPane.rows({ selected: true }).data().toArray();
+                            _this.s.deselect = true;
+                            _this.s.dt.draw(false);
+                        }
+                    }
+                    else {
+                        _this.s.deselect = true;
+                        if (_this.s.dtPane.rows({ selected: true }).data().toArray().length === 0) {
+                            $(_this.dom.clear).addClass(_this.classes.disabledButton).attr('disabled', 'true');
+                        }
+                        _this._makeSelection();
+                        _this.s.deselect = false;
+                        _this.s.dt.state.save();
+                    }
+                }, 50);
+            });
+            // When saving the state store all of the selected rows for preselection next time around
+            this.s.dt.on('stateSaveParams.dtsp', function (e, settings, data) {
+                // If the data being passed in is empty then state clear must have occured so clear the panes state as well
+                if ($.isEmptyObject(data)) {
+                    _this.s.dtPane.state.clear();
+                    return;
+                }
+                var selected = [];
+                var searchTerm;
+                var order;
+                var bins;
+                var arrayFilter;
+                // Get all of the data needed for the state save from the pane
+                if (_this.s.dtPane !== undefined) {
+                    selected = _this.s.dtPane.rows({ selected: true }).data().map(function (item) { return item.filter.toString(); }).toArray();
+                    searchTerm = $(_this.dom.searchBox).val();
+                    order = _this.s.dtPane.order();
+                    bins = rowData.binsOriginal;
+                    arrayFilter = rowData.arrayOriginal;
+                }
+                if (data.searchPanes === undefined) {
+                    data.searchPanes = {};
+                }
+                if (data.searchPanes.panes === undefined) {
+                    data.searchPanes.panes = [];
+                }
+                for (var i = 0; i < data.searchPanes.panes.length; i++) {
+                    if (data.searchPanes.panes[i].id === _this.s.index) {
+                        data.searchPanes.panes.splice(i, 1);
+                        i--;
+                    }
+                }
+                // Add the panes data to the state object
+                data.searchPanes.panes.push({
+                    arrayFilter: arrayFilter,
+                    bins: bins,
+                    id: _this.s.index,
+                    order: order,
+                    searchTerm: searchTerm,
+                    selected: selected
+                });
+            });
+            this.s.dtPane.on('user-select.dtsp', function (e, _dt, type, cell, originalEvent) {
+                originalEvent.stopPropagation();
+            });
+            this.s.dtPane.on('draw.dtsp', function () {
+                _this.adjustTopRow();
+            });
+            // When the button to order by the name of the options is clicked then
+            //  change the ordering to whatever it isn't currently
+            $(this.dom.nameButton).on('click.dtsp', function () {
+                var currentOrder = _this.s.dtPane.order()[0][1];
+                _this.s.dtPane.order([0, currentOrder === 'asc' ? 'desc' : 'asc']).draw();
+                _this.s.dt.state.save();
+            });
+            // When the button to order by the number of entries in the column is clicked then
+            //  change the ordering to whatever it isn't currently
+            $(this.dom.countButton).on('click.dtsp', function () {
+                var currentOrder = _this.s.dtPane.order()[0][1];
+                _this.s.dtPane.order([1, currentOrder === 'asc' ? 'desc' : 'asc']).draw();
+                _this.s.dt.state.save();
+            });
+            // When the clear button is clicked reset the pane
+            $(this.dom.clear).on('click.dtsp', function () {
+                var searches = _this.dom.container.find('.' + _this.classes.search.replace(/ /g, '.'));
+                searches.each(function () {
+                    // set the value of the search box to be an empty string and then search on that, effectively reseting
+                    $(this).val('');
+                    $(this).trigger('input');
+                });
+                _this.clearPane();
+            });
+            // When the search button is clicked then draw focus to the search box
+            $(this.dom.searchButton).on('click.dtsp', function () {
+                $(_this.dom.searchBox).focus();
+            });
+            // When a character is inputted into the searchbox search the pane for matching values.
+            // Doing it this way means that no button has to be clicked to trigger a search, it is done asynchronously
+            $(this.dom.searchBox).on('input.dtsp', function () {
+                var searchval = $(_this.dom.searchBox).val();
+                _this.s.dtPane.search(searchval).draw();
+                if (searchval.length > 0 ||
+                    (searchval.length === 0 && _this.s.dtPane.rows({ selected: true }).data().toArray().length > 0)) {
+                    _this.dom.clear.removeClass(_this.classes.disabledButton).removeAttr('disabled');
+                }
+                else {
+                    _this.dom.clear.addClass(_this.classes.disabledButton).attr('disabled', 'true');
+                }
+                _this.s.dt.state.save();
+            });
+            // Make sure to save the state once the pane has been built
+            this.s.dt.state.save();
+            return true;
+        };
+        /**
+         * Takes in potentially undetected rows and adds them to the array if they are not yet featured
+         *
+         * @param filter the filter value of the potential row
+         * @param display the display value of the potential row
+         * @param sort the sort value of the potential row
+         * @param type the type value of the potential row
+         * @param arrayFilter the array to be populated
+         * @param bins the bins to be populated
+         */
+        SearchPane.prototype._addOption = function (filter, display, sort, type, arrayFilter, bins) {
+            // If the filter is an array then take a note of this, and add the elements to the arrayFilter array
+            if (Array.isArray(filter) || filter instanceof dataTable.Api) {
+                // Convert to an array so that we can work with it
+                if (filter instanceof dataTable.Api) {
+                    filter = filter.toArray();
+                    display = display.toArray();
+                }
+                if (filter.length === display.length) {
+                    for (var i = 0; i < filter.length; i++) {
+                        // If we haven't seen this row before add it
+                        if (!bins[filter[i]]) {
+                            bins[filter[i]] = 1;
+                            arrayFilter.push({
+                                display: display[i],
+                                filter: filter[i],
+                                sort: sort[i],
+                                type: type[i]
+                            });
+                        }
+                        // Otherwise just increment the count
+                        else {
+                            bins[filter[i]]++;
+                        }
+                        this.s.rowData.totalOptions++;
+                    }
+                    return;
+                }
+                else {
+                    throw new Error('display and filter not the same length');
+                }
+            }
+            // If the values were affected by othogonal data and are not an array then check if it is already present
+            else if (typeof this.s.colOpts.orthogonal === 'string') {
+                if (!bins[filter]) {
+                    bins[filter] = 1;
+                    arrayFilter.push({
+                        display: display,
+                        filter: filter,
+                        sort: sort,
+                        type: type
+                    });
+                    this.s.rowData.totalOptions++;
+                }
+                else {
+                    bins[filter]++;
+                    this.s.rowData.totalOptions++;
+                    return;
+                }
+            }
+            // Otherwise we must just be adding an option
+            else {
+                arrayFilter.push({
+                    display: display,
+                    filter: filter,
+                    sort: sort,
+                    type: type
+                });
+            }
+        };
+        /**
+         * Method to construct the actual pane.
+         *
+         * @param selectedRows previously selected Rows to be reselected
+         * @last boolean to indicate whether this pane was the last one to have a selection made
+         */
+        SearchPane.prototype._buildPane = function (selectedRows, last, dataIn, init, prevEl) {
+            var _this = this;
+            if (selectedRows === void 0) { selectedRows = []; }
+            if (last === void 0) { last = false; }
+            if (dataIn === void 0) { dataIn = null; }
+            if (init === void 0) { init = null; }
+            if (prevEl === void 0) { prevEl = null; }
+            // Aliases
+            this.selections = [];
+            var table = this.s.dt;
+            var column = table.column(this.colExists ? this.s.index : 0);
+            var colOpts = this.s.colOpts;
+            var rowData = this.s.rowData;
+            // Other Variables
+            var countMessage = table.i18n('searchPanes.count', this.c.i18n.count);
+            var filteredMessage = table.i18n('searchPanes.countFiltered', this.c.i18n.countFiltered);
+            var loadedFilter = table.state.loaded();
+            // If the listeners have not been set yet then using the latest state may result in funny errors
+            if (this.s.listSet) {
+                loadedFilter = table.state();
+            }
+            // If it is not a custom pane in place
+            if (this.colExists) {
+                var idx = -1;
+                if (loadedFilter && loadedFilter.searchPanes && loadedFilter.searchPanes.panes) {
+                    for (var i = 0; i < loadedFilter.searchPanes.panes.length; i++) {
+                        if (loadedFilter.searchPanes.panes[i].id === this.s.index) {
+                            idx = i;
+                            break;
+                        }
+                    }
+                }
+                // Perform checks that do not require populate pane to run
+                if ((colOpts.show === false
+                    || (colOpts.show !== undefined && colOpts.show !== true)) &&
+                    idx === -1) {
+                    this.dom.container.addClass(this.classes.hidden);
+                    this.s.displayed = false;
+                    return false;
+                }
+                else if (colOpts.show === true || idx !== -1) {
+                    this.s.displayed = true;
+                }
+                if (!this.s.dt.page.info().serverSide &&
+                    (dataIn === null ||
+                        dataIn.searchPanes === null ||
+                        dataIn.searchPanes.options === null)) {
+                    // Only run populatePane if the data has not been collected yet
+                    if (rowData.arrayFilter.length === 0) {
+                        this._populatePane(last);
+                        this.s.rowData.totalOptions = 0;
+                        this._detailsPane();
+                        // If the index is not found then no data has been added to the state for this pane,
+                        //  which will only occur if it has previously failed to meet the criteria to be
+                        //  displayed, therefore we can just hide it again here
+                        if (loadedFilter && loadedFilter.searchPanes && loadedFilter.searchPanes.panes && idx === -1) {
+                            this.dom.container.addClass(this.classes.hidden);
+                            this.s.displayed = false;
+                            return;
+                        }
+                        rowData.arrayOriginal = rowData.arrayTotals;
+                        rowData.binsOriginal = rowData.binsTotal;
+                    }
+                    var binLength = Object.keys(rowData.binsOriginal).length;
+                    var uniqueRatio = this._uniqueRatio(binLength, table.rows()[0].length);
+                    // Don't show the pane if there isn't enough variance in the data, or there is only 1 entry
+                    //  for that pane
+                    if (this.s.displayed === false && ((colOpts.show === undefined && colOpts.threshold === null ?
+                        uniqueRatio > this.c.threshold :
+                        uniqueRatio > colOpts.threshold)
+                        || (colOpts.show !== true && binLength <= 1))) {
+                        this.dom.container.addClass(this.classes.hidden);
+                        this.s.displayed = false;
+                        return;
+                    }
+                    // If the option viewTotal is true then find
+                    // the total count for the whole table to display alongside the displayed count
+                    if (this.c.viewTotal && rowData.arrayTotals.length === 0) {
+                        this.s.rowData.totalOptions = 0;
+                        this._detailsPane();
+                    }
+                    else {
+                        rowData.binsTotal = rowData.bins;
+                    }
+                    this.dom.container.addClass(this.classes.show);
+                    this.s.displayed = true;
+                }
+                else if (dataIn !== null && dataIn.searchPanes !== null && dataIn.searchPanes.options !== null) {
+                    if (dataIn.tableLength !== undefined) {
+                        this.s.tableLength = dataIn.tableLength;
+                        this.s.rowData.totalOptions = this.s.tableLength;
+                    }
+                    else if (this.s.tableLength === null || table.rows()[0].length > this.s.tableLength) {
+                        this.s.tableLength = table.rows()[0].length;
+                        this.s.rowData.totalOptions = this.s.tableLength;
+                    }
+                    var colTitle = table.column(this.s.index).dataSrc();
+                    if (dataIn.searchPanes.options[colTitle] !== undefined) {
+                        for (var _i = 0, _a = dataIn.searchPanes.options[colTitle]; _i < _a.length; _i++) {
+                            var dataPoint = _a[_i];
+                            this.s.rowData.arrayFilter.push({
+                                display: dataPoint.label,
+                                filter: dataPoint.value,
+                                sort: dataPoint.label,
+                                type: dataPoint.label
+                            });
+                            this.s.rowData.bins[dataPoint.value] = this.c.viewTotal || this.c.cascadePanes ?
+                                dataPoint.count :
+                                dataPoint.total;
+                            this.s.rowData.binsTotal[dataPoint.value] = dataPoint.total;
+                        }
+                    }
+                    var binLength = Object.keys(rowData.binsTotal).length;
+                    var uniqueRatio = this._uniqueRatio(binLength, this.s.tableLength);
+                    // Don't show the pane if there isnt enough variance in the data, or there is only 1 entry for that pane
+                    if (this.s.displayed === false && ((colOpts.show === undefined && colOpts.threshold === null ?
+                        uniqueRatio > this.c.threshold :
+                        uniqueRatio > colOpts.threshold)
+                        || (colOpts.show !== true && binLength <= 1))) {
+                        this.dom.container.addClass(this.classes.hidden);
+                        this.s.displayed = false;
+                        return;
+                    }
+                    this.s.rowData.arrayOriginal = this.s.rowData.arrayFilter;
+                    this.s.rowData.binsOriginal = this.s.rowData.bins;
+                    this.s.displayed = true;
+                }
+            }
+            else {
+                this.s.displayed = true;
+            }
+            // If the variance is accceptable then display the search pane
+            this._displayPane();
+            if (!this.s.listSet) {
+                // Here, when the state is loaded if the data object on the original table is empty,
+                //  then a state.clear() must have occurred, so delete all of the panes tables state objects too.
+                this.dom.dtP.on('stateLoadParams.dt', function (e, settings, data) {
+                    if ($.isEmptyObject(table.state.loaded())) {
+                        $.each(data, function (index, value) {
+                            delete data[index];
+                        });
+                    }
+                });
+            }
+            // Add the container to the document in its original location
+            if (prevEl !== null && $(this.dom.panesContainer).has(prevEl).length > 0) {
+                $(this.dom.container).insertAfter(prevEl);
+            }
+            else {
+                $(this.dom.panesContainer).prepend(this.dom.container);
+            }
+            // Declare the datatable for the pane
+            var errMode = $.fn.dataTable.ext.errMode;
+            $.fn.dataTable.ext.errMode = 'none';
+            var haveScroller = dataTable.Scroller;
+            this.s.dtPane = $(this.dom.dtP).DataTable($.extend(true, {
+                columnDefs: [
+                    {
+                        className: 'dtsp-nameColumn',
+                        data: 'display',
+                        render: function (data, type, row) {
+                            if (type === 'sort') {
+                                return row.sort;
+                            }
+                            else if (type === 'type') {
+                                return row.type;
+                            }
+                            var message;
+                            message = ((_this.s.filteringActive || _this.s.showFiltered) && _this.c.viewTotal) ||
+                                (_this.c.viewTotal && _this.s.forceViewTotal) ?
+                                filteredMessage.replace(/{total}/, row.total) :
+                                countMessage.replace(/{total}/, row.total);
+                            message = message.replace(/{shown}/, row.shown);
+                            while (message.indexOf('{total}') !== -1) {
+                                message = message.replace(/{total}/, row.total);
+                            }
+                            while (message.indexOf('{shown}') !== -1) {
+                                message = message.replace(/{shown}/, row.shown);
+                            }
+                            // We are displaying the count in the same columne as the name of the search option.
+                            // This is so that there is not need to call columns.adjust()
+                            //  which in turn speeds up the code
+                            var pill = '<span class="' + _this.classes.pill + '">' + message + '</span>';
+                            if (!_this.c.viewCount || !colOpts.viewCount) {
+                                pill = '';
+                            }
+                            if (type === 'filter') {
+                                return typeof data === 'string' && data.match(/<[^>]*>/) !== null ?
+                                    data.replace(/<[^>]*>/g, '') :
+                                    data;
+                            }
+                            return '<div class="' + _this.classes.nameCont + '"><span title="' +
+                                (typeof data === 'string' && data.match(/<[^>]*>/) !== null ?
+                                    data.replace(/<[^>]*>/g, '') :
+                                    data) +
+                                '" class="' + _this.classes.name + '">' +
+                                data + '</span>' +
+                                pill + '</div>';
+                        },
+                        targets: 0,
+                        // Accessing the private datatables property to set type based on the original table.
+                        // This is null if not defined by the user, meaning that automatic type detection
+                        //  would take place
+                        type: table.settings()[0].aoColumns[this.s.index] !== undefined ?
+                            table.settings()[0].aoColumns[this.s.index]._sManualType :
+                            null
+                    },
+                    {
+                        className: 'dtsp-countColumn ' + this.classes.badgePill,
+                        data: 'shown',
+                        orderData: [1, 2],
+                        targets: 1,
+                        visible: false
+                    },
+                    {
+                        data: 'total',
+                        targets: 2,
+                        visible: false
+                    }
+                ],
+                deferRender: true,
+                dom: 't',
+                info: false,
+                language: this.s.dt.settings()[0].oLanguage,
+                paging: haveScroller ? true : false,
+                scrollX: false,
+                scrollY: '200px',
+                scroller: haveScroller ? true : false,
+                select: true,
+                stateSave: table.settings()[0].oFeatures.bStateSave ? true : false
+            }, this.c.dtOpts, colOpts !== undefined ? colOpts.dtOpts : {}, (this.s.colOpts.options !== undefined || !this.colExists)
+                ? {
+                    createdRow: function (row, data, dataIndex) {
+                        $(row).addClass(data.className);
+                    }
+                }
+                : undefined, (this.customPaneSettings !== null && this.customPaneSettings.dtOpts !== undefined)
+                ? this.customPaneSettings.dtOpts
+                : {}, $.fn.dataTable.versionCheck('2')
+                ? {
+                    layout: {
+                        bottomLeft: null,
+                        bottomRight: null,
+                        topLeft: null,
+                        topRight: null
+                    }
+                }
+                : {}));
+            $(this.dom.dtP).addClass(this.classes.table);
+            // Getting column titles is a little messy
+            var headerText = 'Custom Pane';
+            if (this.customPaneSettings && this.customPaneSettings.header) {
+                headerText = this.customPaneSettings.header;
+            }
+            else if (colOpts.header) {
+                headerText = colOpts.header;
+            }
+            else if (this.colExists) {
+                headerText = $.fn.dataTable.versionCheck('2')
+                    ? table.column(this.s.index).title()
+                    : table.settings()[0].aoColumns[this.s.index].sTitle;
+            }
+            this.dom.searchBox.attr('placeholder', headerText);
+            // As the pane table is not in the document yet we must initialise select ourselves
+            $.fn.dataTable.select.init(this.s.dtPane);
+            $.fn.dataTable.ext.errMode = errMode;
+            // If it is not a custom pane
+            if (this.colExists) {
+                // On initialisation, do we need to set a filtering value from a
+                // saved state or init option?
+                var search = column.search();
+                search = search ? search.substr(1, search.length - 2).split('|') : [];
+                // Count the number of empty cells
+                var count_1 = 0;
+                rowData.arrayFilter.forEach(function (element) {
+                    if (element.filter === '') {
+                        count_1++;
+                    }
+                });
+                // Add all of the search options to the pane
+                for (var i = 0, ien = rowData.arrayFilter.length; i < ien; i++) {
+                    var selected = false;
+                    for (var _b = 0, _c = this.s.serverSelect; _b < _c.length; _b++) {
+                        var option = _c[_b];
+                        if (option.filter === rowData.arrayFilter[i].filter) {
+                            selected = true;
+                        }
+                    }
+                    if (this.s.dt.page.info().serverSide &&
+                        (!this.c.cascadePanes ||
+                            (this.c.cascadePanes && rowData.bins[rowData.arrayFilter[i].filter] !== 0) ||
+                            (this.c.cascadePanes && init !== null) ||
+                            selected)) {
+                        var row = this.addRow(rowData.arrayFilter[i].display, rowData.arrayFilter[i].filter, init ?
+                            rowData.binsTotal[rowData.arrayFilter[i].filter] :
+                            rowData.bins[rowData.arrayFilter[i].filter], this.c.viewTotal || init
+                            ? String(rowData.binsTotal[rowData.arrayFilter[i].filter])
+                            : rowData.bins[rowData.arrayFilter[i].filter], rowData.arrayFilter[i].sort, rowData.arrayFilter[i].type);
+                        for (var _d = 0, _e = this.s.serverSelect; _d < _e.length; _d++) {
+                            var option = _e[_d];
+                            if (option.filter === rowData.arrayFilter[i].filter) {
+                                this.s.serverSelecting = true;
+                                row.select();
+                                this.s.serverSelecting = false;
+                            }
+                        }
+                    }
+                    else if (!this.s.dt.page.info().serverSide &&
+                        rowData.arrayFilter[i] &&
+                        (rowData.bins[rowData.arrayFilter[i].filter] !== undefined || !this.c.cascadePanes)) {
+                        this.addRow(rowData.arrayFilter[i].display, rowData.arrayFilter[i].filter, rowData.bins[rowData.arrayFilter[i].filter], rowData.binsTotal[rowData.arrayFilter[i].filter], rowData.arrayFilter[i].sort, rowData.arrayFilter[i].type);
+                    }
+                    else if (!this.s.dt.page.info().serverSide) {
+                        // Just pass an empty string as the message will be calculated based on that in addRow()
+                        this.addRow('', count_1, count_1, '', '', '');
+                    }
+                }
+            }
+            dataTable.select.init(this.s.dtPane);
+            // If there are custom options set or it is a custom pane then get them
+            if (colOpts.options !== undefined ||
+                (this.customPaneSettings !== null && this.customPaneSettings.options !== undefined)) {
+                this._getComparisonRows();
+            }
+            // Display the pane
+            this.s.dtPane.draw();
+            this.adjustTopRow();
+            if (!this.s.listSet) {
+                this._setListeners();
+                this.s.listSet = true;
+            }
+            for (var _f = 0, selectedRows_1 = selectedRows; _f < selectedRows_1.length; _f++) {
+                var selection = selectedRows_1[_f];
+                if (selection !== undefined) {
+                    for (var _g = 0, _h = this.s.dtPane.rows().indexes().toArray(); _g < _h.length; _g++) {
+                        var row = _h[_g];
+                        if (this.s.dtPane.row(row).data() !== undefined &&
+                            selection.filter === this.s.dtPane.row(row).data().filter) {
+                            // If this is happening when serverSide processing is happening then
+                            //  different behaviour is needed
+                            if (this.s.dt.page.info().serverSide) {
+                                this.s.serverSelecting = true;
+                                this.s.dtPane.row(row).select();
+                                this.s.serverSelecting = false;
+                            }
+                            else {
+                                this.s.dtPane.row(row).select();
+                            }
+                        }
+                    }
+                }
+            }
+            //  If SSP and the table is ready, apply the search for the pane
+            if (this.s.dt.page.info().serverSide) {
+                this.s.dtPane.search($(this.dom.searchBox).val()).draw();
+            }
+            // Reload the selection, searchbox entry and ordering from the previous state
+            // Need to check here if SSP that this is the first draw, otherwise it will infinite loop
+            if (loadedFilter &&
+                loadedFilter.searchPanes &&
+                loadedFilter.searchPanes.panes &&
+                (dataIn === null ||
+                    dataIn.draw === 1)) {
+                if (!this.c.cascadePanes) {
+                    this._reloadSelect(loadedFilter);
+                }
+                for (var _j = 0, _k = loadedFilter.searchPanes.panes; _j < _k.length; _j++) {
+                    var pane = _k[_j];
+                    if (pane.id === this.s.index) {
+                        $(this.dom.searchBox).val(pane.searchTerm);
+                        $(this.dom.searchBox).trigger('input');
+                        this.s.dtPane.order(pane.order).draw();
+                    }
+                }
+            }
+            // Make sure to save the state once the pane has been built
+            this.s.dt.state.save();
+            return true;
+        };
+        /**
+         * Update the array which holds the display and filter values for the table
+         */
+        SearchPane.prototype._detailsPane = function () {
+            var table = this.s.dt;
+            this.s.rowData.arrayTotals = [];
+            this.s.rowData.binsTotal = {};
+            var settings = this.s.dt.settings()[0];
+            var indexArray = table.rows().indexes();
+            if (!this.s.dt.page.info().serverSide) {
+                for (var _i = 0, indexArray_1 = indexArray; _i < indexArray_1.length; _i++) {
+                    var rowIdx = indexArray_1[_i];
+                    this._populatePaneArray(rowIdx, this.s.rowData.arrayTotals, settings, this.s.rowData.binsTotal);
+                }
+            }
+        };
+        /**
+         * Appends all of the HTML elements to their relevant parent Elements
+         */
+        SearchPane.prototype._displayPane = function () {
+            var container = this.dom.container;
+            var colOpts = this.s.colOpts;
+            var layVal = parseInt(this.c.layout.split('-')[1], 10);
+            //  Empty everything to start again
+            $(this.dom.topRow).empty();
+            $(this.dom.dtP).empty();
+            $(this.dom.topRow).addClass(this.classes.topRow);
+            // If there are more than 3 columns defined then make there be a smaller gap between the panes
+            if (layVal > 3) {
+                $(this.dom.container).addClass(this.classes.smallGap);
+            }
+            $(this.dom.topRow).addClass(this.classes.subRowsContainer);
+            $(this.dom.upper).appendTo(this.dom.topRow);
+            $(this.dom.lower).appendTo(this.dom.topRow);
+            $(this.dom.searchCont).appendTo(this.dom.upper);
+            $(this.dom.buttonGroup).appendTo(this.dom.lower);
+            // If no selections have been made in the pane then disable the clear button
+            if (this.c.dtOpts.searching === false ||
+                (colOpts.dtOpts !== undefined &&
+                    colOpts.dtOpts.searching === false) ||
+                (!this.c.controls || !colOpts.controls) ||
+                (this.customPaneSettings !== null &&
+                    this.customPaneSettings.dtOpts !== undefined &&
+                    this.customPaneSettings.dtOpts.searching !== undefined &&
+                    !this.customPaneSettings.dtOpts.searching)) {
+                $(this.dom.searchBox)
+                    .removeClass(this.classes.paneInputButton)
+                    .addClass(this.classes.disabledButton)
+                    .attr('disabled', 'true');
+            }
+            $(this.dom.searchBox).appendTo(this.dom.searchCont);
+            // Create the contents of the searchCont div. Worth noting that this function will change when using semantic ui
+            this._searchContSetup();
+            // If the clear button is allowed to show then display it
+            if (this.c.clear && this.c.controls && colOpts.controls) {
+                $(this.dom.clear).appendTo(this.dom.buttonGroup);
+            }
+            if (this.c.orderable && colOpts.orderable && this.c.controls && colOpts.controls) {
+                $(this.dom.nameButton).appendTo(this.dom.buttonGroup);
+            }
+            // If the count column is hidden then don't display the ordering button for it
+            if (this.c.viewCount &&
+                colOpts.viewCount &&
+                this.c.orderable &&
+                colOpts.orderable &&
+                this.c.controls &&
+                colOpts.controls) {
+                $(this.dom.countButton).appendTo(this.dom.buttonGroup);
+            }
+            $(this.dom.topRow).prependTo(this.dom.container);
+            $(container).append(this.dom.dtP);
+            $(container).show();
+        };
+        /**
+         * Gets the options for the row for the customPanes
+         *
+         * @returns {object} The options for the row extended to include the options from the user.
+         */
+        SearchPane.prototype._getBonusOptions = function () {
+            // We need to reset the thresholds as if they have a value in colOpts then that value will be used
+            var defaultMutator = {
+                orthogonal: {
+                    threshold: null
+                },
+                threshold: null
+            };
+            return $.extend(true, {}, SearchPane.defaults, defaultMutator, this.c !== undefined ? this.c : {});
+        };
+        /**
+         * Adds the custom options to the pane
+         *
+         * @returns {Array} Returns the array of rows which have been added to the pane
+         */
+        SearchPane.prototype._getComparisonRows = function () {
+            var colOpts = this.s.colOpts;
+            // Find the appropriate options depending on whether this is a pane for a specific column or a custom pane
+            var options = colOpts.options !== undefined
+                ? colOpts.options
+                : this.customPaneSettings !== null && this.customPaneSettings.options !== undefined
+                    ? this.customPaneSettings.options
+                    : undefined;
+            if (options === undefined) {
+                return;
+            }
+            var tableVals = this.s.dt.rows({ search: 'applied' }).data().toArray();
+            var appRows = this.s.dt.rows({ search: 'applied' });
+            var tableValsTotal = this.s.dt.rows().data().toArray();
+            var allRows = this.s.dt.rows();
+            var rows = [];
+            // Clear all of the other rows from the pane, only custom options are to be displayed when they are defined
+            this.s.dtPane.clear();
+            for (var _i = 0, options_1 = options; _i < options_1.length; _i++) {
+                var comp = options_1[_i];
+                // Initialise the object which is to be placed in the row
+                var insert = comp.label !== '' ?
+                    comp.label :
+                    this.emptyMessage();
+                var comparisonObj = {
+                    className: comp.className,
+                    display: insert,
+                    filter: typeof comp.value === 'function' ? comp.value : [],
+                    shown: 0,
+                    sort: insert,
+                    total: 0,
+                    type: insert
+                };
+                // If a custom function is in place
+                if (typeof comp.value === 'function') {
+                    // Count the number of times the function evaluates to true for the data currently being displayed
+                    for (var tVal = 0; tVal < tableVals.length; tVal++) {
+                        if (comp.value.call(this.s.dt, tableVals[tVal], appRows[0][tVal])) {
+                            comparisonObj.shown++;
+                        }
+                    }
+                    // Count the number of times the function evaluates to true for the original data in the Table
+                    for (var i = 0; i < tableValsTotal.length; i++) {
+                        if (comp.value.call(this.s.dt, tableValsTotal[i], allRows[0][i])) {
+                            comparisonObj.total++;
+                        }
+                    }
+                    // Update the comparisonObj
+                    if (typeof comparisonObj.filter !== 'function') {
+                        comparisonObj.filter.push(comp.filter);
+                    }
+                }
+                // If cascadePanes is not active or if it is and the comparisonObj should be shown then add it to the pane
+                if (!this.c.cascadePanes || (this.c.cascadePanes && comparisonObj.shown !== 0)) {
+                    rows.push(this.addRow(comparisonObj.display, comparisonObj.filter, comparisonObj.shown, comparisonObj.total, comparisonObj.sort, comparisonObj.type, comparisonObj.className));
+                }
+            }
+            return rows;
+        };
+        /**
+         * Gets the options for the row for the customPanes
+         *
+         * @returns {object} The options for the row extended to include the options from the user.
+         */
+        SearchPane.prototype._getOptions = function () {
+            var table = this.s.dt;
+            // We need to reset the thresholds as if they have a value in colOpts then that value will be used
+            var defaultMutator = {
+                emptyMessage: false,
+                orthogonal: {
+                    threshold: null
+                },
+                threshold: null
+            };
+            var columnOptions = table.settings()[0].aoColumns[this.s.index].searchPanes;
+            var colOpts = $.extend(true, {}, SearchPane.defaults, defaultMutator, columnOptions);
+            if (columnOptions !== undefined &&
+                columnOptions.hideCount !== undefined &&
+                columnOptions.viewCount === undefined) {
+                colOpts.viewCount = !columnOptions.hideCount;
+            }
+            return colOpts;
+        };
+        /**
+         * This method allows for changes to the panes and table to be made when a selection or a deselection occurs
+         *
+         * @param select Denotes whether a selection has been made or not
+         */
+        SearchPane.prototype._makeSelection = function () {
+            this.updateTable();
+            this.s.updating = true;
+            this.s.dt.draw();
+            this.s.updating = false;
+        };
+        /**
+         * Fill the array with the values that are currently being displayed in the table
+         *
+         * @param last boolean to indicate whether this was the last pane a selection was made in
+         */
+        SearchPane.prototype._populatePane = function (last) {
+            if (last === void 0) { last = false; }
+            var table = this.s.dt;
+            this.s.rowData.arrayFilter = [];
+            this.s.rowData.bins = {};
+            var settings = this.s.dt.settings()[0];
+            // If cascadePanes or viewTotal are active it is necessary to get the data which is currently
+            //  being displayed for their functionality.
+            // Also make sure that this was not the last pane to have a selection made
+            if (!this.s.dt.page.info().serverSide) {
+                var indexArray = (this.c.cascadePanes || this.c.viewTotal) && (!this.s.clearing && !last) ?
+                    table.rows({ search: 'applied' }).indexes() :
+                    table.rows().indexes();
+                for (var _i = 0, _a = indexArray.toArray(); _i < _a.length; _i++) {
+                    var index = _a[_i];
+                    this._populatePaneArray(index, this.s.rowData.arrayFilter, settings);
+                }
+            }
+        };
+        /**
+         * Populates an array with all of the data for the table
+         *
+         * @param rowIdx The current row index to be compared
+         * @param arrayFilter The array that is to be populated with row Details
+         * @param bins The bins object that is to be populated with the row counts
+         */
+        SearchPane.prototype._populatePaneArray = function (rowIdx, arrayFilter, settings, bins) {
+            if (bins === void 0) { bins = this.s.rowData.bins; }
+            var colOpts = this.s.colOpts;
+            // Retrieve the rendered data from the cell using the fnGetCellData function
+            //  rather than the cell().render API method for optimisation
+            if (typeof colOpts.orthogonal === 'string') {
+                var rendered = settings.oApi._fnGetCellData(settings, rowIdx, this.s.index, colOpts.orthogonal);
+                this.s.rowData.filterMap.set(rowIdx, rendered);
+                this._addOption(rendered, rendered, rendered, rendered, arrayFilter, bins);
+            }
+            else {
+                var filter = settings.oApi._fnGetCellData(settings, rowIdx, this.s.index, colOpts.orthogonal.search);
+                // Null and empty string are to be considered the same value
+                if (filter === null) {
+                    filter = '';
+                }
+                if (typeof filter === 'string') {
+                    filter = filter.replace(/<[^>]*>/g, '');
+                }
+                this.s.rowData.filterMap.set(rowIdx, filter);
+                if (!bins[filter]) {
+                    bins[filter] = 1;
+                    this._addOption(filter, settings.oApi._fnGetCellData(settings, rowIdx, this.s.index, colOpts.orthogonal.display), settings.oApi._fnGetCellData(settings, rowIdx, this.s.index, colOpts.orthogonal.sort), settings.oApi._fnGetCellData(settings, rowIdx, this.s.index, colOpts.orthogonal.type), arrayFilter, bins);
+                    this.s.rowData.totalOptions++;
+                }
+                else {
+                    bins[filter]++;
+                    this.s.rowData.totalOptions++;
+                    return;
+                }
+            }
+        };
+        /**
+         * Reloads all of the previous selects into the panes
+         *
+         * @param loadedFilter The loaded filters from a previous state
+         */
+        SearchPane.prototype._reloadSelect = function (loadedFilter) {
+            // If the state was not saved don't selected any
+            if (loadedFilter === undefined) {
+                return;
+            }
+            var idx;
+            // For each pane, check that the loadedFilter list exists and is not null,
+            // find the id of each search item and set it to be selected.
+            for (var i = 0; i < loadedFilter.searchPanes.panes.length; i++) {
+                if (loadedFilter.searchPanes.panes[i].id === this.s.index) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx !== undefined) {
+                var table = this.s.dtPane;
+                var rows = table.rows({ order: 'index' }).data().map(function (item) { return item.filter !== null ?
+                    item.filter.toString() :
+                    null; }).toArray();
+                for (var _i = 0, _a = loadedFilter.searchPanes.panes[idx].selected; _i < _a.length; _i++) {
+                    var filter = _a[_i];
+                    var id = -1;
+                    if (filter !== null) {
+                        id = rows.indexOf(filter.toString());
+                    }
+                    if (id > -1) {
+                        this.s.serverSelecting = true;
+                        table.row(id).select();
+                        this.s.serverSelecting = false;
+                    }
+                }
+            }
+        };
+        /**
+         * This method decides whether a row should contribute to the pane or not
+         *
+         * @param filter the value that the row is to be filtered on
+         * @param dataIndex the row index
+         */
+        SearchPane.prototype._search = function (filter, dataIndex) {
+            var colOpts = this.s.colOpts;
+            var table = this.s.dt;
+            // For each item selected in the pane, check if it is available in the cell
+            for (var _i = 0, _a = this.selections; _i < _a.length; _i++) {
+                var colSelect = _a[_i];
+                if (typeof colSelect.filter === 'string' && typeof filter === 'string') {
+                    // The filter value will not have the &amp; in place but a &,
+                    //  so we need to do a replace to make sure that they will match
+                    colSelect.filter = colSelect.filter
+                        .replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&quot;/g, '"');
+                }
+                // if the filter is an array then is the column present in it
+                if (Array.isArray(filter)) {
+                    if (filter.indexOf(colSelect.filter) !== -1) {
+                        return true;
+                    }
+                }
+                // if the filter is a function then does it meet the criteria of that function or not
+                else if (typeof colSelect.filter === 'function') {
+                    if (colSelect.filter.call(table, table.row(dataIndex).data(), dataIndex)) {
+                        if (colOpts.combiner === 'or') {
+                            return true;
+                        }
+                    }
+                    // If the combiner is an "and" then we need to check against all possible selections
+                    //  so if it fails here then the and is not met and return false
+                    else if (colOpts.combiner === 'and') {
+                        return false;
+                    }
+                }
+                // otherwise if the two filter values are equal then return true
+                else if ((filter === colSelect.filter) ||
+                    // Loose type checking incase number type in column comparing to a string
+                    // eslint-disable-next-line eqeqeq
+                    (!(typeof filter === 'string' && filter.length === 0) && filter == colSelect.filter) ||
+                    (colSelect.filter === null && typeof filter === 'string' && filter === '')) {
+                    return true;
+                }
+            }
+            // If the combiner is an and then we need to check against all possible selections
+            //  so return true here if so because it would have returned false earlier if it had failed
+            if (colOpts.combiner === 'and') {
+                return true;
+            }
+            // Otherwise it hasn't matched with anything by this point so it must be false
+            else {
+                return false;
+            }
+        };
+        /**
+         * Creates the contents of the searchCont div
+         *
+         * NOTE This is overridden when semantic ui styling in order to integrate the search button into the text box.
+         */
+        SearchPane.prototype._searchContSetup = function () {
+            if (this.c.controls && this.s.colOpts.controls) {
+                $(this.dom.searchButton).appendTo(this.dom.searchLabelCont);
+            }
+            if (!(this.c.dtOpts.searching === false ||
+                this.s.colOpts.dtOpts.searching === false ||
+                (this.customPaneSettings !== null &&
+                    this.customPaneSettings.dtOpts !== undefined &&
+                    this.customPaneSettings.dtOpts.searching !== undefined &&
+                    !this.customPaneSettings.dtOpts.searching))) {
+                $(this.dom.searchLabelCont).appendTo(this.dom.searchCont);
+            }
+        };
+        /**
+         * Adds outline to the pane when a selection has been made
+         */
+        SearchPane.prototype._searchExtras = function () {
+            var updating = this.s.updating;
+            this.s.updating = true;
+            var filters = this.s.dtPane.rows({ selected: true }).data().pluck('filter').toArray();
+            var nullIndex = filters.indexOf(this.emptyMessage());
+            var container = $(this.s.dtPane.table().container());
+            // If null index is found then search for empty cells as a filter.
+            if (nullIndex > -1) {
+                filters[nullIndex] = '';
+            }
+            // If a filter has been applied then outline the respective pane, remove it when it no longer is.
+            if (filters.length > 0) {
+                container.addClass(this.classes.selected);
+            }
+            else if (filters.length === 0) {
+                container.removeClass(this.classes.selected);
+            }
+            this.s.updating = updating;
+        };
+        /**
+         * Finds the ratio of the number of different options in the table to the number of rows
+         *
+         * @param bins the number of different options in the table
+         * @param rowCount the total number of rows in the table
+         * @returns {number} returns the ratio
+         */
+        SearchPane.prototype._uniqueRatio = function (bins, rowCount) {
+            if (rowCount > 0 &&
+                ((this.s.rowData.totalOptions > 0 && !this.s.dt.page.info().serverSide) ||
+                    (this.s.dt.page.info().serverSide && this.s.tableLength > 0))) {
+                return bins / this.s.rowData.totalOptions;
+            }
+            else {
+                return 1;
+            }
+        };
+        /**
+         * updates the options within the pane
+         *
+         * @param draw a flag to define whether this has been called due to a draw event or not
+         */
+        SearchPane.prototype._updateCommon = function (draw) {
+            if (draw === void 0) { draw = false; }
+            // Update the panes if doing a deselect. if doing a select then
+            // update all of the panes except for the one causing the change
+            if (!this.s.dt.page.info().serverSide &&
+                this.s.dtPane !== undefined &&
+                (!this.s.filteringActive || this.c.cascadePanes || draw === true) &&
+                (this.c.cascadePanes !== true || this.s.selectPresent !== true) &&
+                (!this.s.lastSelect || !this.s.lastCascade)) {
+                var colOpts = this.s.colOpts;
+                var selected = this.s.dtPane.rows({ selected: true }).data().toArray();
+                var scrollTop = $(this.s.dtPane.table().node()).parent()[0].scrollTop;
+                var rowData = this.s.rowData;
+                // Clear the pane in preparation for adding the updated search options
+                this.s.dtPane.clear();
+                // If it is not a custom pane
+                if (this.colExists) {
+                    // Only run populatePane if the data has not been collected yet
+                    if (rowData.arrayFilter.length === 0) {
+                        this._populatePane(!this.s.filteringActive);
+                    }
+                    // If cascadePanes is active and the table has returned to its default state then
+                    //  there is a need to update certain parts ofthe rowData.
+                    else if (this.c.cascadePanes &&
+                        this.s.dt.rows().data().toArray().length ===
+                            this.s.dt.rows({ search: 'applied' }).data().toArray().length) {
+                        rowData.arrayFilter = rowData.arrayOriginal;
+                        rowData.bins = rowData.binsOriginal;
+                    }
+                    // Otherwise if viewTotal or cascadePanes is active then the data from the table must be read.
+                    else if (this.c.viewTotal || this.c.cascadePanes) {
+                        this._populatePane(!this.s.filteringActive);
+                    }
+                    // If the viewTotal option is selected then find the totals for the table
+                    if (this.c.viewTotal) {
+                        this._detailsPane();
+                    }
+                    else {
+                        rowData.binsTotal = rowData.bins;
+                    }
+                    if (this.c.viewTotal && !this.c.cascadePanes) {
+                        rowData.arrayFilter = rowData.arrayTotals;
+                    }
+                    var _loop_1 = function (dataP) {
+                        // If both view Total and cascadePanes have been selected and the count of the row
+                        //  is not 0 then add it to pane
+                        // Do this also if the viewTotal option has been selected and cascadePanes has not
+                        if (dataP && ((rowData.bins[dataP.filter] !== undefined &&
+                            rowData.bins[dataP.filter] !== 0 && this_1.c.cascadePanes) ||
+                            !this_1.c.cascadePanes ||
+                            this_1.s.clearing)) {
+                            var row = this_1.addRow(dataP.display, dataP.filter, !this_1.c.viewTotal ?
+                                rowData.bins[dataP.filter] :
+                                rowData.bins[dataP.filter] !== undefined ?
+                                    rowData.bins[dataP.filter] :
+                                    0, this_1.c.viewTotal ?
+                                String(rowData.binsTotal[dataP.filter]) :
+                                rowData.bins[dataP.filter], dataP.sort, dataP.type);
+                            // Find out if the filter was selected in the previous search,
+                            //  if so select it and remove from array.
+                            var selectIndex = selected.findIndex(function (element) {
+                                return element.filter === dataP.filter;
+                            });
+                            if (selectIndex !== -1) {
+                                row.select();
+                                selected.splice(selectIndex, 1);
+                            }
+                        }
+                    };
+                    var this_1 = this;
+                    for (var _i = 0, _a = rowData.arrayFilter; _i < _a.length; _i++) {
+                        var dataP = _a[_i];
+                        _loop_1(dataP);
+                    }
+                }
+                if ((colOpts.searchPanes !== undefined && colOpts.searchPanes.options !== undefined) ||
+                    colOpts.options !== undefined ||
+                    (this.customPaneSettings !== null && this.customPaneSettings.options !== undefined)) {
+                    var rows = this._getComparisonRows();
+                    var _loop_2 = function (row) {
+                        var selectIndex = selected.findIndex(function (element) {
+                            if (element.display === row.data().display) {
+                                return true;
+                            }
+                        });
+                        if (selectIndex !== -1) {
+                            row.select();
+                            selected.splice(selectIndex, 1);
+                        }
+                    };
+                    for (var _b = 0, rows_1 = rows; _b < rows_1.length; _b++) {
+                        var row = rows_1[_b];
+                        _loop_2(row);
+                    }
+                }
+                // Add search options which were previously selected but whos results are no
+                // longer present in the resulting data set.
+                for (var _c = 0, selected_1 = selected; _c < selected_1.length; _c++) {
+                    var selectedEl = selected_1[_c];
+                    var row = this.addRow(selectedEl.display, selectedEl.filter, 0, this.c.viewTotal
+                        ? selectedEl.total
+                        : 0, selectedEl.display, selectedEl.display);
+                    this.s.updating = true;
+                    row.select();
+                    this.s.updating = false;
+                }
+                this.s.dtPane.draw();
+                this.s.dtPane.table().node().parentNode.scrollTop = scrollTop;
+            }
+        };
+        SearchPane.version = '1.3.0';
+        SearchPane.classes = {
+            buttonGroup: 'dtsp-buttonGroup',
+            buttonSub: 'dtsp-buttonSub',
+            clear: 'dtsp-clear',
+            clearAll: 'dtsp-clearAll',
+            clearButton: 'clearButton',
+            container: 'dtsp-searchPane',
+            countButton: 'dtsp-countButton',
+            disabledButton: 'dtsp-disabledButton',
+            hidden: 'dtsp-hidden',
+            hide: 'dtsp-hide',
+            layout: 'dtsp-',
+            name: 'dtsp-name',
+            nameButton: 'dtsp-nameButton',
+            nameCont: 'dtsp-nameCont',
+            narrow: 'dtsp-narrow',
+            paneButton: 'dtsp-paneButton',
+            paneInputButton: 'dtsp-paneInputButton',
+            pill: 'dtsp-pill',
+            search: 'dtsp-search',
+            searchCont: 'dtsp-searchCont',
+            searchIcon: 'dtsp-searchIcon',
+            searchLabelCont: 'dtsp-searchButtonCont',
+            selected: 'dtsp-selected',
+            smallGap: 'dtsp-smallGap',
+            subRow1: 'dtsp-subRow1',
+            subRow2: 'dtsp-subRow2',
+            subRowsContainer: 'dtsp-subRowsContainer',
+            title: 'dtsp-title',
+            topRow: 'dtsp-topRow'
+        };
+        // Define SearchPanes default options
+        SearchPane.defaults = {
+            cascadePanes: false,
+            clear: true,
+            combiner: 'or',
+            container: function (dt) {
+                return dt.table().container();
+            },
+            controls: true,
+            dtOpts: {},
+            emptyMessage: null,
+            hideCount: false,
+            i18n: {
+                clearPane: '&times;',
+                count: '{total}',
+                countFiltered: '{shown} ({total})',
+                emptyMessage: '<em>No data</em>'
+            },
+            layout: 'auto',
+            name: undefined,
+            orderable: true,
+            orthogonal: {
+                display: 'display',
+                filter: 'filter',
+                hideCount: false,
+                search: 'filter',
+                show: undefined,
+                sort: 'sort',
+                threshold: 0.6,
+                type: 'type',
+                viewCount: true
+            },
+            preSelect: [],
+            threshold: 0.6,
+            viewCount: true,
+            viewTotal: false
+        };
+        return SearchPane;
+    }());
+
+    var $$1;
+    var dataTable$1;
+    function setJQuery$1(jq) {
+        $$1 = jq;
+        dataTable$1 = jq.fn.dataTable;
+    }
+    var SearchPanes = /** @class */ (function () {
+        function SearchPanes(paneSettings, opts, fromInit) {
+            var _this = this;
+            if (fromInit === void 0) { fromInit = false; }
+            this.regenerating = false;
+            // Check that the required version of DataTables is included
+            if (!dataTable$1 || !dataTable$1.versionCheck || !dataTable$1.versionCheck('1.10.0')) {
+                throw new Error('SearchPane requires DataTables 1.10 or newer');
+            }
+            // Check that Select is included
+            if (!dataTable$1.select) {
+                throw new Error('SearchPane requires Select');
+            }
+            var table = new dataTable$1.Api(paneSettings);
+            this.classes = $$1.extend(true, {}, SearchPanes.classes);
+            // Get options from user
+            this.c = $$1.extend(true, {}, SearchPanes.defaults, opts);
+            // Add extra elements to DOM object including clear
+            this.dom = {
+                clearAll: $$1('<button type="button">Clear All</button>').addClass(this.classes.clearAll),
+                container: $$1('<div/>').addClass(this.classes.panes).text(table.i18n('searchPanes.loadMessage', this.c.i18n.loadMessage)),
+                emptyMessage: $$1('<div/>').addClass(this.classes.emptyMessage),
+                options: $$1('<div/>').addClass(this.classes.container),
+                panes: $$1('<div/>').addClass(this.classes.container),
+                title: $$1('<div/>').addClass(this.classes.title),
+                titleRow: $$1('<div/>').addClass(this.classes.titleRow),
+                wrapper: $$1('<div/>')
+            };
+            this.s = {
+                colOpts: [],
+                dt: table,
+                filterCount: 0,
+                filterPane: -1,
+                page: 0,
+                panes: [],
+                selectionList: [],
+                serverData: {},
+                stateRead: false,
+                updating: false
+            };
+            if (table.settings()[0]._searchPanes !== undefined) {
+                return;
+            }
+            this._getState();
+            if (this.s.dt.page.info().serverSide) {
+                table.on('preXhr.dt', function (e, settings, data) {
+                    if (data.searchPanes === undefined) {
+                        data.searchPanes = {};
+                    }
+                    if (data.searchPanes_null === undefined) {
+                        data.searchPanes_null = {};
+                    }
+                    for (var _i = 0, _a = _this.s.selectionList; _i < _a.length; _i++) {
+                        var selection = _a[_i];
+                        var src = _this.s.dt.column(selection.index).dataSrc();
+                        if (data.searchPanes[src] === undefined) {
+                            data.searchPanes[src] = {};
+                        }
+                        if (data.searchPanes_null[src] === undefined) {
+                            data.searchPanes_null[src] = {};
+                        }
+                        for (var i = 0; i < selection.rows.length; i++) {
+                            data.searchPanes[src][i] = selection.rows[i].filter;
+                            if (data.searchPanes[src][i] === null) {
+                                data.searchPanes_null[src][i] = true;
+                            }
+                        }
+                    }
+                });
+            }
+            // We are using the xhr event to rebuild the panes if required due to viewTotal being enabled
+            // If viewTotal is not enabled then we simply update the data from the server
+            table.on('xhr', function (e, settings, json, xhr) {
+                if (json && json.searchPanes && json.searchPanes.options) {
+                    _this.s.serverData = json;
+                    _this.s.serverData.tableLength = json.recordsTotal;
+                    _this._serverTotals();
+                }
+            });
+            table.settings()[0]._searchPanes = this;
+            this.dom.clearAll.text(table.i18n('searchPanes.clearMessage', this.c.i18n.clearMessage));
+            if (this.s.dt.settings()[0]._bInitComplete || fromInit) {
+                this._paneDeclare(table, paneSettings, opts);
+            }
+            else {
+                table.one('preInit.dt', function (settings) {
+                    _this._paneDeclare(table, paneSettings, opts);
+                });
+            }
+            return this;
+        }
+        /**
+         * Clear the selections of all of the panes
+         */
+        SearchPanes.prototype.clearSelections = function () {
+            // Load in all of the searchBoxes in the documents
+            var searches = this.dom.container.find('.' + this.classes.search.replace(/\s+/g, '.'));
+            // For each searchBox set the input text to be empty and then trigger
+            //  an input on them so that they no longer filter the panes
+            searches.each(function () {
+                $$1(this).val('');
+                $$1(this).trigger('input');
+            });
+            var returnArray = [];
+            // For every pane, clear the selections in the pane
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (pane.s.dtPane !== undefined) {
+                    returnArray.push(pane.clearPane());
+                }
+            }
+            return returnArray;
+        };
+        /**
+         * returns the container node for the searchPanes
+         */
+        SearchPanes.prototype.getNode = function () {
+            return this.dom.container;
+        };
+        /**
+         * rebuilds all of the panes
+         */
+        SearchPanes.prototype.rebuild = function (targetIdx, maintainSelection) {
+            if (targetIdx === void 0) { targetIdx = false; }
+            if (maintainSelection === void 0) { maintainSelection = false; }
+            $$1(this.dom.emptyMessage).remove();
+            // As a rebuild from scratch is required, empty the searchpanes container.
+            var returnArray = [];
+            // Rebuild each pane individually, if a specific pane has been selected then only rebuild that one
+            if (targetIdx === false) {
+                $$1(this.dom.panes).empty();
+            }
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (targetIdx !== false && pane.s.index !== targetIdx) {
+                    continue;
+                }
+                pane.clearData();
+                returnArray.push(
+                // Pass a boolean to say whether this is the last choice made for maintaining selections when rebuilding
+                pane.rebuildPane(this.s.selectionList[this.s.selectionList.length - 1] !== undefined ?
+                    pane.s.index === this.s.selectionList[this.s.selectionList.length - 1].index :
+                    false, this.s.dt.page.info().serverSide ?
+                    this.s.serverData :
+                    undefined, null, maintainSelection));
+                $$1(this.dom.panes).append(pane.dom.container);
+            }
+            if (this.c.cascadePanes || this.c.viewTotal) {
+                this.redrawPanes(true);
+            }
+            else {
+                this._updateSelection();
+            }
+            // Attach panes, clear buttons, and title bar to the document
+            this._updateFilterCount();
+            this._attachPaneContainer();
+            this.s.dt.draw();
+            // Resize the panes incase there has been a change
+            this.resizePanes();
+            // If a single pane has been rebuilt then return only that pane
+            if (returnArray.length === 1) {
+                return returnArray[0];
+            }
+            // Otherwise return all of the panes that have been rebuilt
+            else {
+                return returnArray;
+            }
+        };
+        /**
+         * Redraws all of the panes
+         */
+        SearchPanes.prototype.redrawPanes = function (rebuild) {
+            if (rebuild === void 0) { rebuild = false; }
+            var table = this.s.dt;
+            // Only do this if the redraw isn't being triggered by the panes updating themselves
+            if (!this.s.updating && !this.s.dt.page.info().serverSide) {
+                var filterActive = true;
+                var filterPane = this.s.filterPane;
+                var selectTotal = null;
+                for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                    var pane = _a[_i];
+                    if (pane.s.dtPane !== undefined) {
+                        selectTotal += pane.s.dtPane.rows({ selected: true }).data().toArray().length;
+                    }
+                }
+                // If the number of rows currently visible is equal to the number of rows in the table
+                //  then there can't be any filtering taking place
+                if (selectTotal === 0 &&
+                    table.rows({ search: 'applied' }).data().toArray().length === table.rows().data().toArray().length) {
+                    filterActive = false;
+                }
+                // Otherwise if viewTotal is active then it is necessary to determine which panes a select is present in.
+                //  If there is only one pane with a selection present then it should not show the filtered message as
+                //  more selections may be made in that pane.
+                else if (this.c.viewTotal) {
+                    for (var _b = 0, _c = this.s.panes; _b < _c.length; _b++) {
+                        var pane = _c[_b];
+                        if (pane.s.dtPane !== undefined) {
+                            var selectLength = pane.s.dtPane.rows({ selected: true }).data().toArray().length;
+                            if (selectLength === 0) {
+                                for (var _d = 0, _e = this.s.selectionList; _d < _e.length; _d++) {
+                                    var selection = _e[_d];
+                                    if (selection.index === pane.s.index && selection.rows.length !== 0) {
+                                        selectLength = selection.rows.length;
+                                    }
+                                }
+                            }
+                            // If filterPane === -1 then a pane with a selection has not been found yet,
+                            //  so set filterPane to that panes index
+                            if (selectLength > 0 && filterPane === -1) {
+                                filterPane = pane.s.index;
+                            }
+                            // Then if another pane is found with a selection then set filterPane to null to
+                            //  show that multiple panes have selections present
+                            else if (selectLength > 0) {
+                                filterPane = null;
+                            }
+                        }
+                    }
+                    // If the searchbox is in place and filtering is applied then need to cascade down anyway
+                    if (selectTotal === 0) {
+                        filterPane = null;
+                    }
+                }
+                var deselectIdx = void 0;
+                var newSelectionList = [];
+                // Don't run this if it is due to the panes regenerating
+                if (!this.regenerating) {
+                    for (var _f = 0, _g = this.s.panes; _f < _g.length; _f++) {
+                        var pane = _g[_f];
+                        // Identify the pane where a selection or deselection has been made and add it to the list.
+                        if (pane.s.selectPresent) {
+                            this.s.selectionList.push({
+                                index: pane.s.index,
+                                protect: false,
+                                rows: pane.s.dtPane.rows({ selected: true }).data().toArray()
+                            });
+                            table.state.save();
+                            break;
+                        }
+                        else if (pane.s.deselect) {
+                            deselectIdx = pane.s.index;
+                            var selectedData = pane.s.dtPane.rows({ selected: true }).data().toArray();
+                            if (selectedData.length > 0) {
+                                this.s.selectionList.push({
+                                    index: pane.s.index,
+                                    protect: true,
+                                    rows: selectedData
+                                });
+                            }
+                        }
+                    }
+                    if (this.s.selectionList.length > 0) {
+                        var last = this.s.selectionList[this.s.selectionList.length - 1].index;
+                        for (var _h = 0, _j = this.s.panes; _h < _j.length; _h++) {
+                            var pane = _j[_h];
+                            pane.s.lastSelect = (pane.s.index === last);
+                        }
+                    }
+                    // Remove selections from the list from the pane where a deselect has taken place
+                    for (var i = 0; i < this.s.selectionList.length; i++) {
+                        if (this.s.selectionList[i].index !== deselectIdx || this.s.selectionList[i].protect === true) {
+                            var further = false;
+                            // Find out if this selection is the last one in the list for that pane
+                            for (var j = i + 1; j < this.s.selectionList.length; j++) {
+                                if (this.s.selectionList[j].index === this.s.selectionList[i].index) {
+                                    further = true;
+                                }
+                            }
+                            // If there are no selections for this pane in the list then just push this one
+                            if (!further) {
+                                newSelectionList.push(this.s.selectionList[i]);
+                                this.s.selectionList[i].protect = false;
+                            }
+                        }
+                    }
+                    var solePane = -1;
+                    if (newSelectionList.length === 1 && selectTotal !== null && selectTotal !== 0) {
+                        solePane = newSelectionList[0].index;
+                    }
+                    // Update all of the panes to reflect the current state of the filters
+                    for (var _k = 0, _l = this.s.panes; _k < _l.length; _k++) {
+                        var pane = _l[_k];
+                        if (pane.s.dtPane !== undefined) {
+                            var tempFilter = true;
+                            pane.s.filteringActive = true;
+                            if ((filterPane !== -1 && filterPane !== null && filterPane === pane.s.index) ||
+                                filterActive === false ||
+                                pane.s.index === solePane) {
+                                tempFilter = false;
+                                pane.s.filteringActive = false;
+                            }
+                            pane.updatePane(!tempFilter ? false : filterActive);
+                        }
+                    }
+                    // Update the label that shows how many filters are in place
+                    this._updateFilterCount();
+                    // If the length of the selections are different then some of them have been
+                    //  removed and a deselect has occured
+                    if (newSelectionList.length > 0 && (newSelectionList.length < this.s.selectionList.length || rebuild)) {
+                        this._cascadeRegen(newSelectionList, selectTotal);
+                        var last = newSelectionList[newSelectionList.length - 1].index;
+                        for (var _m = 0, _o = this.s.panes; _m < _o.length; _m++) {
+                            var pane = _o[_m];
+                            pane.s.lastSelect = (pane.s.index === last);
+                        }
+                    }
+                    else if (newSelectionList.length > 0) {
+                        // Update all of the other panes as you would just making a normal selection
+                        for (var _p = 0, _q = this.s.panes; _p < _q.length; _p++) {
+                            var paneUpdate = _q[_p];
+                            if (paneUpdate.s.dtPane !== undefined) {
+                                var tempFilter = true;
+                                paneUpdate.s.filteringActive = true;
+                                if ((filterPane !== -1 && filterPane !== null && filterPane === paneUpdate.s.index) ||
+                                    filterActive === false ||
+                                    paneUpdate.s.index === solePane) {
+                                    tempFilter = false;
+                                    paneUpdate.s.filteringActive = false;
+                                }
+                                paneUpdate.updatePane(!tempFilter ? tempFilter : filterActive);
+                            }
+                        }
+                    }
+                }
+                else {
+                    var solePane = -1;
+                    if (newSelectionList.length === 1 && selectTotal !== null && selectTotal !== 0) {
+                        solePane = newSelectionList[0].index;
+                    }
+                    for (var _r = 0, _s = this.s.panes; _r < _s.length; _r++) {
+                        var pane = _s[_r];
+                        if (pane.s.dtPane !== undefined) {
+                            var tempFilter = true;
+                            pane.s.filteringActive = true;
+                            if ((filterPane !== -1 && filterPane !== null && filterPane === pane.s.index) ||
+                                filterActive === false ||
+                                pane.s.index === solePane) {
+                                tempFilter = false;
+                                pane.s.filteringActive = false;
+                            }
+                            pane.updatePane(!tempFilter ? tempFilter : filterActive);
+                        }
+                    }
+                    // Update the label that shows how many filters are in place
+                    this._updateFilterCount();
+                }
+                if (!filterActive || selectTotal === 0) {
+                    this.s.selectionList = [];
+                }
+            }
+        };
+        /**
+         * Resizes all of the panes
+         */
+        SearchPanes.prototype.resizePanes = function () {
+            if (this.c.layout === 'auto') {
+                var contWidth = $$1(this.s.dt.searchPanes.container()).width();
+                var target = Math.floor(contWidth / 260.0); // The neatest number of panes per row
+                var highest = 1;
+                var highestmod = 0;
+                var dispIndex = [];
+                // Get the indexes of all of the displayed panes
+                for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                    var pane = _a[_i];
+                    if (pane.s.displayed) {
+                        dispIndex.push(pane.s.index);
+                    }
+                }
+                var displayCount = dispIndex.length;
+                // If the neatest number is the number we have then use this.
+                if (target === displayCount) {
+                    highest = target;
+                }
+                else {
+                    // Go from the target down and find the value with the most panes left over, this will be the best fit
+                    for (var ppr = target; ppr > 1; ppr--) {
+                        var rem = displayCount % ppr;
+                        if (rem === 0) {
+                            highest = ppr;
+                            highestmod = 0;
+                            break;
+                        }
+                        // If there are more left over at this amount of panes per row (ppr)
+                        //  then it fits better so new values
+                        else if (rem > highestmod) {
+                            highest = ppr;
+                            highestmod = rem;
+                        }
+                    }
+                }
+                // If there is a perfect fit then none are to be wider
+                var widerIndexes = highestmod !== 0 ? dispIndex.slice(dispIndex.length - highestmod, dispIndex.length) : [];
+                for (var _b = 0, _c = this.s.panes; _b < _c.length; _b++) {
+                    var pane = _c[_b];
+                    // Resize the pane with the new layout
+                    if (pane.s.displayed) {
+                        var layout = 'columns-' + (widerIndexes.indexOf(pane.s.index) === -1 ? highest : highestmod);
+                        pane.resize(layout);
+                    }
+                }
+            }
+            else {
+                for (var _d = 0, _e = this.s.panes; _d < _e.length; _d++) {
+                    var pane = _e[_d];
+                    pane.adjustTopRow();
+                }
+            }
+            return this;
+        };
+        /**
+         * Attach the panes, buttons and title to the document
+         */
+        SearchPanes.prototype._attach = function () {
+            var _this = this;
+            $$1(this.dom.container).removeClass(this.classes.hide);
+            $$1(this.dom.titleRow).removeClass(this.classes.hide);
+            $$1(this.dom.titleRow).remove();
+            $$1(this.dom.title).appendTo(this.dom.titleRow);
+            // If the clear button is permitted attach it
+            if (this.c.clear) {
+                $$1(this.dom.clearAll).appendTo(this.dom.titleRow);
+                $$1(this.dom.clearAll).on('click.dtsps', function () {
+                    _this.clearSelections();
+                });
+            }
+            $$1(this.dom.titleRow).appendTo(this.dom.container);
+            // Attach the container for each individual pane to the overall container
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                $$1(pane.dom.container).appendTo(this.dom.panes);
+            }
+            // Attach everything to the document
+            $$1(this.dom.panes).appendTo(this.dom.container);
+            if ($$1('div.' + this.classes.container).length === 0) {
+                $$1(this.dom.container).prependTo(this.s.dt);
+            }
+            return this.dom.container;
+        };
+        /**
+         * Attach the top row containing the filter count and clear all button
+         */
+        SearchPanes.prototype._attachExtras = function () {
+            $$1(this.dom.container).removeClass(this.classes.hide);
+            $$1(this.dom.titleRow).removeClass(this.classes.hide);
+            $$1(this.dom.titleRow).remove();
+            $$1(this.dom.title).appendTo(this.dom.titleRow);
+            // If the clear button is permitted attach it
+            if (this.c.clear) {
+                $$1(this.dom.clearAll).appendTo(this.dom.titleRow);
+            }
+            $$1(this.dom.titleRow).appendTo(this.dom.container);
+            return this.dom.container;
+        };
+        /**
+         * If there are no panes to display then this method is called to either
+         * display a message in their place or hide them completely.
+         */
+        SearchPanes.prototype._attachMessage = function () {
+            // Create a message to display on the screen
+            var message;
+            try {
+                message = this.s.dt.i18n('searchPanes.emptyPanes', this.c.i18n.emptyPanes);
+            }
+            catch (error) {
+                message = null;
+            }
+            // If the message is an empty string then searchPanes.emptyPanes is undefined,
+            //  therefore the pane container should be removed from the display
+            if (message === null) {
+                $$1(this.dom.container).addClass(this.classes.hide);
+                $$1(this.dom.titleRow).removeClass(this.classes.hide);
+                return;
+            }
+            else {
+                $$1(this.dom.container).removeClass(this.classes.hide);
+                $$1(this.dom.titleRow).addClass(this.classes.hide);
+            }
+            // Otherwise display the message
+            $$1(this.dom.emptyMessage).text(message);
+            this.dom.emptyMessage.appendTo(this.dom.container);
+            return this.dom.container;
+        };
+        /**
+         * Attaches the panes to the document and displays a message or hides if there are none
+         */
+        SearchPanes.prototype._attachPaneContainer = function () {
+            // If a pane is to be displayed then attach the normal pane output
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (pane.s.displayed === true) {
+                    return this._attach();
+                }
+            }
+            // Otherwise attach the custom message or remove the container from the display
+            return this._attachMessage();
+        };
+        /**
+         * Prepares the panes for selections to be made when cascade is active and a deselect has occured
+         *
+         * @param newSelectionList the list of selections which are to be made
+         */
+        SearchPanes.prototype._cascadeRegen = function (newSelectionList, selectTotal) {
+            // Set this to true so that the actions taken do not cause this to run until it is finished
+            this.regenerating = true;
+            // If only one pane has been selected then take note of its index
+            var solePane = -1;
+            if (newSelectionList.length === 1 && selectTotal !== null && selectTotal !== 0) {
+                solePane = newSelectionList[0].index;
+            }
+            // Let the pane know that a cascadeRegen is taking place to avoid unexpected behaviour
+            //  and clear all of the previous selections in the pane
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                pane.setCascadeRegen(true);
+                pane.setClear(true);
+                // If this is the same as the pane with the only selection then pass it as a parameter into clearPane
+                if ((pane.s.dtPane !== undefined && pane.s.index === solePane) || pane.s.dtPane !== undefined) {
+                    pane.clearPane();
+                }
+                pane.setClear(false);
+            }
+            // Rebin panes
+            this.s.dt.draw();
+            // While all of the selections have been removed, check the table lengths
+            // If they are different, another filter is in place and we need to force viewTotal to be used
+            var noSelectionsTableLength = this.s.dt.rows({ search: 'applied' }).data().toArray().length;
+            var tableLength = this.s.dt.rows().data().toArray().length;
+            if (tableLength !== noSelectionsTableLength) {
+                for (var _b = 0, _c = this.s.panes; _b < _c.length; _b++) {
+                    var pane = _c[_b];
+                    pane.s.forceViewTotal = true;
+                }
+            }
+            for (var _d = 0, _e = this.s.panes; _d < _e.length; _d++) {
+                var pane = _e[_d];
+                pane.updatePane(true);
+            }
+            // Remake Selections
+            this._makeCascadeSelections(newSelectionList);
+            // Set the selection list property to be the list without the selections from the deselect pane
+            this.s.selectionList = newSelectionList;
+            // The regeneration of selections is over so set it back to false
+            for (var _f = 0, _g = this.s.panes; _f < _g.length; _f++) {
+                var pane = _g[_f];
+                pane.setCascadeRegen(false);
+            }
+            this.regenerating = false;
+            // ViewTotal has already been forced at this point so can cancel that for future
+            if (tableLength !== noSelectionsTableLength) {
+                for (var _h = 0, _j = this.s.panes; _h < _j.length; _h++) {
+                    var pane = _j[_h];
+                    pane.s.forceViewTotal = false;
+                }
+            }
+        };
+        /**
+         * Attaches the message to the document but does not add any panes
+         */
+        SearchPanes.prototype._checkMessage = function () {
+            // If a pane is to be displayed then attach the normal pane output
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (pane.s.displayed === true) {
+                    // Ensure that the empty message is removed if a pane is displayed
+                    $$1(this.dom.emptyMessage).remove();
+                    $$1(this.dom.titleRow).removeClass(this.classes.hide);
+                    return;
+                }
+            }
+            // Otherwise attach the custom message or remove the container from the display
+            return this._attachMessage();
+        };
+        /**
+         * Gets the selection list from the previous state and stores it in the selectionList Property
+         */
+        SearchPanes.prototype._getState = function () {
+            var loadedFilter = this.s.dt.state.loaded();
+            if (loadedFilter && loadedFilter.searchPanes && loadedFilter.searchPanes.selectionList !== undefined) {
+                this.s.selectionList = loadedFilter.searchPanes.selectionList;
+            }
+        };
+        /**
+         * Makes all of the selections when cascade is active
+         *
+         * @param newSelectionList the list of selections to be made, in the order they were originally selected
+         */
+        SearchPanes.prototype._makeCascadeSelections = function (newSelectionList) {
+            // make selections in the order they were made previously,
+            //  excluding those from the pane where a deselect was made
+            for (var i = 0; i < newSelectionList.length; i++) {
+                var _loop_1 = function (pane) {
+                    if (pane.s.index === newSelectionList[i].index && pane.s.dtPane !== undefined) {
+                        // When regenerating the cascade selections we need this flag so that
+                        //  the panes are only ignored if it
+                        //  is the last selection and the pane for that selection
+                        if (i === newSelectionList.length - 1) {
+                            pane.s.lastCascade = true;
+                        }
+                        // if there are any selections currently in the pane then
+                        //  deselect them as we are about to make our new selections
+                        if (pane.s.dtPane.rows({ selected: true }).data().toArray().length > 0 && pane.s.dtPane !== undefined) {
+                            pane.setClear(true);
+                            pane.clearPane();
+                            pane.setClear(false);
+                        }
+                        var _loop_2 = function (row) {
+                            var found = false;
+                            pane.s.dtPane.rows().every(function (rowIdx) {
+                                if (pane.s.dtPane.row(rowIdx).data() !== undefined &&
+                                    row !== undefined &&
+                                    pane.s.dtPane.row(rowIdx).data().filter === row.filter) {
+                                    found = true;
+                                    pane.s.dtPane.row(rowIdx).select();
+                                }
+                            });
+                            if (!found) {
+                                var newRow = pane.addRow(row.display, row.filter, 0, row.total, row.sort, row.type, row.className);
+                                newRow.select();
+                            }
+                        };
+                        // select every row in the pane that was selected previously
+                        for (var _i = 0, _a = newSelectionList[i].rows; _i < _a.length; _i++) {
+                            var row = _a[_i];
+                            _loop_2(row);
+                        }
+                        pane.s.dtPane.draw();
+                        // Update the label that shows how many filters are in place
+                        this_1._updateFilterCount();
+                        pane.s.lastCascade = false;
+                    }
+                };
+                var this_1 = this;
+                // As the selections may have been made across the panes
+                //  in a different order to the pane index we must identify
+                //   which pane has the index of the selection. This is also important for colreorder etc
+                for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                    var pane = _a[_i];
+                    _loop_1(pane);
+                }
+            }
+            // Make sure that the state is saved after all of these selections
+            this.s.dt.state.save();
+        };
+        /**
+         * Declares the instances of individual searchpanes dependant on the number of columns.
+         * It is necessary to run this once preInit has completed otherwise no panes will be
+         * created as the column count will be 0.
+         *
+         * @param table the DataTable api for the parent table
+         * @param paneSettings the settings passed into the constructor
+         * @param opts the options passed into the constructor
+         */
+        SearchPanes.prototype._paneDeclare = function (table, paneSettings, opts) {
+            var _this = this;
+            // Create Panes
+            table
+                .columns(this.c.columns.length > 0 ? this.c.columns : undefined)
+                .eq(0)
+                .each(function (idx) {
+                _this.s.panes.push(new SearchPane(paneSettings, opts, idx, _this.c.layout, _this.dom.panes));
+            });
+            // If there is any extra custom panes defined then create panes for them too
+            var rowLength = table.columns().eq(0).toArray().length;
+            var paneLength = this.c.panes.length;
+            for (var i = 0; i < paneLength; i++) {
+                var id = rowLength + i;
+                this.s.panes.push(new SearchPane(paneSettings, opts, id, this.c.layout, this.dom.panes, this.c.panes[i]));
+            }
+            // If a custom ordering is being used
+            if (this.c.order.length > 0) {
+                // Make a new Array of panes based upon the order
+                var newPanes = this.c.order.map(function (name, index, values) { return _this._findPane(name); });
+                // Remove the old panes from the dom
+                this.dom.panes.empty();
+                this.s.panes = newPanes;
+                // Append the panes in the correct order
+                for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                    var pane = _a[_i];
+                    this.dom.panes.append(pane.dom.container);
+                }
+            }
+            // If this internal property is true then the DataTable has been initialised already
+            if (this.s.dt.settings()[0]._bInitComplete) {
+                this._startup(table);
+            }
+            else {
+                // Otherwise add the paneStartup function to the list of functions
+                //  that are to be run when the table is initialised. This will garauntee that the
+                //   panes are initialised before the init event and init Complete callback is fired
+                this.s.dt.settings()[0].aoInitComplete.push({ fn: function () {
+                        _this._startup(table);
+                    } });
+            }
+        };
+        /**
+         * Finds a pane based upon the name of that pane
+         *
+         * @param name string representing the name of the pane
+         * @returns SearchPane The pane which has that name
+         */
+        SearchPanes.prototype._findPane = function (name) {
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (name === pane.s.name) {
+                    return pane;
+                }
+            }
+        };
+        /**
+         * Works out which panes to update when data is recieved from the server and viewTotal is active
+         */
+        SearchPanes.prototype._serverTotals = function () {
+            var selectPresent = false;
+            var deselectPresent = false;
+            var table = this.s.dt;
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                // Identify the pane where a selection or deselection has been made and add it to the list.
+                if (pane.s.selectPresent) {
+                    this.s.selectionList.push({
+                        index: pane.s.index,
+                        protect: false,
+                        rows: pane.s.dtPane.rows({ selected: true }).data().toArray()
+                    });
+                    table.state.save();
+                    pane.s.selectPresent = false;
+                    selectPresent = true;
+                    break;
+                }
+                else if (pane.s.deselect) {
+                    var selectedData = pane.s.dtPane.rows({ selected: true }).data().toArray();
+                    if (selectedData.length > 0) {
+                        this.s.selectionList.push({
+                            index: pane.s.index,
+                            protect: true,
+                            rows: selectedData
+                        });
+                    }
+                    selectPresent = true;
+                    deselectPresent = true;
+                }
+            }
+            // Build an updated list based on any selections or deselections added
+            if (!selectPresent) {
+                this.s.selectionList = [];
+            }
+            else {
+                var newSelectionList = [];
+                for (var i = 0; i < this.s.selectionList.length; i++) {
+                    var further = false;
+                    // Find out if this selection is the last one in the list for that pane
+                    for (var j = i + 1; j < this.s.selectionList.length; j++) {
+                        if (this.s.selectionList[j].index === this.s.selectionList[i].index) {
+                            further = true;
+                        }
+                    }
+                    // If there are no selections for this pane in the list then just push this one
+                    if (!further) {
+                        var push = false;
+                        for (var _b = 0, _c = this.s.panes; _b < _c.length; _b++) {
+                            var pane = _c[_b];
+                            if (pane.s.index === this.s.selectionList[i].index &&
+                                pane.s.dtPane.rows({ selected: true }).data().toArray().length > 0) {
+                                push = true;
+                            }
+                        }
+                        if (push) {
+                            newSelectionList.push(this.s.selectionList[i]);
+                        }
+                    }
+                }
+                this.s.selectionList = newSelectionList;
+            }
+            var initIdx = -1;
+            // If there has been a deselect and only one pane has a selection then update everything
+            if (deselectPresent && this.s.selectionList.length === 1) {
+                for (var _d = 0, _e = this.s.panes; _d < _e.length; _d++) {
+                    var pane = _e[_d];
+                    pane.s.lastSelect = false;
+                    pane.s.deselect = false;
+                    if (pane.s.dtPane !== undefined && pane.s.dtPane.rows({ selected: true }).data().toArray().length > 0) {
+                        initIdx = pane.s.index;
+                    }
+                }
+            }
+            // Otherwise if there are more 1 selections then find the last one and set it to not update that pane
+            else if (this.s.selectionList.length > 0) {
+                var last = this.s.selectionList[this.s.selectionList.length - 1].index;
+                for (var _f = 0, _g = this.s.panes; _f < _g.length; _f++) {
+                    var pane = _g[_f];
+                    pane.s.lastSelect = (pane.s.index === last);
+                    pane.s.deselect = false;
+                }
+            }
+            // Otherwise if there are no selections then find where that took place and do not update to maintain scrolling
+            else if (this.s.selectionList.length === 0) {
+                for (var _h = 0, _j = this.s.panes; _h < _j.length; _h++) {
+                    var pane = _j[_h];
+                    // pane.s.lastSelect = (pane.s.deselect === true);
+                    pane.s.lastSelect = false;
+                    pane.s.deselect = false;
+                }
+            }
+            $$1(this.dom.panes).empty();
+            // Rebuild the desired panes
+            for (var _k = 0, _l = this.s.panes; _k < _l.length; _k++) {
+                var pane = _l[_k];
+                if (!pane.s.lastSelect) {
+                    pane.rebuildPane(undefined, this.s.dt.page.info().serverSide ? this.s.serverData : undefined, pane.s.index === initIdx ? true : null, true);
+                }
+                else {
+                    pane._setListeners();
+                }
+                // append all of the panes and enable select
+                $$1(this.dom.panes).append(pane.dom.container);
+                if (pane.s.dtPane !== undefined) {
+                    $$1(pane.s.dtPane.table().node()).parent()[0].scrollTop = pane.s.scrollTop;
+                    $$1.fn.dataTable.select.init(pane.s.dtPane);
+                }
+            }
+            this._updateSelection();
+        };
+        /**
+         * Initialises the tables previous/preset selections and initialises callbacks for events
+         *
+         * @param table the parent table for which the searchPanes are being created
+         */
+        SearchPanes.prototype._startup = function (table) {
+            var _this = this;
+            $$1(this.dom.container).text('');
+            // Attach clear button and title bar to the document
+            this._attachExtras();
+            $$1(this.dom.container).append(this.dom.panes);
+            $$1(this.dom.panes).empty();
+            var loadedFilter = this.s.dt.state.loaded();
+            if (this.c.viewTotal && !this.c.cascadePanes) {
+                if (loadedFilter !== null &&
+                    loadedFilter !== undefined &&
+                    loadedFilter.searchPanes !== undefined &&
+                    loadedFilter.searchPanes.panes !== undefined) {
+                    var filterActive = false;
+                    for (var _i = 0, _a = loadedFilter.searchPanes.panes; _i < _a.length; _i++) {
+                        var pane = _a[_i];
+                        if (pane.selected.length > 0) {
+                            filterActive = true;
+                            break;
+                        }
+                    }
+                    if (filterActive) {
+                        for (var _b = 0, _c = this.s.panes; _b < _c.length; _b++) {
+                            var pane = _c[_b];
+                            pane.s.showFiltered = true;
+                        }
+                    }
+                }
+            }
+            for (var _d = 0, _e = this.s.panes; _d < _e.length; _d++) {
+                var pane = _e[_d];
+                pane.rebuildPane(undefined, Object.keys(this.s.serverData).length > 0 ? this.s.serverData : undefined);
+                $$1(this.dom.panes).append(pane.dom.container);
+            }
+            // If the layout is set to auto then the panes need to be resized to their best fit
+            if (this.c.layout === 'auto') {
+                this.resizePanes();
+            }
+            // Reset the paging if that has been saved in the state
+            if (!this.s.stateRead && loadedFilter !== null && loadedFilter !== undefined) {
+                this.s.dt.page((loadedFilter.start / this.s.dt.page.len()));
+                this.s.dt.draw('page');
+            }
+            this.s.stateRead = true;
+            if (this.c.viewTotal && !this.c.cascadePanes) {
+                for (var _f = 0, _g = this.s.panes; _f < _g.length; _f++) {
+                    var pane = _g[_f];
+                    pane.updatePane();
+                }
+            }
+            this._updateFilterCount();
+            this._checkMessage();
+            // When a draw is called on the DataTable, update all of the panes incase the data in the DataTable has changed
+            table.on('preDraw.dtsps', function () {
+                if (!_this.s.updating) {
+                    _this._updateFilterCount();
+                    if ((_this.c.cascadePanes || _this.c.viewTotal) && !_this.s.dt.page.info().serverSide) {
+                        _this.redrawPanes(_this.c.viewTotal);
+                    }
+                    else {
+                        _this._updateSelection();
+                    }
+                    _this.s.filterPane = -1;
+                }
+            });
+            $$1(window).on('resize.dtsp', dataTable$1.util.throttle(function () {
+                _this.resizePanes();
+            }));
+            // Whenever a state save occurs store the selection list in the state object
+            this.s.dt.on('stateSaveParams.dtsp', function (e, settings, data) {
+                if (data.searchPanes === undefined) {
+                    data.searchPanes = {};
+                }
+                data.searchPanes.selectionList = _this.s.selectionList;
+            });
+            if (this.s.dt.page.info().serverSide) {
+                table.off('page');
+                table.on('page', function () {
+                    _this.s.page = _this.s.dt.page();
+                });
+                table.off('preXhr.dt');
+                table.on('preXhr.dt', function (e, settings, data) {
+                    if (data.searchPanes === undefined) {
+                        data.searchPanes = {};
+                    }
+                    if (data.searchPanes_null === undefined) {
+                        data.searchPanes_null = {};
+                    }
+                    // Count how many filters are being applied
+                    var filterCount = 0;
+                    for (var _i = 0, _a = _this.s.panes; _i < _a.length; _i++) {
+                        var pane = _a[_i];
+                        var src = _this.s.dt.column(pane.s.index).dataSrc();
+                        if (data.searchPanes[src] === undefined) {
+                            data.searchPanes[src] = {};
+                        }
+                        if (data.searchPanes_null[src] === undefined) {
+                            data.searchPanes_null[src] = {};
+                        }
+                        if (pane.s.dtPane !== undefined) {
+                            var rowData = pane.s.dtPane.rows({ selected: true }).data().toArray();
+                            for (var i = 0; i < rowData.length; i++) {
+                                data.searchPanes[src][i] = rowData[i].filter;
+                                if (data.searchPanes[src][i] === null) {
+                                    data.searchPanes_null[src][i] = true;
+                                }
+                                filterCount++;
+                            }
+                        }
+                    }
+                    if (_this.c.viewTotal) {
+                        _this._prepViewTotal(filterCount);
+                    }
+                    // If there is a filter to be applied, then we need to read from the start of the result set
+                    //  and set the paging to 0. This matches the behaviour of client side processing
+                    if (filterCount > 0) {
+                        // If the number of filters has changed we need to read from the start of the
+                        //  result set and reset the paging
+                        if (filterCount !== _this.s.filterCount) {
+                            data.start = 0;
+                            _this.s.page = 0;
+                        }
+                        // Otherwise it is a paging request and we need to read from whatever the paging has been set to
+                        else {
+                            data.start = _this.s.page * _this.s.dt.page.len();
+                        }
+                        _this.s.dt.page(_this.s.page);
+                        _this.s.filterCount = filterCount;
+                    }
+                });
+            }
+            else {
+                table.on('preXhr.dt', function (e, settings, data) {
+                    for (var _i = 0, _a = _this.s.panes; _i < _a.length; _i++) {
+                        var pane = _a[_i];
+                        pane.clearData();
+                    }
+                });
+            }
+            // If the data is reloaded from the server then it is possible that it has changed completely,
+            // so we need to rebuild the panes
+            this.s.dt.on('xhr', function (e, settings, json, xhr) {
+                if (settings.nTable !== _this.s.dt.table().node()) {
+                    return;
+                }
+                var processing = false;
+                if (!_this.s.dt.page.info().serverSide) {
+                    _this.s.dt.one('preDraw', function () {
+                        if (processing) {
+                            return;
+                        }
+                        var page = _this.s.dt.page();
+                        processing = true;
+                        _this.s.updating = true;
+                        $$1(_this.dom.panes).empty();
+                        for (var _i = 0, _a = _this.s.panes; _i < _a.length; _i++) {
+                            var pane = _a[_i];
+                            pane.clearData(); // Clears all of the bins and will mean that the data has to be re-read
+                            // Pass a boolean to say whether this is the last choice made for maintaining selections
+                            //  when rebuilding
+                            pane.rebuildPane(_this.s.selectionList[_this.s.selectionList.length - 1] !== undefined ?
+                                pane.s.index === _this.s.selectionList[_this.s.selectionList.length - 1].index :
+                                false, undefined, undefined, true);
+                            $$1(_this.dom.panes).append(pane.dom.container);
+                        }
+                        if (!_this.s.dt.page.info().serverSide) {
+                            _this.s.dt.draw();
+                        }
+                        _this.s.updating = false;
+                        if (_this.c.cascadePanes || _this.c.viewTotal) {
+                            _this.redrawPanes(_this.c.cascadePanes);
+                        }
+                        else {
+                            _this._updateSelection();
+                        }
+                        _this._checkMessage();
+                        _this.s.dt.one('draw', function () {
+                            _this.s.updating = true;
+                            _this.s.dt.page(page).draw(false);
+                            _this.s.updating = false;
+                        });
+                    });
+                }
+            });
+            // PreSelect any selections which have been defined using the preSelect option
+            for (var _h = 0, _j = this.s.panes; _h < _j.length; _h++) {
+                var pane = _j[_h];
+                if (pane !== undefined &&
+                    pane.s.dtPane !== undefined &&
+                    ((pane.s.colOpts.preSelect !== undefined && pane.s.colOpts.preSelect.length > 0) ||
+                        (pane.customPaneSettings !== null &&
+                            pane.customPaneSettings.preSelect !== undefined &&
+                            pane.customPaneSettings.preSelect.length > 0))) {
+                    var tableLength = pane.s.dtPane.rows().data().toArray().length;
+                    for (var i = 0; i < tableLength; i++) {
+                        if (pane.s.colOpts.preSelect.indexOf(pane.s.dtPane.cell(i, 0).data()) !== -1 ||
+                            (pane.customPaneSettings !== null &&
+                                pane.customPaneSettings.preSelect !== undefined &&
+                                pane.customPaneSettings.preSelect.indexOf(pane.s.dtPane.cell(i, 0).data()) !== -1)) {
+                            pane.s.dtPane.row(i).select();
+                        }
+                    }
+                    pane.updateTable();
+                }
+            }
+            if (this.s.selectionList !== undefined && this.s.selectionList.length > 0) {
+                var last = this.s.selectionList[this.s.selectionList.length - 1].index;
+                for (var _k = 0, _l = this.s.panes; _k < _l.length; _k++) {
+                    var pane = _l[_k];
+                    pane.s.lastSelect = (pane.s.index === last);
+                }
+            }
+            // If cascadePanes is active then make the previous selections in the order they were previously
+            if (this.s.selectionList.length > 0 && this.c.cascadePanes) {
+                this._cascadeRegen(this.s.selectionList, this.s.selectionList.length);
+            }
+            // Update the title bar to show how many filters have been selected
+            this._updateFilterCount();
+            // If the table is destroyed and restarted then clear the selections so that they do not persist.
+            table.on('destroy.dtsps', function () {
+                for (var _i = 0, _a = _this.s.panes; _i < _a.length; _i++) {
+                    var pane = _a[_i];
+                    pane.destroy();
+                }
+                table.off('.dtsps');
+                $$1(_this.dom.clearAll).off('.dtsps');
+                $$1(_this.dom.container).remove();
+                _this.clearSelections();
+            });
+            // When the clear All button has been pressed clear all of the selections in the panes
+            if (this.c.clear) {
+                $$1(this.dom.clearAll).on('click.dtsps', function () {
+                    _this.clearSelections();
+                });
+            }
+            table.settings()[0]._searchPanes = this;
+            this.s.dt.state.save();
+        };
+        SearchPanes.prototype._prepViewTotal = function (selectTotal) {
+            var filterPane = this.s.filterPane;
+            var filterActive = false;
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (pane.s.dtPane !== undefined) {
+                    var selectLength = pane.s.dtPane.rows({ selected: true }).data().toArray().length;
+                    // If filterPane === -1 then a pane with a selection has not been found yet,
+                    //  so set filterPane to that panes index
+                    if (selectLength > 0 && filterPane === -1) {
+                        filterPane = pane.s.index;
+                        filterActive = true;
+                    }
+                    // Then if another pane is found with a selection then set filterPane to null to
+                    //  show that multiple panes have selections present
+                    else if (selectLength > 0) {
+                        filterPane = null;
+                    }
+                }
+            }
+            if (selectTotal !== null && selectTotal !== 0) {
+                filterPane = null;
+            }
+            // Update all of the panes to reflect the current state of the filters
+            for (var _b = 0, _c = this.s.panes; _b < _c.length; _b++) {
+                var pane = _c[_b];
+                if (pane.s.dtPane !== undefined) {
+                    pane.s.filteringActive = true;
+                    if ((filterPane !== -1 && filterPane !== null && filterPane === pane.s.index) ||
+                        filterActive === false) {
+                        pane.s.filteringActive = false;
+                    }
+                }
+            }
+        };
+        /**
+         * Updates the number of filters that have been applied in the title
+         */
+        SearchPanes.prototype._updateFilterCount = function () {
+            var filterCount = 0;
+            // Add the number of all of the filters throughout the panes
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (pane.s.dtPane !== undefined) {
+                    filterCount += pane.getPaneCount();
+                }
+            }
+            // Run the message through the internationalisation method to improve readability
+            var message = this.s.dt.i18n('searchPanes.title', this.c.i18n.title, filterCount);
+            $$1(this.dom.title).text(message);
+            if (this.c.filterChanged !== undefined && typeof this.c.filterChanged === 'function') {
+                this.c.filterChanged.call(this.s.dt, filterCount);
+            }
+            if (filterCount === 0) {
+                $$1(this.dom.clearAll).addClass(this.classes.disabledButton).attr('disabled', 'true');
+            }
+            else {
+                $$1(this.dom.clearAll).removeClass(this.classes.disabledButton).removeAttr('disabled');
+            }
+        };
+        /**
+         * Updates the selectionList when cascade is not in place
+         */
+        SearchPanes.prototype._updateSelection = function () {
+            this.s.selectionList = [];
+            for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
+                var pane = _a[_i];
+                if (pane.s.dtPane !== undefined) {
+                    this.s.selectionList.push({
+                        index: pane.s.index,
+                        protect: false,
+                        rows: pane.s.dtPane.rows({ selected: true }).data().toArray()
+                    });
+                }
+            }
+            this.s.dt.state.save();
+        };
+        SearchPanes.version = '1.3.0';
+        SearchPanes.classes = {
+            clear: 'dtsp-clear',
+            clearAll: 'dtsp-clearAll',
+            container: 'dtsp-searchPanes',
+            disabledButton: 'dtsp-disabledButton',
+            emptyMessage: 'dtsp-emptyMessage',
+            hide: 'dtsp-hidden',
+            panes: 'dtsp-panesContainer',
+            search: 'dtsp-search',
+            title: 'dtsp-title',
+            titleRow: 'dtsp-titleRow'
+        };
+        // Define SearchPanes default options
+        SearchPanes.defaults = {
+            cascadePanes: false,
+            clear: true,
+            columns: [],
+            container: function (dt) {
+                return dt.table().container();
+            },
+            filterChanged: undefined,
+            i18n: {
+                clearMessage: 'Clear All',
+                clearPane: '&times;',
+                collapse: {
+                    0: 'SearchPanes',
+                    _: 'SearchPanes (%d)'
+                },
+                count: '{total}',
+                countFiltered: '{shown} ({total})',
+                emptyMessage: '<em>No data</em>',
+                emptyPanes: 'No SearchPanes',
+                loadMessage: 'Loading Search Panes...',
+                title: 'Filters Active - %d'
+            },
+            layout: 'auto',
+            order: [],
+            panes: [],
+            viewTotal: false
+        };
+        return SearchPanes;
+    }());
+
+    /*! SearchPanes 1.3.0
+     * 2019-2020 SpryMedia Ltd - datatables.net/license
+     */
+    // DataTables extensions common UMD. Note that this allows for AMD, CommonJS
+    // (with window and jQuery being allowed as parameters to the returned
+    // function) or just default browser loading.
+    (function (factory) {
+        if (typeof define === 'function' && define.amd) {
+            // AMD
+            define(['jquery', 'datatables.net'], function ($) {
+                return factory($, window, document);
+            });
+        }
+        else if (typeof exports === 'object') {
+            // CommonJS
+            module.exports = function (root, $) {
+                if (!root) {
+                    root = window;
+                }
+                if (!$ || !$.fn.dataTable) {
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
+                    $ = require('datatables.net')(root, $).$;
+                }
+                return factory($, root, root.document);
+            };
+        }
+        else {
+            // Browser - assume jQuery has already been loaded
+            factory(window.jQuery, window, document);
+        }
+    }(function ($, window, document) {
+        setJQuery($);
+        setJQuery$1($);
+        var dataTable = $.fn.dataTable;
+        $.fn.dataTable.SearchPanes = SearchPanes;
+        $.fn.DataTable.SearchPanes = SearchPanes;
+        $.fn.dataTable.SearchPane = SearchPane;
+        $.fn.DataTable.SearchPane = SearchPane;
+        var apiRegister = $.fn.dataTable.Api.register;
+        apiRegister('searchPanes()', function () {
+            return this;
+        });
+        apiRegister('searchPanes.clearSelections()', function () {
+            return this.iterator('table', function (ctx) {
+                if (ctx._searchPanes) {
+                    ctx._searchPanes.clearSelections();
+                }
+            });
+        });
+        apiRegister('searchPanes.rebuildPane()', function (targetIdx, maintainSelections) {
+            return this.iterator('table', function (ctx) {
+                if (ctx._searchPanes) {
+                    ctx._searchPanes.rebuild(targetIdx, maintainSelections);
+                }
+            });
+        });
+        apiRegister('searchPanes.resizePanes()', function () {
+            var ctx = this.context[0];
+            return ctx._searchPanes ?
+                ctx._searchPanes.resizePanes() :
+                null;
+        });
+        apiRegister('searchPanes.container()', function () {
+            var ctx = this.context[0];
+            return ctx._searchPanes
+                ? ctx._searchPanes.getNode()
+                : null;
+        });
+        $.fn.dataTable.ext.buttons.searchPanesClear = {
+            action: function (e, dt, node, config) {
+                dt.searchPanes.clearSelections();
+            },
+            text: 'Clear Panes'
+        };
+        $.fn.dataTable.ext.buttons.searchPanes = {
+            action: function (e, dt, node, config) {
+                e.stopPropagation();
+                this.popover(config._panes.getNode(), {
+                    align: 'dt-container'
+                });
+                config._panes.rebuild(undefined, true);
+            },
+            config: {},
+            init: function (dt, node, config) {
+                var panes = new $.fn.dataTable.SearchPanes(dt, $.extend({
+                    filterChanged: function (count) {
+                        dt.button(node).text(dt.i18n('searchPanes.collapse', panes.c.i18n.collapse, count));
+                    }
+                }, config.config));
+                var message = dt.i18n('searchPanes.collapse', panes.c.i18n.collapse, 0);
+                dt.button(node).text(message);
+                config._panes = panes;
+            },
+            text: 'Search Panes'
+        };
+        function _init(settings, options, fromPre) {
+            if (options === void 0) { options = null; }
+            if (fromPre === void 0) { fromPre = false; }
+            var api = new dataTable.Api(settings);
+            var opts = options
+                ? options
+                : api.init().searchPanes || dataTable.defaults.searchPanes;
+            var searchPanes = new SearchPanes(api, opts, fromPre);
+            var node = searchPanes.getNode();
+            return node;
+        }
+        // Attach a listener to the document which listens for DataTables initialisation
+        // events so we can automatically initialise
+        $(document).on('preInit.dt.dtsp', function (e, settings, json) {
+            if (e.namespace !== 'dt') {
+                return;
+            }
+            if (settings.oInit.searchPanes ||
+                dataTable.defaults.searchPanes) {
+                if (!settings._searchPanes) {
+                    _init(settings, null, true);
+                }
+            }
+        });
+        // DataTables `dom` feature option
+        dataTable.ext.feature.push({
+            cFeature: 'P',
+            fnInit: _init
+        });
+        // DataTables 2 layout feature
+        if (dataTable.ext.features) {
+            dataTable.ext.features.register('searchPanes', _init);
+        }
+    }));
+
+}());
+
+/*!
+ SearchPanes 1.3.0
+ 2019-2020 SpryMedia Ltd - datatables.net/license
+*/
+(function(){var h,s,t,l=function(a,b,c,e,f,d){var g=this;void 0===d&&(d=null);if(!s||!s.versionCheck||!s.versionCheck("1.10.0"))throw Error("SearchPane requires DataTables 1.10 or newer");if(!s.select)throw Error("SearchPane requires Select");a=new s.Api(a);this.classes=h.extend(!0,{},l.classes);this.c=h.extend(!0,{},l.defaults,b);void 0!==b&&(void 0!==b.hideCount&&void 0===b.viewCount)&&(this.c.viewCount=!this.c.hideCount);this.customPaneSettings=d;this.s={cascadeRegen:!1,clearing:!1,colOpts:[],
+deselect:!1,displayed:!1,dt:a,dtPane:void 0,filteringActive:!1,forceViewTotal:!1,index:c,indexes:[],lastCascade:!1,lastSelect:!1,listSet:!1,name:void 0,redraw:!1,rowData:{arrayFilter:[],arrayOriginal:[],arrayTotals:[],bins:{},binsOriginal:{},binsTotal:{},filterMap:new Map,totalOptions:0},scrollTop:0,searchFunction:void 0,selectPresent:!1,serverSelect:[],serverSelecting:!1,showFiltered:!1,tableLength:null,updating:!1};b=a.columns().eq(0).toArray().length;this.colExists=this.s.index<b;this.c.layout=
+e;b=parseInt(e.split("-")[1],10);this.dom={buttonGroup:h("<div/>").addClass(this.classes.buttonGroup),clear:h('<button type="button">&#215;</button>').addClass(this.classes.disabledButton).attr("disabled","true").addClass(this.classes.paneButton).addClass(this.classes.clearButton),container:h("<div/>").addClass(this.classes.container).addClass(this.classes.layout+(10>b?e:e.split("-")[0]+"-9")),countButton:h('<button type="button"></button>').addClass(this.classes.paneButton).addClass(this.classes.countButton),
+dtP:h("<table><thead><tr><th>"+(this.colExists?h(a.column(this.colExists?this.s.index:0).header()).text():this.customPaneSettings.header||"Custom Pane")+"</th><th/></tr></thead></table>"),lower:h("<div/>").addClass(this.classes.subRow2).addClass(this.classes.narrowButton),nameButton:h('<button type="button"></button>').addClass(this.classes.paneButton).addClass(this.classes.nameButton),panesContainer:f,searchBox:h("<input/>").addClass(this.classes.paneInputButton).addClass(this.classes.search),searchButton:h('<button type = "button" class="'+
+this.classes.searchIcon+'"></button>').addClass(this.classes.paneButton),searchCont:h("<div/>").addClass(this.classes.searchCont),searchLabelCont:h("<div/>").addClass(this.classes.searchLabelCont),topRow:h("<div/>").addClass(this.classes.topRow),upper:h("<div/>").addClass(this.classes.subRow1).addClass(this.classes.narrowSearch)};this.s.displayed=!1;a=this.s.dt;this.selections=[];this.s.colOpts=this.colExists?this._getOptions():this._getBonusOptions();var i=this.s.colOpts,e=h('<button type="button">X</button>').addClass(this.classes.paneButton);
+h(e).text(a.i18n("searchPanes.clearPane",this.c.i18n.clearPane));this.dom.container.addClass(i.className);this.dom.container.addClass(null!==this.customPaneSettings&&void 0!==this.customPaneSettings.className?this.customPaneSettings.className:"");this.s.name=void 0!==this.s.colOpts.name?this.s.colOpts.name:null!==this.customPaneSettings&&void 0!==this.customPaneSettings.name?this.customPaneSettings.name:this.colExists?h(a.column(this.s.index).header()).text():this.customPaneSettings.header||"Custom Pane";
+h(f).append(this.dom.container);var p=a.table(0).node();this.s.searchFunction=function(a,b,d){if(g.selections.length===0||a.nTable!==p)return true;a=null;if(g.colExists){a=b[g.s.index];if(i.orthogonal.filter!=="filter"){a=g.s.rowData.filterMap.get(d);a instanceof h.fn.dataTable.Api&&(a=a.toArray())}}return g._search(a,d)};h.fn.dataTable.ext.search.push(this.s.searchFunction);if(this.c.clear)h(e).on("click",function(){g.dom.container.find("."+g.classes.search.replace(/\s+/g,".")).each(function(){h(this).val("");
+h(this).trigger("input")});g.clearPane()});a.on("draw.dtsp",function(){g.adjustTopRow()});a.on("buttons-action",function(){g.adjustTopRow()});a.on("column-reorder.dtsp",function(a,b,d){g.s.index=d.mapping[g.s.index]});return this};l.prototype.addRow=function(a,b,c,e,f,d,g){for(var i,h=0,k=this.s.indexes;h<k.length;h++){var j=k[h];j.filter===b&&(i=j.index)}void 0===i&&(i=this.s.indexes.length,this.s.indexes.push({filter:b,index:i}));return this.s.dtPane.row.add({className:g,display:""!==a?a:this.emptyMessage(),
+filter:b,index:i,shown:c,sort:f,total:e,type:d})};l.prototype.adjustTopRow=function(){var a=this.dom.container.find("."+this.classes.subRowsContainer.replace(/\s+/g,".")),b=this.dom.container.find("."+this.classes.subRow1.replace(/\s+/g,".")),c=this.dom.container.find("."+this.classes.subRow2.replace(/\s+/g,".")),e=this.dom.container.find("."+this.classes.topRow.replace(/\s+/g,"."));(252>h(a[0]).width()||252>h(e[0]).width())&&0!==h(a[0]).width()?(h(a[0]).addClass(this.classes.narrow),h(b[0]).addClass(this.classes.narrowSub).removeClass(this.classes.narrowSearch),
+h(c[0]).addClass(this.classes.narrowSub).removeClass(this.classes.narrowButton)):(h(a[0]).removeClass(this.classes.narrow),h(b[0]).removeClass(this.classes.narrowSub).addClass(this.classes.narrowSearch),h(c[0]).removeClass(this.classes.narrowSub).addClass(this.classes.narrowButton))};l.prototype.clearData=function(){this.s.rowData={arrayFilter:[],arrayOriginal:[],arrayTotals:[],bins:{},binsOriginal:{},binsTotal:{},filterMap:new Map,totalOptions:0}};l.prototype.clearPane=function(){this.s.dtPane.rows({selected:!0}).deselect();
+this.updateTable();return this};l.prototype.destroy=function(){h(this.s.dtPane).off(".dtsp");h(this.s.dt).off(".dtsp");h(this.dom.nameButton).off(".dtsp");h(this.dom.countButton).off(".dtsp");h(this.dom.clear).off(".dtsp");h(this.dom.searchButton).off(".dtsp");h(this.dom.container).remove();for(var a=h.fn.dataTable.ext.search.indexOf(this.s.searchFunction);-1!==a;)h.fn.dataTable.ext.search.splice(a,1),a=h.fn.dataTable.ext.search.indexOf(this.s.searchFunction);void 0!==this.s.dtPane&&this.s.dtPane.destroy();
+this.s.listSet=!1};l.prototype.emptyMessage=function(){var a=this.c.i18n.emptyMessage;this.c.emptyMessage&&(a=this.c.emptyMessage);!1!==this.s.colOpts.emptyMessage&&null!==this.s.colOpts.emptyMessage&&(a=this.s.colOpts.emptyMessage);return this.s.dt.i18n("searchPanes.emptyMessage",a)};l.prototype.getPaneCount=function(){return void 0!==this.s.dtPane?this.s.dtPane.rows({selected:!0}).data().toArray().length:0};l.prototype.rebuildPane=function(a,b,c,e){void 0===a&&(a=!1);void 0===b&&(b=null);void 0===
+c&&(c=null);void 0===e&&(e=!1);this.clearData();var f=[];this.s.serverSelect=[];var d=null;void 0!==this.s.dtPane&&(e&&(this.s.dt.page.info().serverSide?this.s.serverSelect=this.s.dtPane.rows({selected:!0}).data().toArray():f=this.s.dtPane.rows({selected:!0}).data().toArray()),this.s.dtPane.clear().destroy(),d=h(this.dom.container).prev(),this.destroy(),this.s.dtPane=void 0,h.fn.dataTable.ext.search.push(this.s.searchFunction));this.dom.container.removeClass(this.classes.hidden);this.s.displayed=
+!1;this._buildPane(!this.s.dt.page.info().serverSide?f:this.s.serverSelect,a,b,c,d);return this};l.prototype.removePane=function(){this.s.displayed=!1;h(this.dom.container).hide()};l.prototype.resize=function(a){this.c.layout=a;var b=parseInt(a.split("-")[1],10);h(this.dom.container).removeClass().addClass(this.classes.container).addClass(this.classes.layout+(10>b?a:a.split("-")[0]+"-9")).addClass(this.s.colOpts.className).addClass(null!==this.customPaneSettings&&void 0!==this.customPaneSettings.className?
+this.customPaneSettings.className:"").addClass(this.classes.show);this.adjustTopRow()};l.prototype.setCascadeRegen=function(a){this.s.cascadeRegen=a};l.prototype.setClear=function(a){this.s.clearing=a};l.prototype.updatePane=function(a){void 0===a&&(a=!1);this.s.updating=!0;this._updateCommon(a);this.s.updating=!1};l.prototype.updateTable=function(){this.selections=this.s.dtPane.rows({selected:!0}).data().toArray();this._searchExtras();(this.c.cascadePanes||this.c.viewTotal)&&this.updatePane()};l.prototype._setListeners=
+function(){var a=this,b=this.s.rowData,c;this.s.dtPane.on("select.dtsp",function(){clearTimeout(c);a.s.dt.page.info().serverSide&&!a.s.updating?a.s.serverSelecting||(a.s.serverSelect=a.s.dtPane.rows({selected:!0}).data().toArray(),a.s.scrollTop=h(a.s.dtPane.table().node()).parent()[0].scrollTop,a.s.selectPresent=!0,a.s.dt.draw(!1)):(h(a.dom.clear).removeClass(a.classes.disabledButton).removeAttr("disabled"),a.s.updating||(a.s.selectPresent=!0,a._makeSelection(),a.s.selectPresent=!1))});this.s.dtPane.on("deselect.dtsp",
+function(){c=setTimeout(function(){a.s.dt.page.info().serverSide&&!a.s.updating?a.s.serverSelecting||(a.s.serverSelect=a.s.dtPane.rows({selected:!0}).data().toArray(),a.s.deselect=!0,a.s.dt.draw(!1)):(a.s.deselect=!0,0===a.s.dtPane.rows({selected:!0}).data().toArray().length&&h(a.dom.clear).addClass(a.classes.disabledButton).attr("disabled","true"),a._makeSelection(),a.s.deselect=!1,a.s.dt.state.save())},50)});this.s.dt.on("stateSaveParams.dtsp",function(e,c,d){if(h.isEmptyObject(d))a.s.dtPane.state.clear();
+else{var e=[],g,i,p,k;void 0!==a.s.dtPane&&(e=a.s.dtPane.rows({selected:!0}).data().map(function(a){return a.filter.toString()}).toArray(),g=h(a.dom.searchBox).val(),i=a.s.dtPane.order(),p=b.binsOriginal,k=b.arrayOriginal);void 0===d.searchPanes&&(d.searchPanes={});void 0===d.searchPanes.panes&&(d.searchPanes.panes=[]);for(c=0;c<d.searchPanes.panes.length;c++)d.searchPanes.panes[c].id===a.s.index&&(d.searchPanes.panes.splice(c,1),c--);d.searchPanes.panes.push({arrayFilter:k,bins:p,id:a.s.index,order:i,
+searchTerm:g,selected:e})}});this.s.dtPane.on("user-select.dtsp",function(a,b,d,g,c){c.stopPropagation()});this.s.dtPane.on("draw.dtsp",function(){a.adjustTopRow()});h(this.dom.nameButton).on("click.dtsp",function(){var b=a.s.dtPane.order()[0][1];a.s.dtPane.order([0,"asc"===b?"desc":"asc"]).draw();a.s.dt.state.save()});h(this.dom.countButton).on("click.dtsp",function(){var b=a.s.dtPane.order()[0][1];a.s.dtPane.order([1,"asc"===b?"desc":"asc"]).draw();a.s.dt.state.save()});h(this.dom.clear).on("click.dtsp",
+function(){a.dom.container.find("."+a.classes.search.replace(/ /g,".")).each(function(){h(this).val("");h(this).trigger("input")});a.clearPane()});h(this.dom.searchButton).on("click.dtsp",function(){h(a.dom.searchBox).focus()});h(this.dom.searchBox).on("input.dtsp",function(){var b=h(a.dom.searchBox).val();a.s.dtPane.search(b).draw();0<b.length||0===b.length&&0<a.s.dtPane.rows({selected:!0}).data().toArray().length?a.dom.clear.removeClass(a.classes.disabledButton).removeAttr("disabled"):a.dom.clear.addClass(a.classes.disabledButton).attr("disabled",
+"true");a.s.dt.state.save()});this.s.dt.state.save();return!0};l.prototype._addOption=function(a,b,c,e,f,d){if(Array.isArray(a)||a instanceof s.Api)if(a instanceof s.Api&&(a=a.toArray(),b=b.toArray()),a.length===b.length)for(var g=0;g<a.length;g++)d[a[g]]?d[a[g]]++:(d[a[g]]=1,f.push({display:b[g],filter:a[g],sort:c[g],type:e[g]})),this.s.rowData.totalOptions++;else throw Error("display and filter not the same length");else"string"===typeof this.s.colOpts.orthogonal?(d[a]?d[a]++:(d[a]=1,f.push({display:b,
+filter:a,sort:c,type:e})),this.s.rowData.totalOptions++):f.push({display:b,filter:a,sort:c,type:e})};l.prototype._buildPane=function(a,b,c,e,f){var d=this;void 0===a&&(a=[]);void 0===b&&(b=!1);void 0===c&&(c=null);void 0===e&&(e=null);void 0===f&&(f=null);this.selections=[];var g=this.s.dt,i=g.column(this.colExists?this.s.index:0),p=this.s.colOpts,k=this.s.rowData,j=g.i18n("searchPanes.count",this.c.i18n.count),l=g.i18n("searchPanes.countFiltered",this.c.i18n.countFiltered),q=g.state.loaded();this.s.listSet&&
+(q=g.state());if(this.colExists){var o=-1;if(q&&q.searchPanes&&q.searchPanes.panes)for(var m=0;m<q.searchPanes.panes.length;m++)if(q.searchPanes.panes[m].id===this.s.index){o=m;break}if((!1===p.show||void 0!==p.show&&!0!==p.show)&&-1===o)return this.dom.container.addClass(this.classes.hidden),this.s.displayed=!1;if(!0===p.show||-1!==o)this.s.displayed=!0;if(!this.s.dt.page.info().serverSide&&(null===c||null===c.searchPanes||null===c.searchPanes.options)){if(0===k.arrayFilter.length){this._populatePane(b);
+this.s.rowData.totalOptions=0;this._detailsPane();if(q&&q.searchPanes&&q.searchPanes.panes&&-1===o){this.dom.container.addClass(this.classes.hidden);this.s.displayed=!1;return}k.arrayOriginal=k.arrayTotals;k.binsOriginal=k.binsTotal}m=Object.keys(k.binsOriginal).length;b=this._uniqueRatio(m,g.rows()[0].length);if(!1===this.s.displayed&&((void 0===p.show&&null===p.threshold?b>this.c.threshold:b>p.threshold)||!0!==p.show&&1>=m)){this.dom.container.addClass(this.classes.hidden);this.s.displayed=!1;return}this.c.viewTotal&&
+0===k.arrayTotals.length?(this.s.rowData.totalOptions=0,this._detailsPane()):k.binsTotal=k.bins;this.dom.container.addClass(this.classes.show);this.s.displayed=!0}else if(null!==c&&null!==c.searchPanes&&null!==c.searchPanes.options){if(void 0!==c.tableLength)this.s.tableLength=c.tableLength,this.s.rowData.totalOptions=this.s.tableLength;else if(null===this.s.tableLength||g.rows()[0].length>this.s.tableLength)this.s.tableLength=g.rows()[0].length,this.s.rowData.totalOptions=this.s.tableLength;b=g.column(this.s.index).dataSrc();
+if(void 0!==c.searchPanes.options[b]){m=0;for(b=c.searchPanes.options[b];m<b.length;m++)o=b[m],this.s.rowData.arrayFilter.push({display:o.label,filter:o.value,sort:o.label,type:o.label}),this.s.rowData.bins[o.value]=this.c.viewTotal||this.c.cascadePanes?o.count:o.total,this.s.rowData.binsTotal[o.value]=o.total}m=Object.keys(k.binsTotal).length;b=this._uniqueRatio(m,this.s.tableLength);if(!1===this.s.displayed&&((void 0===p.show&&null===p.threshold?b>this.c.threshold:b>p.threshold)||!0!==p.show&&1>=
+m)){this.dom.container.addClass(this.classes.hidden);this.s.displayed=!1;return}this.s.rowData.arrayOriginal=this.s.rowData.arrayFilter;this.s.rowData.binsOriginal=this.s.rowData.bins;this.s.displayed=!0}}else this.s.displayed=!0;this._displayPane();if(!this.s.listSet)this.dom.dtP.on("stateLoadParams.dt",function(a,b,d){h.isEmptyObject(g.state.loaded())&&h.each(d,function(a){delete d[a]})});null!==f&&0<h(this.dom.panesContainer).has(f).length?h(this.dom.container).insertAfter(f):h(this.dom.panesContainer).prepend(this.dom.container);
+m=h.fn.dataTable.ext.errMode;h.fn.dataTable.ext.errMode="none";f=s.Scroller;this.s.dtPane=h(this.dom.dtP).DataTable(h.extend(!0,{columnDefs:[{className:"dtsp-nameColumn",data:"display",render:function(a,b,e){if(b==="sort")return e.sort;if(b==="type")return e.type;var g;g=(d.s.filteringActive||d.s.showFiltered)&&d.c.viewTotal||d.c.viewTotal&&d.s.forceViewTotal?l.replace(/{total}/,e.total):j.replace(/{total}/,e.total);for(g=g.replace(/{shown}/,e.shown);g.indexOf("{total}")!==-1;)g=g.replace(/{total}/,
+e.total);for(;g.indexOf("{shown}")!==-1;)g=g.replace(/{shown}/,e.shown);e='<span class="'+d.classes.pill+'">'+g+"</span>";if(!d.c.viewCount||!p.viewCount)e="";return b==="filter"?typeof a==="string"&&a.match(/<[^>]*>/)!==null?a.replace(/<[^>]*>/g,""):a:'<div class="'+d.classes.nameCont+'"><span title="'+(typeof a==="string"&&a.match(/<[^>]*>/)!==null?a.replace(/<[^>]*>/g,""):a)+'" class="'+d.classes.name+'">'+a+"</span>"+e+"</div>"},targets:0,type:void 0!==g.settings()[0].aoColumns[this.s.index]?
+g.settings()[0].aoColumns[this.s.index]._sManualType:null},{className:"dtsp-countColumn "+this.classes.badgePill,data:"shown",orderData:[1,2],targets:1,visible:!1},{data:"total",targets:2,visible:!1}],deferRender:!0,dom:"t",info:!1,language:this.s.dt.settings()[0].oLanguage,paging:f?!0:!1,scrollX:!1,scrollY:"200px",scroller:f?!0:!1,select:!0,stateSave:g.settings()[0].oFeatures.bStateSave?!0:!1},this.c.dtOpts,void 0!==p?p.dtOpts:{},void 0!==this.s.colOpts.options||!this.colExists?{createdRow:function(a,
+b){h(a).addClass(b.className)}}:void 0,null!==this.customPaneSettings&&void 0!==this.customPaneSettings.dtOpts?this.customPaneSettings.dtOpts:{},h.fn.dataTable.versionCheck("2")?{layout:{bottomLeft:null,bottomRight:null,topLeft:null,topRight:null}}:{}));h(this.dom.dtP).addClass(this.classes.table);f="Custom Pane";this.customPaneSettings&&this.customPaneSettings.header?f=this.customPaneSettings.header:p.header?f=p.header:this.colExists&&(f=h.fn.dataTable.versionCheck("2")?g.column(this.s.index).title():
+g.settings()[0].aoColumns[this.s.index].sTitle);this.dom.searchBox.attr("placeholder",f);h.fn.dataTable.select.init(this.s.dtPane);h.fn.dataTable.ext.errMode=m;if(this.colExists){var i=(i=i.search())?i.substr(1,i.length-2).split("|"):[],n=0;k.arrayFilter.forEach(function(a){""===a.filter&&n++});m=0;for(f=k.arrayFilter.length;m<f;m++){for(var i=!1,o=0,r=this.s.serverSelect;o<r.length;o++)b=r[o],b.filter===k.arrayFilter[m].filter&&(i=!0);if(this.s.dt.page.info().serverSide&&(!this.c.cascadePanes||this.c.cascadePanes&&
+0!==k.bins[k.arrayFilter[m].filter]||this.c.cascadePanes&&null!==e||i)){i=this.addRow(k.arrayFilter[m].display,k.arrayFilter[m].filter,e?k.binsTotal[k.arrayFilter[m].filter]:k.bins[k.arrayFilter[m].filter],this.c.viewTotal||e?String(k.binsTotal[k.arrayFilter[m].filter]):k.bins[k.arrayFilter[m].filter],k.arrayFilter[m].sort,k.arrayFilter[m].type);o=0;for(r=this.s.serverSelect;o<r.length;o++)b=r[o],b.filter===k.arrayFilter[m].filter&&(this.s.serverSelecting=!0,i.select(),this.s.serverSelecting=!1)}else!this.s.dt.page.info().serverSide&&
+k.arrayFilter[m]&&(void 0!==k.bins[k.arrayFilter[m].filter]||!this.c.cascadePanes)?this.addRow(k.arrayFilter[m].display,k.arrayFilter[m].filter,k.bins[k.arrayFilter[m].filter],k.binsTotal[k.arrayFilter[m].filter],k.arrayFilter[m].sort,k.arrayFilter[m].type):this.s.dt.page.info().serverSide||this.addRow("",n,n,"","","")}}s.select.init(this.s.dtPane);(void 0!==p.options||null!==this.customPaneSettings&&void 0!==this.customPaneSettings.options)&&this._getComparisonRows();this.s.dtPane.draw();this.adjustTopRow();
+this.s.listSet||(this._setListeners(),this.s.listSet=!0);for(e=0;e<a.length;e++)if(k=a[e],void 0!==k){m=0;for(f=this.s.dtPane.rows().indexes().toArray();m<f.length;m++)i=f[m],void 0!==this.s.dtPane.row(i).data()&&k.filter===this.s.dtPane.row(i).data().filter&&(this.s.dt.page.info().serverSide?(this.s.serverSelecting=!0,this.s.dtPane.row(i).select(),this.s.serverSelecting=!1):this.s.dtPane.row(i).select())}this.s.dt.page.info().serverSide&&this.s.dtPane.search(h(this.dom.searchBox).val()).draw();if(q&&
+q.searchPanes&&q.searchPanes.panes&&(null===c||1===c.draw)){this.c.cascadePanes||this._reloadSelect(q);c=0;for(q=q.searchPanes.panes;c<q.length;c++)a=q[c],a.id===this.s.index&&(h(this.dom.searchBox).val(a.searchTerm),h(this.dom.searchBox).trigger("input"),this.s.dtPane.order(a.order).draw())}this.s.dt.state.save();return!0};l.prototype._detailsPane=function(){var a=this.s.dt;this.s.rowData.arrayTotals=[];this.s.rowData.binsTotal={};var b=this.s.dt.settings()[0],a=a.rows().indexes();if(!this.s.dt.page.info().serverSide)for(var c=
+0;c<a.length;c++)this._populatePaneArray(a[c],this.s.rowData.arrayTotals,b,this.s.rowData.binsTotal)};l.prototype._displayPane=function(){var a=this.dom.container,b=this.s.colOpts,c=parseInt(this.c.layout.split("-")[1],10);h(this.dom.topRow).empty();h(this.dom.dtP).empty();h(this.dom.topRow).addClass(this.classes.topRow);3<c&&h(this.dom.container).addClass(this.classes.smallGap);h(this.dom.topRow).addClass(this.classes.subRowsContainer);h(this.dom.upper).appendTo(this.dom.topRow);h(this.dom.lower).appendTo(this.dom.topRow);
+h(this.dom.searchCont).appendTo(this.dom.upper);h(this.dom.buttonGroup).appendTo(this.dom.lower);(!1===this.c.dtOpts.searching||void 0!==b.dtOpts&&!1===b.dtOpts.searching||!this.c.controls||!b.controls||null!==this.customPaneSettings&&void 0!==this.customPaneSettings.dtOpts&&void 0!==this.customPaneSettings.dtOpts.searching&&!this.customPaneSettings.dtOpts.searching)&&h(this.dom.searchBox).removeClass(this.classes.paneInputButton).addClass(this.classes.disabledButton).attr("disabled","true");h(this.dom.searchBox).appendTo(this.dom.searchCont);
+this._searchContSetup();this.c.clear&&(this.c.controls&&b.controls)&&h(this.dom.clear).appendTo(this.dom.buttonGroup);this.c.orderable&&(b.orderable&&this.c.controls&&b.controls)&&h(this.dom.nameButton).appendTo(this.dom.buttonGroup);this.c.viewCount&&(b.viewCount&&this.c.orderable&&b.orderable&&this.c.controls&&b.controls)&&h(this.dom.countButton).appendTo(this.dom.buttonGroup);h(this.dom.topRow).prependTo(this.dom.container);h(a).append(this.dom.dtP);h(a).show()};l.prototype._getBonusOptions=function(){return h.extend(!0,
+{},l.defaults,{orthogonal:{threshold:null},threshold:null},void 0!==this.c?this.c:{})};l.prototype._getComparisonRows=function(){var a=this.s.colOpts,a=void 0!==a.options?a.options:null!==this.customPaneSettings&&void 0!==this.customPaneSettings.options?this.customPaneSettings.options:void 0;if(void 0!==a){var b=this.s.dt.rows({search:"applied"}).data().toArray(),c=this.s.dt.rows({search:"applied"}),e=this.s.dt.rows().data().toArray(),f=this.s.dt.rows(),d=[];this.s.dtPane.clear();for(var g=0;g<a.length;g++){var i=
+a[g],h=""!==i.label?i.label:this.emptyMessage(),k=i.className,j=h,l="function"===typeof i.value?i.value:[],q=0,o=h,m=0;if("function"===typeof i.value){for(var n=0;n<b.length;n++)i.value.call(this.s.dt,b[n],c[0][n])&&q++;for(n=0;n<e.length;n++)i.value.call(this.s.dt,e[n],f[0][n])&&m++;"function"!==typeof l&&l.push(i.filter)}(!this.c.cascadePanes||this.c.cascadePanes&&0!==q)&&d.push(this.addRow(j,l,q,m,o,h,k))}return d}};l.prototype._getOptions=function(){var a=this.s.dt.settings()[0].aoColumns[this.s.index].searchPanes,
+b=h.extend(!0,{},l.defaults,{emptyMessage:!1,orthogonal:{threshold:null},threshold:null},a);void 0!==a&&(void 0!==a.hideCount&&void 0===a.viewCount)&&(b.viewCount=!a.hideCount);return b};l.prototype._makeSelection=function(){this.updateTable();this.s.updating=!0;this.s.dt.draw();this.s.updating=!1};l.prototype._populatePane=function(a){void 0===a&&(a=!1);var b=this.s.dt;this.s.rowData.arrayFilter=[];this.s.rowData.bins={};var c=this.s.dt.settings()[0];if(!this.s.dt.page.info().serverSide)for(var e=
+0,a=((this.c.cascadePanes||this.c.viewTotal)&&!this.s.clearing&&!a?b.rows({search:"applied"}).indexes():b.rows().indexes()).toArray();e<a.length;e++)this._populatePaneArray(a[e],this.s.rowData.arrayFilter,c)};l.prototype._populatePaneArray=function(a,b,c,e){void 0===e&&(e=this.s.rowData.bins);var f=this.s.colOpts;if("string"===typeof f.orthogonal)c=c.oApi._fnGetCellData(c,a,this.s.index,f.orthogonal),this.s.rowData.filterMap.set(a,c),this._addOption(c,c,c,c,b,e);else{var d=c.oApi._fnGetCellData(c,
+a,this.s.index,f.orthogonal.search);null===d&&(d="");"string"===typeof d&&(d=d.replace(/<[^>]*>/g,""));this.s.rowData.filterMap.set(a,d);e[d]?e[d]++:(e[d]=1,this._addOption(d,c.oApi._fnGetCellData(c,a,this.s.index,f.orthogonal.display),c.oApi._fnGetCellData(c,a,this.s.index,f.orthogonal.sort),c.oApi._fnGetCellData(c,a,this.s.index,f.orthogonal.type),b,e));this.s.rowData.totalOptions++}};l.prototype._reloadSelect=function(a){if(void 0!==a){for(var b,c=0;c<a.searchPanes.panes.length;c++)if(a.searchPanes.panes[c].id===
+this.s.index){b=c;break}if(void 0!==b)for(var c=this.s.dtPane,e=c.rows({order:"index"}).data().map(function(a){return null!==a.filter?a.filter.toString():null}).toArray(),f=0,a=a.searchPanes.panes[b].selected;f<a.length;f++){b=a[f];var d=-1;null!==b&&(d=e.indexOf(b.toString()));-1<d&&(this.s.serverSelecting=!0,c.row(d).select(),this.s.serverSelecting=!1)}}};l.prototype._search=function(a,b){for(var c=this.s.colOpts,e=this.s.dt,f=0,d=this.selections;f<d.length;f++){var g=d[f];"string"===typeof g.filter&&
+"string"===typeof a&&(g.filter=g.filter.replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"'));if(Array.isArray(a)){if(-1!==a.indexOf(g.filter))return!0}else if("function"===typeof g.filter)if(g.filter.call(e,e.row(b).data(),b)){if("or"===c.combiner)return!0}else{if("and"===c.combiner)return!1}else if(a===g.filter||!("string"===typeof a&&0===a.length)&&a==g.filter||null===g.filter&&"string"===typeof a&&""===a)return!0}return"and"===c.combiner?!0:!1};l.prototype._searchContSetup=
+function(){this.c.controls&&this.s.colOpts.controls&&h(this.dom.searchButton).appendTo(this.dom.searchLabelCont);!1===this.c.dtOpts.searching||(!1===this.s.colOpts.dtOpts.searching||null!==this.customPaneSettings&&void 0!==this.customPaneSettings.dtOpts&&void 0!==this.customPaneSettings.dtOpts.searching&&!this.customPaneSettings.dtOpts.searching)||h(this.dom.searchLabelCont).appendTo(this.dom.searchCont)};l.prototype._searchExtras=function(){var a=this.s.updating;this.s.updating=!0;var b=this.s.dtPane.rows({selected:!0}).data().pluck("filter").toArray(),
+c=b.indexOf(this.emptyMessage()),e=h(this.s.dtPane.table().container());-1<c&&(b[c]="");0<b.length?e.addClass(this.classes.selected):0===b.length&&e.removeClass(this.classes.selected);this.s.updating=a};l.prototype._uniqueRatio=function(a,b){return 0<b&&(0<this.s.rowData.totalOptions&&!this.s.dt.page.info().serverSide||this.s.dt.page.info().serverSide&&0<this.s.tableLength)?a/this.s.rowData.totalOptions:1};l.prototype._updateCommon=function(a){void 0===a&&(a=!1);if(!this.s.dt.page.info().serverSide&&
+void 0!==this.s.dtPane&&(!this.s.filteringActive||this.c.cascadePanes||!0===a)&&(!0!==this.c.cascadePanes||!0!==this.s.selectPresent)&&(!this.s.lastSelect||!this.s.lastCascade)){var b=this.s.colOpts,c=this.s.dtPane.rows({selected:!0}).data().toArray(),a=h(this.s.dtPane.table().node()).parent()[0].scrollTop,e=this.s.rowData;this.s.dtPane.clear();if(this.colExists){0===e.arrayFilter.length?this._populatePane(!this.s.filteringActive):this.c.cascadePanes&&this.s.dt.rows().data().toArray().length===this.s.dt.rows({search:"applied"}).data().toArray().length?
+(e.arrayFilter=e.arrayOriginal,e.bins=e.binsOriginal):(this.c.viewTotal||this.c.cascadePanes)&&this._populatePane(!this.s.filteringActive);this.c.viewTotal?this._detailsPane():e.binsTotal=e.bins;this.c.viewTotal&&!this.c.cascadePanes&&(e.arrayFilter=e.arrayTotals);for(var f=function(a){if(a&&(e.bins[a.filter]!==void 0&&e.bins[a.filter]!==0&&d.c.cascadePanes||!d.c.cascadePanes||d.s.clearing)){var b=d.addRow(a.display,a.filter,!d.c.viewTotal?e.bins[a.filter]:e.bins[a.filter]!==void 0?e.bins[a.filter]:
+0,d.c.viewTotal?String(e.binsTotal[a.filter]):e.bins[a.filter],a.sort,a.type),g=c.findIndex(function(b){return b.filter===a.filter});if(g!==-1){b.select();c.splice(g,1)}}},d=this,g=0,i=e.arrayFilter;g<i.length;g++)f(i[g])}if(void 0!==b.searchPanes&&void 0!==b.searchPanes.options||void 0!==b.options||null!==this.customPaneSettings&&void 0!==this.customPaneSettings.options){f=function(a){var b=c.findIndex(function(b){if(b.display===a.data().display)return!0});-1!==b&&(a.select(),c.splice(b,1))};g=0;
+for(i=this._getComparisonRows();g<i.length;g++)b=i[g],f(b)}for(f=0;f<c.length;f++)b=c[f],b=this.addRow(b.display,b.filter,0,this.c.viewTotal?b.total:0,b.display,b.display),this.s.updating=!0,b.select(),this.s.updating=!1;this.s.dtPane.draw();this.s.dtPane.table().node().parentNode.scrollTop=a}};l.version="1.3.0";l.classes={buttonGroup:"dtsp-buttonGroup",buttonSub:"dtsp-buttonSub",clear:"dtsp-clear",clearAll:"dtsp-clearAll",clearButton:"clearButton",container:"dtsp-searchPane",countButton:"dtsp-countButton",
+disabledButton:"dtsp-disabledButton",hidden:"dtsp-hidden",hide:"dtsp-hide",layout:"dtsp-",name:"dtsp-name",nameButton:"dtsp-nameButton",nameCont:"dtsp-nameCont",narrow:"dtsp-narrow",paneButton:"dtsp-paneButton",paneInputButton:"dtsp-paneInputButton",pill:"dtsp-pill",search:"dtsp-search",searchCont:"dtsp-searchCont",searchIcon:"dtsp-searchIcon",searchLabelCont:"dtsp-searchButtonCont",selected:"dtsp-selected",smallGap:"dtsp-smallGap",subRow1:"dtsp-subRow1",subRow2:"dtsp-subRow2",subRowsContainer:"dtsp-subRowsContainer",
+title:"dtsp-title",topRow:"dtsp-topRow"};l.defaults={cascadePanes:!1,clear:!0,combiner:"or",container:function(a){return a.table().container()},controls:!0,dtOpts:{},emptyMessage:null,hideCount:!1,i18n:{clearPane:"&times;",count:"{total}",countFiltered:"{shown} ({total})",emptyMessage:"<em>No data</em>"},layout:"auto",name:void 0,orderable:!0,orthogonal:{display:"display",filter:"filter",hideCount:!1,search:"filter",show:void 0,sort:"sort",threshold:0.6,type:"type",viewCount:!0},preSelect:[],threshold:0.6,
+viewCount:!0,viewTotal:!1};t=l;var j,r,u,n=function(a,b,c){var e=this;void 0===c&&(c=!1);this.regenerating=!1;if(!r||!r.versionCheck||!r.versionCheck("1.10.0"))throw Error("SearchPane requires DataTables 1.10 or newer");if(!r.select)throw Error("SearchPane requires Select");var f=new r.Api(a);this.classes=j.extend(!0,{},n.classes);this.c=j.extend(!0,{},n.defaults,b);this.dom={clearAll:j('<button type="button">Clear All</button>').addClass(this.classes.clearAll),container:j("<div/>").addClass(this.classes.panes).text(f.i18n("searchPanes.loadMessage",
+this.c.i18n.loadMessage)),emptyMessage:j("<div/>").addClass(this.classes.emptyMessage),options:j("<div/>").addClass(this.classes.container),panes:j("<div/>").addClass(this.classes.container),title:j("<div/>").addClass(this.classes.title),titleRow:j("<div/>").addClass(this.classes.titleRow),wrapper:j("<div/>")};this.s={colOpts:[],dt:f,filterCount:0,filterPane:-1,page:0,panes:[],selectionList:[],serverData:{},stateRead:!1,updating:!1};if(void 0===f.settings()[0]._searchPanes){this._getState();if(this.s.dt.page.info().serverSide)f.on("preXhr.dt",
+function(a,b,c){void 0===c.searchPanes&&(c.searchPanes={});void 0===c.searchPanes_null&&(c.searchPanes_null={});a=0;for(b=e.s.selectionList;a<b.length;a++){var f=b[a],h=e.s.dt.column(f.index).dataSrc();void 0===c.searchPanes[h]&&(c.searchPanes[h]={});void 0===c.searchPanes_null[h]&&(c.searchPanes_null[h]={});for(var j=0;j<f.rows.length;j++)c.searchPanes[h][j]=f.rows[j].filter,null===c.searchPanes[h][j]&&(c.searchPanes_null[h][j]=!0)}});f.on("xhr",function(a,b,c){c&&(c.searchPanes&&c.searchPanes.options)&&
+(e.s.serverData=c,e.s.serverData.tableLength=c.recordsTotal,e._serverTotals())});f.settings()[0]._searchPanes=this;this.dom.clearAll.text(f.i18n("searchPanes.clearMessage",this.c.i18n.clearMessage));if(this.s.dt.settings()[0]._bInitComplete||c)this._paneDeclare(f,a,b);else f.one("preInit.dt",function(){e._paneDeclare(f,a,b)});return this}};n.prototype.clearSelections=function(){this.dom.container.find("."+this.classes.search.replace(/\s+/g,".")).each(function(){j(this).val("");j(this).trigger("input")});
+for(var a=[],b=0,c=this.s.panes;b<c.length;b++){var e=c[b];void 0!==e.s.dtPane&&a.push(e.clearPane())}return a};n.prototype.getNode=function(){return this.dom.container};n.prototype.rebuild=function(a,b){void 0===a&&(a=!1);void 0===b&&(b=!1);j(this.dom.emptyMessage).remove();var c=[];!1===a&&j(this.dom.panes).empty();for(var e=0,f=this.s.panes;e<f.length;e++){var d=f[e];!1!==a&&d.s.index!==a||(d.clearData(),c.push(d.rebuildPane(void 0!==this.s.selectionList[this.s.selectionList.length-1]?d.s.index===
+this.s.selectionList[this.s.selectionList.length-1].index:!1,this.s.dt.page.info().serverSide?this.s.serverData:void 0,null,b)),j(this.dom.panes).append(d.dom.container))}this.c.cascadePanes||this.c.viewTotal?this.redrawPanes(!0):this._updateSelection();this._updateFilterCount();this._attachPaneContainer();this.s.dt.draw();this.resizePanes();return 1===c.length?c[0]:c};n.prototype.redrawPanes=function(a){void 0===a&&(a=!1);var b=this.s.dt;if(!this.s.updating&&!this.s.dt.page.info().serverSide){for(var c=
+!0,e=this.s.filterPane,f=null,d=0,g=this.s.panes;d<g.length;d++){var i=g[d];void 0!==i.s.dtPane&&(f+=i.s.dtPane.rows({selected:!0}).data().toArray().length)}if(0===f&&b.rows({search:"applied"}).data().toArray().length===b.rows().data().toArray().length)c=!1;else if(this.c.viewTotal){d=0;for(g=this.s.panes;d<g.length;d++)if(i=g[d],void 0!==i.s.dtPane){var h=i.s.dtPane.rows({selected:!0}).data().toArray().length;if(0===h)for(var k=0,j=this.s.selectionList;k<j.length;k++){var l=j[k];l.index===i.s.index&&
+0!==l.rows.length&&(h=l.rows.length)}0<h&&-1===e?e=i.s.index:0<h&&(e=null)}0===f&&(e=null)}g=void 0;d=[];if(this.regenerating){b=-1;1===d.length&&(null!==f&&0!==f)&&(b=d[0].index);a=0;for(d=this.s.panes;a<d.length;a++)if(i=d[a],void 0!==i.s.dtPane){g=!0;i.s.filteringActive=!0;if(-1!==e&&null!==e&&e===i.s.index||!1===c||i.s.index===b)g=!1,i.s.filteringActive=!1;i.updatePane(!g?g:c)}this._updateFilterCount()}else{h=0;for(k=this.s.panes;h<k.length;h++)if(i=k[h],i.s.selectPresent){this.s.selectionList.push({index:i.s.index,
+protect:!1,rows:i.s.dtPane.rows({selected:!0}).data().toArray()});b.state.save();break}else i.s.deselect&&(g=i.s.index,j=i.s.dtPane.rows({selected:!0}).data().toArray(),0<j.length&&this.s.selectionList.push({index:i.s.index,protect:!0,rows:j}));if(0<this.s.selectionList.length){b=this.s.selectionList[this.s.selectionList.length-1].index;h=0;for(k=this.s.panes;h<k.length;h++)i=k[h],i.s.lastSelect=i.s.index===b}for(i=0;i<this.s.selectionList.length;i++)if(this.s.selectionList[i].index!==g||!0===this.s.selectionList[i].protect){b=
+!1;for(h=i+1;h<this.s.selectionList.length;h++)this.s.selectionList[h].index===this.s.selectionList[i].index&&(b=!0);b||(d.push(this.s.selectionList[i]),this.s.selectionList[i].protect=!1)}b=-1;1===d.length&&(null!==f&&0!==f)&&(b=d[0].index);h=0;for(k=this.s.panes;h<k.length;h++)if(i=k[h],void 0!==i.s.dtPane){g=!0;i.s.filteringActive=!0;if(-1!==e&&null!==e&&e===i.s.index||!1===c||i.s.index===b)g=!1,i.s.filteringActive=!1;i.updatePane(!g?!1:c)}this._updateFilterCount();if(0<d.length&&(d.length<this.s.selectionList.length||
+a)){this._cascadeRegen(d,f);b=d[d.length-1].index;e=0;for(a=this.s.panes;e<a.length;e++)i=a[e],i.s.lastSelect=i.s.index===b}else if(0<d.length){i=0;for(a=this.s.panes;i<a.length;i++)if(d=a[i],void 0!==d.s.dtPane){g=!0;d.s.filteringActive=!0;if(-1!==e&&null!==e&&e===d.s.index||!1===c||d.s.index===b)g=!1,d.s.filteringActive=!1;d.updatePane(!g?g:c)}}}if(!c||0===f)this.s.selectionList=[]}};n.prototype.resizePanes=function(){if("auto"===this.c.layout){for(var a=j(this.s.dt.searchPanes.container()).width(),
+b=Math.floor(a/260),a=1,c=0,e=[],f=0,d=this.s.panes;f<d.length;f++){var g=d[f];g.s.displayed&&e.push(g.s.index)}g=e.length;if(b===g)a=b;else for(;1<b;b--)if(f=g%b,0===f){a=b;c=0;break}else f>c&&(a=b,c=f);e=0!==c?e.slice(e.length-c,e.length):[];b=0;for(f=this.s.panes;b<f.length;b++)g=f[b],g.s.displayed&&(d="columns-"+(-1===e.indexOf(g.s.index)?a:c),g.resize(d))}else{a=0;for(c=this.s.panes;a<c.length;a++)g=c[a],g.adjustTopRow()}return this};n.prototype._attach=function(){var a=this;j(this.dom.container).removeClass(this.classes.hide);
+j(this.dom.titleRow).removeClass(this.classes.hide);j(this.dom.titleRow).remove();j(this.dom.title).appendTo(this.dom.titleRow);this.c.clear&&(j(this.dom.clearAll).appendTo(this.dom.titleRow),j(this.dom.clearAll).on("click.dtsps",function(){a.clearSelections()}));j(this.dom.titleRow).appendTo(this.dom.container);for(var b=0,c=this.s.panes;b<c.length;b++)j(c[b].dom.container).appendTo(this.dom.panes);j(this.dom.panes).appendTo(this.dom.container);0===j("div."+this.classes.container).length&&j(this.dom.container).prependTo(this.s.dt);
+return this.dom.container};n.prototype._attachExtras=function(){j(this.dom.container).removeClass(this.classes.hide);j(this.dom.titleRow).removeClass(this.classes.hide);j(this.dom.titleRow).remove();j(this.dom.title).appendTo(this.dom.titleRow);this.c.clear&&j(this.dom.clearAll).appendTo(this.dom.titleRow);j(this.dom.titleRow).appendTo(this.dom.container);return this.dom.container};n.prototype._attachMessage=function(){var a;try{a=this.s.dt.i18n("searchPanes.emptyPanes",this.c.i18n.emptyPanes)}catch(b){a=
+null}if(null===a)j(this.dom.container).addClass(this.classes.hide),j(this.dom.titleRow).removeClass(this.classes.hide);else return j(this.dom.container).removeClass(this.classes.hide),j(this.dom.titleRow).addClass(this.classes.hide),j(this.dom.emptyMessage).text(a),this.dom.emptyMessage.appendTo(this.dom.container),this.dom.container};n.prototype._attachPaneContainer=function(){for(var a=0,b=this.s.panes;a<b.length;a++)if(!0===b[a].s.displayed)return this._attach();return this._attachMessage()};n.prototype._cascadeRegen=
+function(a,b){this.regenerating=!0;var c=-1;1===a.length&&(null!==b&&0!==b)&&(c=a[0].index);for(var e=0,f=this.s.panes;e<f.length;e++){var d=f[e];d.setCascadeRegen(!0);d.setClear(!0);(void 0!==d.s.dtPane&&d.s.index===c||void 0!==d.s.dtPane)&&d.clearPane();d.setClear(!1)}this.s.dt.draw();c=this.s.dt.rows({search:"applied"}).data().toArray().length;e=this.s.dt.rows().data().toArray().length;if(e!==c)for(var f=0,g=this.s.panes;f<g.length;f++)d=g[f],d.s.forceViewTotal=!0;f=0;for(g=this.s.panes;f<g.length;f++)d=
+g[f],d.updatePane(!0);this._makeCascadeSelections(a);this.s.selectionList=a;f=0;for(g=this.s.panes;f<g.length;f++)d=g[f],d.setCascadeRegen(!1);this.regenerating=!1;if(e!==c){c=0;for(e=this.s.panes;c<e.length;c++)d=e[c],d.s.forceViewTotal=!1}};n.prototype._checkMessage=function(){for(var a=0,b=this.s.panes;a<b.length;a++)if(!0===b[a].s.displayed){j(this.dom.emptyMessage).remove();j(this.dom.titleRow).removeClass(this.classes.hide);return}return this._attachMessage()};n.prototype._getState=function(){var a=
+this.s.dt.state.loaded();a&&(a.searchPanes&&void 0!==a.searchPanes.selectionList)&&(this.s.selectionList=a.searchPanes.selectionList)};n.prototype._makeCascadeSelections=function(a){for(var b=0;b<a.length;b++)for(var c=function(d){if(d.s.index===a[b].index&&void 0!==d.s.dtPane){b===a.length-1&&(d.s.lastCascade=!0);0<d.s.dtPane.rows({selected:!0}).data().toArray().length&&void 0!==d.s.dtPane&&(d.setClear(!0),d.clearPane(),d.setClear(!1));for(var c=function(a){var b=false;d.s.dtPane.rows().every(function(c){if(d.s.dtPane.row(c).data()!==
+void 0&&a!==void 0&&d.s.dtPane.row(c).data().filter===a.filter){b=true;d.s.dtPane.row(c).select()}});b||d.addRow(a.display,a.filter,0,a.total,a.sort,a.type,a.className).select()},f=0,h=a[b].rows;f<h.length;f++)c(h[f]);d.s.dtPane.draw();e._updateFilterCount();d.s.lastCascade=!1}},e=this,f=0,d=this.s.panes;f<d.length;f++)c(d[f]);this.s.dt.state.save()};n.prototype._paneDeclare=function(a,b,c){var e=this;a.columns(0<this.c.columns.length?this.c.columns:void 0).eq(0).each(function(a){e.s.panes.push(new t(b,
+c,a,e.c.layout,e.dom.panes))});for(var f=a.columns().eq(0).toArray().length,d=this.c.panes.length,g=0;g<d;g++)this.s.panes.push(new t(b,c,f+g,this.c.layout,this.dom.panes,this.c.panes[g]));if(0<this.c.order.length){f=this.c.order.map(function(a){return e._findPane(a)});this.dom.panes.empty();this.s.panes=f;f=0;for(d=this.s.panes;f<d.length;f++)this.dom.panes.append(d[f].dom.container)}this.s.dt.settings()[0]._bInitComplete?this._startup(a):this.s.dt.settings()[0].aoInitComplete.push({fn:function(){e._startup(a)}})};
+n.prototype._findPane=function(a){for(var b=0,c=this.s.panes;b<c.length;b++){var e=c[b];if(a===e.s.name)return e}};n.prototype._serverTotals=function(){for(var a=!1,b=!1,c=this.s.dt,e=0,f=this.s.panes;e<f.length;e++){var d=f[e];if(d.s.selectPresent){this.s.selectionList.push({index:d.s.index,protect:!1,rows:d.s.dtPane.rows({selected:!0}).data().toArray()});c.state.save();d.s.selectPresent=!1;a=!0;break}else d.s.deselect&&(b=d.s.dtPane.rows({selected:!0}).data().toArray(),0<b.length&&this.s.selectionList.push({index:d.s.index,
+protect:!0,rows:b}),b=a=!0)}if(a){c=[];for(e=0;e<this.s.selectionList.length;e++){d=!1;for(f=e+1;f<this.s.selectionList.length;f++)this.s.selectionList[f].index===this.s.selectionList[e].index&&(d=!0);if(!d){for(var f=!1,a=0,g=this.s.panes;a<g.length;a++)d=g[a],d.s.index===this.s.selectionList[e].index&&0<d.s.dtPane.rows({selected:!0}).data().toArray().length&&(f=!0);f&&c.push(this.s.selectionList[e])}}this.s.selectionList=c}else this.s.selectionList=[];c=-1;if(b&&1===this.s.selectionList.length){b=
+0;for(e=this.s.panes;b<e.length;b++)d=e[b],d.s.lastSelect=!1,d.s.deselect=!1,void 0!==d.s.dtPane&&0<d.s.dtPane.rows({selected:!0}).data().toArray().length&&(c=d.s.index)}else if(0<this.s.selectionList.length){b=this.s.selectionList[this.s.selectionList.length-1].index;e=0;for(f=this.s.panes;e<f.length;e++)d=f[e],d.s.lastSelect=d.s.index===b,d.s.deselect=!1}else if(0===this.s.selectionList.length){b=0;for(e=this.s.panes;b<e.length;b++)d=e[b],d.s.lastSelect=!1,d.s.deselect=!1}j(this.dom.panes).empty();
+b=0;for(e=this.s.panes;b<e.length;b++)d=e[b],d.s.lastSelect?d._setListeners():d.rebuildPane(void 0,this.s.dt.page.info().serverSide?this.s.serverData:void 0,d.s.index===c?!0:null,!0),j(this.dom.panes).append(d.dom.container),void 0!==d.s.dtPane&&(j(d.s.dtPane.table().node()).parent()[0].scrollTop=d.s.scrollTop,j.fn.dataTable.select.init(d.s.dtPane));this._updateSelection()};n.prototype._startup=function(a){var b=this;j(this.dom.container).text("");this._attachExtras();j(this.dom.container).append(this.dom.panes);
+j(this.dom.panes).empty();var c=this.s.dt.state.loaded();if(this.c.viewTotal&&!this.c.cascadePanes&&null!==c&&void 0!==c&&void 0!==c.searchPanes&&void 0!==c.searchPanes.panes){for(var e=!1,f=0,d=c.searchPanes.panes;f<d.length;f++){var g=d[f];if(0<g.selected.length){e=!0;break}}if(e){e=0;for(f=this.s.panes;e<f.length;e++)g=f[e],g.s.showFiltered=!0}}e=0;for(f=this.s.panes;e<f.length;e++)g=f[e],g.rebuildPane(void 0,0<Object.keys(this.s.serverData).length?this.s.serverData:void 0),j(this.dom.panes).append(g.dom.container);
+"auto"===this.c.layout&&this.resizePanes();!this.s.stateRead&&(null!==c&&void 0!==c)&&(this.s.dt.page(c.start/this.s.dt.page.len()),this.s.dt.draw("page"));this.s.stateRead=!0;if(this.c.viewTotal&&!this.c.cascadePanes){c=0;for(e=this.s.panes;c<e.length;c++)g=e[c],g.updatePane()}this._updateFilterCount();this._checkMessage();a.on("preDraw.dtsps",function(){if(!b.s.updating){b._updateFilterCount();(b.c.cascadePanes||b.c.viewTotal)&&!b.s.dt.page.info().serverSide?b.redrawPanes(b.c.viewTotal):b._updateSelection();
+b.s.filterPane=-1}});j(window).on("resize.dtsp",r.util.throttle(function(){b.resizePanes()}));this.s.dt.on("stateSaveParams.dtsp",function(a,d,c){if(c.searchPanes===void 0)c.searchPanes={};c.searchPanes.selectionList=b.s.selectionList});if(this.s.dt.page.info().serverSide)a.off("page"),a.on("page",function(){b.s.page=b.s.dt.page()}),a.off("preXhr.dt"),a.on("preXhr.dt",function(a,d,c){if(c.searchPanes===void 0)c.searchPanes={};if(c.searchPanes_null===void 0)c.searchPanes_null={};for(var d=a=0,e=b.s.panes;d<
+e.length;d++){var g=e[d],f=b.s.dt.column(g.s.index).dataSrc();c.searchPanes[f]===void 0&&(c.searchPanes[f]={});c.searchPanes_null[f]===void 0&&(c.searchPanes_null[f]={});if(g.s.dtPane!==void 0)for(var g=g.s.dtPane.rows({selected:true}).data().toArray(),h=0;h<g.length;h++){c.searchPanes[f][h]=g[h].filter;c.searchPanes[f][h]===null&&(c.searchPanes_null[f][h]=true);a++}}b.c.viewTotal&&b._prepViewTotal(a);if(a>0){if(a!==b.s.filterCount){c.start=0;b.s.page=0}else c.start=b.s.page*b.s.dt.page.len();b.s.dt.page(b.s.page);
+b.s.filterCount=a}});else a.on("preXhr.dt",function(){for(var a=0,d=b.s.panes;a<d.length;a++)d[a].clearData()});this.s.dt.on("xhr",function(a,d){if(d.nTable===b.s.dt.table().node()){var c=false;if(!b.s.dt.page.info().serverSide)b.s.dt.one("preDraw",function(){if(!c){var a=b.s.dt.page();c=true;b.s.updating=true;j(b.dom.panes).empty();for(var d=0,e=b.s.panes;d<e.length;d++){var g=e[d];g.clearData();g.rebuildPane(b.s.selectionList[b.s.selectionList.length-1]!==void 0?g.s.index===b.s.selectionList[b.s.selectionList.length-
+1].index:false,void 0,void 0,true);j(b.dom.panes).append(g.dom.container)}b.s.dt.page.info().serverSide||b.s.dt.draw();b.s.updating=false;b.c.cascadePanes||b.c.viewTotal?b.redrawPanes(b.c.cascadePanes):b._updateSelection();b._checkMessage();b.s.dt.one("draw",function(){b.s.updating=true;b.s.dt.page(a).draw(false);b.s.updating=false})}})}});c=0;for(e=this.s.panes;c<e.length;c++)if(g=e[c],void 0!==g&&void 0!==g.s.dtPane&&(void 0!==g.s.colOpts.preSelect&&0<g.s.colOpts.preSelect.length||null!==g.customPaneSettings&&
+void 0!==g.customPaneSettings.preSelect&&0<g.customPaneSettings.preSelect.length)){f=g.s.dtPane.rows().data().toArray().length;for(d=0;d<f;d++)(-1!==g.s.colOpts.preSelect.indexOf(g.s.dtPane.cell(d,0).data())||null!==g.customPaneSettings&&void 0!==g.customPaneSettings.preSelect&&-1!==g.customPaneSettings.preSelect.indexOf(g.s.dtPane.cell(d,0).data()))&&g.s.dtPane.row(d).select();g.updateTable()}if(void 0!==this.s.selectionList&&0<this.s.selectionList.length){c=this.s.selectionList[this.s.selectionList.length-
+1].index;e=0;for(f=this.s.panes;e<f.length;e++)g=f[e],g.s.lastSelect=g.s.index===c}0<this.s.selectionList.length&&this.c.cascadePanes&&this._cascadeRegen(this.s.selectionList,this.s.selectionList.length);this._updateFilterCount();a.on("destroy.dtsps",function(){for(var d=0,c=b.s.panes;d<c.length;d++)c[d].destroy();a.off(".dtsps");j(b.dom.clearAll).off(".dtsps");j(b.dom.container).remove();b.clearSelections()});if(this.c.clear)j(this.dom.clearAll).on("click.dtsps",function(){b.clearSelections()});
+a.settings()[0]._searchPanes=this;this.s.dt.state.save()};n.prototype._prepViewTotal=function(a){for(var b=this.s.filterPane,c=!1,e=0,f=this.s.panes;e<f.length;e++){var d=f[e];if(void 0!==d.s.dtPane){var g=d.s.dtPane.rows({selected:!0}).data().toArray().length;0<g&&-1===b?(b=d.s.index,c=!0):0<g&&(b=null)}}null!==a&&0!==a&&(b=null);a=0;for(e=this.s.panes;a<e.length;a++)if(d=e[a],void 0!==d.s.dtPane&&(d.s.filteringActive=!0,-1!==b&&null!==b&&b===d.s.index||!1===c))d.s.filteringActive=!1};n.prototype._updateFilterCount=
+function(){for(var a=0,b=0,c=this.s.panes;b<c.length;b++){var e=c[b];void 0!==e.s.dtPane&&(a+=e.getPaneCount())}b=this.s.dt.i18n("searchPanes.title",this.c.i18n.title,a);j(this.dom.title).text(b);void 0!==this.c.filterChanged&&"function"===typeof this.c.filterChanged&&this.c.filterChanged.call(this.s.dt,a);0===a?j(this.dom.clearAll).addClass(this.classes.disabledButton).attr("disabled","true"):j(this.dom.clearAll).removeClass(this.classes.disabledButton).removeAttr("disabled")};n.prototype._updateSelection=
+function(){this.s.selectionList=[];for(var a=0,b=this.s.panes;a<b.length;a++){var c=b[a];void 0!==c.s.dtPane&&this.s.selectionList.push({index:c.s.index,protect:!1,rows:c.s.dtPane.rows({selected:!0}).data().toArray()})}this.s.dt.state.save()};n.version="1.3.0";n.classes={clear:"dtsp-clear",clearAll:"dtsp-clearAll",container:"dtsp-searchPanes",disabledButton:"dtsp-disabledButton",emptyMessage:"dtsp-emptyMessage",hide:"dtsp-hidden",panes:"dtsp-panesContainer",search:"dtsp-search",title:"dtsp-title",
+titleRow:"dtsp-titleRow"};n.defaults={cascadePanes:!1,clear:!0,columns:[],container:function(a){return a.table().container()},filterChanged:void 0,i18n:{clearMessage:"Clear All",clearPane:"&times;",collapse:{"0":"SearchPanes",_:"SearchPanes (%d)"},count:"{total}",countFiltered:"{shown} ({total})",emptyMessage:"<em>No data</em>",emptyPanes:"No SearchPanes",loadMessage:"Loading Search Panes...",title:"Filters Active - %d"},layout:"auto",order:[],panes:[],viewTotal:!1};u=n;var v=function(a,b,c){function e(a,
+b,c){void 0===b&&(b=null);void 0===c&&(c=!1);a=new f.Api(a);b=b?b:a.init().searchPanes||f.defaults.searchPanes;return(new u(a,b,c)).getNode()}h=a;s=a.fn.dataTable;j=a;var f=r=a.fn.dataTable;a.fn.dataTable.SearchPanes=u;a.fn.DataTable.SearchPanes=u;a.fn.dataTable.SearchPane=t;a.fn.DataTable.SearchPane=t;b=a.fn.dataTable.Api.register;b("searchPanes()",function(){return this});b("searchPanes.clearSelections()",function(){return this.iterator("table",function(a){a._searchPanes&&a._searchPanes.clearSelections()})});
+b("searchPanes.rebuildPane()",function(a,b){return this.iterator("table",function(c){c._searchPanes&&c._searchPanes.rebuild(a,b)})});b("searchPanes.resizePanes()",function(){var a=this.context[0];return a._searchPanes?a._searchPanes.resizePanes():null});b("searchPanes.container()",function(){var a=this.context[0];return a._searchPanes?a._searchPanes.getNode():null});a.fn.dataTable.ext.buttons.searchPanesClear={action:function(a,b){b.searchPanes.clearSelections()},text:"Clear Panes"};a.fn.dataTable.ext.buttons.searchPanes=
+{action:function(a,b,c,e){a.stopPropagation();this.popover(e._panes.getNode(),{align:"dt-container"});e._panes.rebuild(void 0,!0)},config:{},init:function(b,c,e){var f=new a.fn.dataTable.SearchPanes(b,a.extend({filterChanged:function(a){b.button(c).text(b.i18n("searchPanes.collapse",f.c.i18n.collapse,a))}},e.config)),h=b.i18n("searchPanes.collapse",f.c.i18n.collapse,0);b.button(c).text(h);e._panes=f},text:"Search Panes"};a(c).on("preInit.dt.dtsp",function(a,b){if("dt"===a.namespace&&(b.oInit.searchPanes||
+f.defaults.searchPanes))b._searchPanes||e(b,null,!0)});f.ext.feature.push({cFeature:"P",fnInit:e});f.ext.features&&f.ext.features.register("searchPanes",e)};"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(a){return v(a,window,document)}):"object"===typeof exports?module.exports=function(a,b){a||(a=window);if(!b||!b.fn.dataTable)b=require("datatables.net")(a,b).$;return v(b,a,a.document)}:v(window.jQuery,window,document)})();
 
 /*! Bootstrap integration for DataTables' SearchPanes
  * ©2016 SpryMedia Ltd - datatables.net/license
@@ -77658,6 +97687,1250 @@ b.extend(!0,a.Group.classes,{add:"btn btn-light dtsb-add",clearGroup:"btn btn-li
 (function(b){"function"===typeof define&&define.amd?define(["jquery","datatables.net-bs4","datatables.net-searchpanes"],function(a){return b(a,window,document)}):"object"===typeof exports?module.exports=function(a,c){a||(a=window);if(!c||!c.fn.dataTable)c=require("datatables.net-bs4")(a,c).$;c.fn.dataTable.SearchPanes||require("datatables.net-searchpanes")(a,c);return b(c,a,a.document)}:b(jQuery,window,document)})(function(b){var a=b.fn.dataTable;b.extend(!0,a.SearchPane.classes,{buttonGroup:"btn-group",
 disabledButton:"disabled",narrow:"col",pane:{container:"table"},paneButton:"btn btn-light",pill:"pill badge badge-pill badge-secondary",search:"form-control search",searchCont:"input-group",searchLabelCont:"input-group-append",subRow1:"dtsp-subRow1",subRow2:"dtsp-subRow2",table:"table table-sm table-borderless",topRow:"dtsp-topRow"});b.extend(!0,a.SearchPanes.classes,{clearAll:"dtsp-clearAll btn btn-light",container:"dtsp-searchPanes",disabledButton:"disabled",panes:"dtsp-panes dtsp-panesContainer",
 title:"dtsp-title",titleRow:"dtsp-titleRow"});return a.searchPanes});
+
+/*! Select for DataTables 1.3.3
+ * 2015-2021 SpryMedia Ltd - datatables.net/license/mit
+ */
+
+/**
+ * @summary     Select for DataTables
+ * @description A collection of API methods, events and buttons for DataTables
+ *   that provides selection options of the items in a DataTable
+ * @version     1.3.3
+ * @file        dataTables.select.js
+ * @author      SpryMedia Ltd (www.sprymedia.co.uk)
+ * @contact     datatables.net/forums
+ * @copyright   Copyright 2015-2021 SpryMedia Ltd.
+ *
+ * This source file is free software, available under the following license:
+ *   MIT license - http://datatables.net/license/mit
+ *
+ * This source file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
+ *
+ * For details please refer to: http://www.datatables.net/extensions/select
+ */
+(function( factory ){
+	if ( typeof define === 'function' && define.amd ) {
+		// AMD
+		define( ['jquery', 'datatables.net'], function ( $ ) {
+			return factory( $, window, document );
+		} );
+	}
+	else if ( typeof exports === 'object' ) {
+		// CommonJS
+		module.exports = function (root, $) {
+			if ( ! root ) {
+				root = window;
+			}
+
+			if ( ! $ || ! $.fn.dataTable ) {
+				$ = require('datatables.net')(root, $).$;
+			}
+
+			return factory( $, root, root.document );
+		};
+	}
+	else {
+		// Browser
+		factory( jQuery, window, document );
+	}
+}(function( $, window, document, undefined ) {
+'use strict';
+var DataTable = $.fn.dataTable;
+
+
+// Version information for debugger
+DataTable.select = {};
+
+DataTable.select.version = '1.3.3';
+
+DataTable.select.init = function ( dt ) {
+	var ctx = dt.settings()[0];
+	var init = ctx.oInit.select;
+	var defaults = DataTable.defaults.select;
+	var opts = init === undefined ?
+		defaults :
+		init;
+
+	// Set defaults
+	var items = 'row';
+	var style = 'api';
+	var blurable = false;
+	var toggleable = true;
+	var info = true;
+	var selector = 'td, th';
+	var className = 'selected';
+	var setStyle = false;
+
+	ctx._select = {};
+
+	// Initialisation customisations
+	if ( opts === true ) {
+		style = 'os';
+		setStyle = true;
+	}
+	else if ( typeof opts === 'string' ) {
+		style = opts;
+		setStyle = true;
+	}
+	else if ( $.isPlainObject( opts ) ) {
+		if ( opts.blurable !== undefined ) {
+			blurable = opts.blurable;
+		}
+
+		if ( opts.toggleable !== undefined ) {
+			toggleable = opts.toggleable;
+		}
+
+		if ( opts.info !== undefined ) {
+			info = opts.info;
+		}
+
+		if ( opts.items !== undefined ) {
+			items = opts.items;
+		}
+
+		if ( opts.style !== undefined ) {
+			style = opts.style;
+			setStyle = true;
+		}
+		else {
+			style = 'os';
+			setStyle = true;
+		}
+
+		if ( opts.selector !== undefined ) {
+			selector = opts.selector;
+		}
+
+		if ( opts.className !== undefined ) {
+			className = opts.className;
+		}
+	}
+
+	dt.select.selector( selector );
+	dt.select.items( items );
+	dt.select.style( style );
+	dt.select.blurable( blurable );
+	dt.select.toggleable( toggleable );
+	dt.select.info( info );
+	ctx._select.className = className;
+
+
+	// Sort table based on selected rows. Requires Select Datatables extension
+	$.fn.dataTable.ext.order['select-checkbox'] = function ( settings, col ) {
+		return this.api().column( col, {order: 'index'} ).nodes().map( function ( td ) {
+			if ( settings._select.items === 'row' ) {
+				return $( td ).parent().hasClass( settings._select.className );
+			} else if ( settings._select.items === 'cell' ) {
+				return $( td ).hasClass( settings._select.className );
+			}
+			return false;
+		});
+	};
+
+	// If the init options haven't enabled select, but there is a selectable
+	// class name, then enable
+	if ( ! setStyle && $( dt.table().node() ).hasClass( 'selectable' ) ) {
+		dt.select.style( 'os' );
+	}
+};
+
+/*
+
+Select is a collection of API methods, event handlers, event emitters and
+buttons (for the `Buttons` extension) for DataTables. It provides the following
+features, with an overview of how they are implemented:
+
+## Selection of rows, columns and cells. Whether an item is selected or not is
+   stored in:
+
+* rows: a `_select_selected` property which contains a boolean value of the
+  DataTables' `aoData` object for each row
+* columns: a `_select_selected` property which contains a boolean value of the
+  DataTables' `aoColumns` object for each column
+* cells: a `_selected_cells` property which contains an array of boolean values
+  of the `aoData` object for each row. The array is the same length as the
+  columns array, with each element of it representing a cell.
+
+This method of using boolean flags allows Select to operate when nodes have not
+been created for rows / cells (DataTables' defer rendering feature).
+
+## API methods
+
+A range of API methods are available for triggering selection and de-selection
+of rows. Methods are also available to configure the selection events that can
+be triggered by an end user (such as which items are to be selected). To a large
+extent, these of API methods *is* Select. It is basically a collection of helper
+functions that can be used to select items in a DataTable.
+
+Configuration of select is held in the object `_select` which is attached to the
+DataTables settings object on initialisation. Select being available on a table
+is not optional when Select is loaded, but its default is for selection only to
+be available via the API - so the end user wouldn't be able to select rows
+without additional configuration.
+
+The `_select` object contains the following properties:
+
+```
+{
+	items:string       - Can be `rows`, `columns` or `cells`. Defines what item
+	                     will be selected if the user is allowed to activate row
+	                     selection using the mouse.
+	style:string       - Can be `none`, `single`, `multi` or `os`. Defines the
+	                     interaction style when selecting items
+	blurable:boolean   - If row selection can be cleared by clicking outside of
+	                     the table
+	toggleable:boolean - If row selection can be cancelled by repeated clicking
+	                     on the row
+	info:boolean       - If the selection summary should be shown in the table
+	                     information elements
+}
+```
+
+In addition to the API methods, Select also extends the DataTables selector
+options for rows, columns and cells adding a `selected` option to the selector
+options object, allowing the developer to select only selected items or
+unselected items.
+
+## Mouse selection of items
+
+Clicking on items can be used to select items. This is done by a simple event
+handler that will select the items using the API methods.
+
+ */
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Local functions
+ */
+
+/**
+ * Add one or more cells to the selection when shift clicking in OS selection
+ * style cell selection.
+ *
+ * Cell range is more complicated than row and column as we want to select
+ * in the visible grid rather than by index in sequence. For example, if you
+ * click first in cell 1-1 and then shift click in 2-2 - cells 1-2 and 2-1
+ * should also be selected (and not 1-3, 1-4. etc)
+ *
+ * @param  {DataTable.Api} dt   DataTable
+ * @param  {object}        idx  Cell index to select to
+ * @param  {object}        last Cell index to select from
+ * @private
+ */
+function cellRange( dt, idx, last )
+{
+	var indexes;
+	var columnIndexes;
+	var rowIndexes;
+	var selectColumns = function ( start, end ) {
+		if ( start > end ) {
+			var tmp = end;
+			end = start;
+			start = tmp;
+		}
+
+		var record = false;
+		return dt.columns( ':visible' ).indexes().filter( function (i) {
+			if ( i === start ) {
+				record = true;
+			}
+
+			if ( i === end ) { // not else if, as start might === end
+				record = false;
+				return true;
+			}
+
+			return record;
+		} );
+	};
+
+	var selectRows = function ( start, end ) {
+		var indexes = dt.rows( { search: 'applied' } ).indexes();
+
+		// Which comes first - might need to swap
+		if ( indexes.indexOf( start ) > indexes.indexOf( end ) ) {
+			var tmp = end;
+			end = start;
+			start = tmp;
+		}
+
+		var record = false;
+		return indexes.filter( function (i) {
+			if ( i === start ) {
+				record = true;
+			}
+
+			if ( i === end ) {
+				record = false;
+				return true;
+			}
+
+			return record;
+		} );
+	};
+
+	if ( ! dt.cells( { selected: true } ).any() && ! last ) {
+		// select from the top left cell to this one
+		columnIndexes = selectColumns( 0, idx.column );
+		rowIndexes = selectRows( 0 , idx.row );
+	}
+	else {
+		// Get column indexes between old and new
+		columnIndexes = selectColumns( last.column, idx.column );
+		rowIndexes = selectRows( last.row , idx.row );
+	}
+
+	indexes = dt.cells( rowIndexes, columnIndexes ).flatten();
+
+	if ( ! dt.cells( idx, { selected: true } ).any() ) {
+		// Select range
+		dt.cells( indexes ).select();
+	}
+	else {
+		// Deselect range
+		dt.cells( indexes ).deselect();
+	}
+}
+
+/**
+ * Disable mouse selection by removing the selectors
+ *
+ * @param {DataTable.Api} dt DataTable to remove events from
+ * @private
+ */
+function disableMouseSelection( dt )
+{
+	var ctx = dt.settings()[0];
+	var selector = ctx._select.selector;
+
+	$( dt.table().container() )
+		.off( 'mousedown.dtSelect', selector )
+		.off( 'mouseup.dtSelect', selector )
+		.off( 'click.dtSelect', selector );
+
+	$('body').off( 'click.dtSelect' + _safeId(dt.table().node()) );
+}
+
+/**
+ * Attach mouse listeners to the table to allow mouse selection of items
+ *
+ * @param {DataTable.Api} dt DataTable to remove events from
+ * @private
+ */
+function enableMouseSelection ( dt )
+{
+	var container = $( dt.table().container() );
+	var ctx = dt.settings()[0];
+	var selector = ctx._select.selector;
+	var matchSelection;
+
+	container
+		.on( 'mousedown.dtSelect', selector, function(e) {
+			// Disallow text selection for shift clicking on the table so multi
+			// element selection doesn't look terrible!
+			if ( e.shiftKey || e.metaKey || e.ctrlKey ) {
+				container
+					.css( '-moz-user-select', 'none' )
+					.one('selectstart.dtSelect', selector, function () {
+						return false;
+					} );
+			}
+
+			if ( window.getSelection ) {
+				matchSelection = window.getSelection();
+			}
+		} )
+		.on( 'mouseup.dtSelect', selector, function() {
+			// Allow text selection to occur again, Mozilla style (tested in FF
+			// 35.0.1 - still required)
+			container.css( '-moz-user-select', '' );
+		} )
+		.on( 'click.dtSelect', selector, function ( e ) {
+			var items = dt.select.items();
+			var idx;
+
+			// If text was selected (click and drag), then we shouldn't change
+			// the row's selected state
+			if ( matchSelection ) {
+				var selection = window.getSelection();
+
+				// If the element that contains the selection is not in the table, we can ignore it
+				// This can happen if the developer selects text from the click event
+				if ( ! selection.anchorNode || $(selection.anchorNode).closest('table')[0] === dt.table().node() ) {
+					if ( selection !== matchSelection ) {
+						return;
+					}
+				}
+			}
+
+			var ctx = dt.settings()[0];
+			var wrapperClass = dt.settings()[0].oClasses.sWrapper.trim().replace(/ +/g, '.');
+
+			// Ignore clicks inside a sub-table
+			if ( $(e.target).closest('div.'+wrapperClass)[0] != dt.table().container() ) {
+				return;
+			}
+
+			var cell = dt.cell( $(e.target).closest('td, th') );
+
+			// Check the cell actually belongs to the host DataTable (so child
+			// rows, etc, are ignored)
+			if ( ! cell.any() ) {
+				return;
+			}
+
+			var event = $.Event('user-select.dt');
+			eventTrigger( dt, event, [ items, cell, e ] );
+
+			if ( event.isDefaultPrevented() ) {
+				return;
+			}
+
+			var cellIndex = cell.index();
+			if ( items === 'row' ) {
+				idx = cellIndex.row;
+				typeSelect( e, dt, ctx, 'row', idx );
+			}
+			else if ( items === 'column' ) {
+				idx = cell.index().column;
+				typeSelect( e, dt, ctx, 'column', idx );
+			}
+			else if ( items === 'cell' ) {
+				idx = cell.index();
+				typeSelect( e, dt, ctx, 'cell', idx );
+			}
+
+			ctx._select_lastCell = cellIndex;
+		} );
+
+	// Blurable
+	$('body').on( 'click.dtSelect' + _safeId(dt.table().node()), function ( e ) {
+		if ( ctx._select.blurable ) {
+			// If the click was inside the DataTables container, don't blur
+			if ( $(e.target).parents().filter( dt.table().container() ).length ) {
+				return;
+			}
+
+			// Ignore elements which have been removed from the DOM (i.e. paging
+			// buttons)
+			if ( $(e.target).parents('html').length === 0 ) {
+			 	return;
+			}
+
+			// Don't blur in Editor form
+			if ( $(e.target).parents('div.DTE').length ) {
+				return;
+			}
+
+			clear( ctx, true );
+		}
+	} );
+}
+
+/**
+ * Trigger an event on a DataTable
+ *
+ * @param {DataTable.Api} api      DataTable to trigger events on
+ * @param  {boolean}      selected true if selected, false if deselected
+ * @param  {string}       type     Item type acting on
+ * @param  {boolean}      any      Require that there are values before
+ *     triggering
+ * @private
+ */
+function eventTrigger ( api, type, args, any )
+{
+	if ( any && ! api.flatten().length ) {
+		return;
+	}
+
+	if ( typeof type === 'string' ) {
+		type = type +'.dt';
+	}
+
+	args.unshift( api );
+
+	$(api.table().node()).trigger( type, args );
+}
+
+/**
+ * Update the information element of the DataTable showing information about the
+ * items selected. This is done by adding tags to the existing text
+ *
+ * @param {DataTable.Api} api DataTable to update
+ * @private
+ */
+function info ( api )
+{
+	var ctx = api.settings()[0];
+
+	if ( ! ctx._select.info || ! ctx.aanFeatures.i ) {
+		return;
+	}
+
+	if ( api.select.style() === 'api' ) {
+		return;
+	}
+
+	var rows    = api.rows( { selected: true } ).flatten().length;
+	var columns = api.columns( { selected: true } ).flatten().length;
+	var cells   = api.cells( { selected: true } ).flatten().length;
+
+	var add = function ( el, name, num ) {
+		el.append( $('<span class="select-item"/>').append( api.i18n(
+			'select.'+name+'s',
+			{ _: '%d '+name+'s selected', 0: '', 1: '1 '+name+' selected' },
+			num
+		) ) );
+	};
+
+	// Internal knowledge of DataTables to loop over all information elements
+	$.each( ctx.aanFeatures.i, function ( i, el ) {
+		el = $(el);
+
+		var output  = $('<span class="select-info"/>');
+		add( output, 'row', rows );
+		add( output, 'column', columns );
+		add( output, 'cell', cells  );
+
+		var exisiting = el.children('span.select-info');
+		if ( exisiting.length ) {
+			exisiting.remove();
+		}
+
+		if ( output.text() !== '' ) {
+			el.append( output );
+		}
+	} );
+}
+
+/**
+ * Initialisation of a new table. Attach event handlers and callbacks to allow
+ * Select to operate correctly.
+ *
+ * This will occur _after_ the initial DataTables initialisation, although
+ * before Ajax data is rendered, if there is ajax data
+ *
+ * @param  {DataTable.settings} ctx Settings object to operate on
+ * @private
+ */
+function init ( ctx ) {
+	var api = new DataTable.Api( ctx );
+
+	// Row callback so that classes can be added to rows and cells if the item
+	// was selected before the element was created. This will happen with the
+	// `deferRender` option enabled.
+	//
+	// This method of attaching to `aoRowCreatedCallback` is a hack until
+	// DataTables has proper events for row manipulation If you are reviewing
+	// this code to create your own plug-ins, please do not do this!
+	ctx.aoRowCreatedCallback.push( {
+		fn: function ( row, data, index ) {
+			var i, ien;
+			var d = ctx.aoData[ index ];
+
+			// Row
+			if ( d._select_selected ) {
+				$( row ).addClass( ctx._select.className );
+			}
+
+			// Cells and columns - if separated out, we would need to do two
+			// loops, so it makes sense to combine them into a single one
+			for ( i=0, ien=ctx.aoColumns.length ; i<ien ; i++ ) {
+				if ( ctx.aoColumns[i]._select_selected || (d._selected_cells && d._selected_cells[i]) ) {
+					$(d.anCells[i]).addClass( ctx._select.className );
+				}
+			}
+		},
+		sName: 'select-deferRender'
+	} );
+
+	// On Ajax reload we want to reselect all rows which are currently selected,
+	// if there is an rowId (i.e. a unique value to identify each row with)
+	api.on( 'preXhr.dt.dtSelect', function (e, settings) {
+		if (settings !== api.settings()[0]) {
+			// Not triggered by our DataTable!
+			return;
+		}
+
+		// note that column selection doesn't need to be cached and then
+		// reselected, as they are already selected
+		var rows = api.rows( { selected: true } ).ids( true ).filter( function ( d ) {
+			return d !== undefined;
+		} );
+
+		var cells = api.cells( { selected: true } ).eq(0).map( function ( cellIdx ) {
+			var id = api.row( cellIdx.row ).id( true );
+			return id ?
+				{ row: id, column: cellIdx.column } :
+				undefined;
+		} ).filter( function ( d ) {
+			return d !== undefined;
+		} );
+
+		// On the next draw, reselect the currently selected items
+		api.one( 'draw.dt.dtSelect', function () {
+			api.rows( rows ).select();
+
+			// `cells` is not a cell index selector, so it needs a loop
+			if ( cells.any() ) {
+				cells.each( function ( id ) {
+					api.cells( id.row, id.column ).select();
+				} );
+			}
+		} );
+	} );
+
+	// Update the table information element with selected item summary
+	api.on( 'draw.dtSelect.dt select.dtSelect.dt deselect.dtSelect.dt info.dt', function () {
+		info( api );
+	} );
+
+	// Clean up and release
+	api.on( 'destroy.dtSelect', function () {
+		api.rows({selected: true}).deselect();
+
+		disableMouseSelection( api );
+		api.off( '.dtSelect' );
+	} );
+}
+
+/**
+ * Add one or more items (rows or columns) to the selection when shift clicking
+ * in OS selection style
+ *
+ * @param  {DataTable.Api} dt   DataTable
+ * @param  {string}        type Row or column range selector
+ * @param  {object}        idx  Item index to select to
+ * @param  {object}        last Item index to select from
+ * @private
+ */
+function rowColumnRange( dt, type, idx, last )
+{
+	// Add a range of rows from the last selected row to this one
+	var indexes = dt[type+'s']( { search: 'applied' } ).indexes();
+	var idx1 = $.inArray( last, indexes );
+	var idx2 = $.inArray( idx, indexes );
+
+	if ( ! dt[type+'s']( { selected: true } ).any() && idx1 === -1 ) {
+		// select from top to here - slightly odd, but both Windows and Mac OS
+		// do this
+		indexes.splice( $.inArray( idx, indexes )+1, indexes.length );
+	}
+	else {
+		// reverse so we can shift click 'up' as well as down
+		if ( idx1 > idx2 ) {
+			var tmp = idx2;
+			idx2 = idx1;
+			idx1 = tmp;
+		}
+
+		indexes.splice( idx2+1, indexes.length );
+		indexes.splice( 0, idx1 );
+	}
+
+	if ( ! dt[type]( idx, { selected: true } ).any() ) {
+		// Select range
+		dt[type+'s']( indexes ).select();
+	}
+	else {
+		// Deselect range - need to keep the clicked on row selected
+		indexes.splice( $.inArray( idx, indexes ), 1 );
+		dt[type+'s']( indexes ).deselect();
+	}
+}
+
+/**
+ * Clear all selected items
+ *
+ * @param  {DataTable.settings} ctx Settings object of the host DataTable
+ * @param  {boolean} [force=false] Force the de-selection to happen, regardless
+ *     of selection style
+ * @private
+ */
+function clear( ctx, force )
+{
+	if ( force || ctx._select.style === 'single' ) {
+		var api = new DataTable.Api( ctx );
+
+		api.rows( { selected: true } ).deselect();
+		api.columns( { selected: true } ).deselect();
+		api.cells( { selected: true } ).deselect();
+	}
+}
+
+/**
+ * Select items based on the current configuration for style and items.
+ *
+ * @param  {object}             e    Mouse event object
+ * @param  {DataTables.Api}     dt   DataTable
+ * @param  {DataTable.settings} ctx  Settings object of the host DataTable
+ * @param  {string}             type Items to select
+ * @param  {int|object}         idx  Index of the item to select
+ * @private
+ */
+function typeSelect ( e, dt, ctx, type, idx )
+{
+	var style = dt.select.style();
+	var toggleable = dt.select.toggleable();
+	var isSelected = dt[type]( idx, { selected: true } ).any();
+
+	if ( isSelected && ! toggleable ) {
+		return;
+	}
+
+	if ( style === 'os' ) {
+		if ( e.ctrlKey || e.metaKey ) {
+			// Add or remove from the selection
+			dt[type]( idx ).select( ! isSelected );
+		}
+		else if ( e.shiftKey ) {
+			if ( type === 'cell' ) {
+				cellRange( dt, idx, ctx._select_lastCell || null );
+			}
+			else {
+				rowColumnRange( dt, type, idx, ctx._select_lastCell ?
+					ctx._select_lastCell[type] :
+					null
+				);
+			}
+		}
+		else {
+			// No cmd or shift click - deselect if selected, or select
+			// this row only
+			var selected = dt[type+'s']( { selected: true } );
+
+			if ( isSelected && selected.flatten().length === 1 ) {
+				dt[type]( idx ).deselect();
+			}
+			else {
+				selected.deselect();
+				dt[type]( idx ).select();
+			}
+		}
+	} else if ( style == 'multi+shift' ) {
+		if ( e.shiftKey ) {
+			if ( type === 'cell' ) {
+				cellRange( dt, idx, ctx._select_lastCell || null );
+			}
+			else {
+				rowColumnRange( dt, type, idx, ctx._select_lastCell ?
+					ctx._select_lastCell[type] :
+					null
+				);
+			}
+		}
+		else {
+			dt[ type ]( idx ).select( ! isSelected );
+		}
+	}
+	else {
+		dt[ type ]( idx ).select( ! isSelected );
+	}
+}
+
+function _safeId( node ) {
+	return node.id.replace(/[^a-zA-Z0-9\-\_]/g, '-');
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables selectors
+ */
+
+// row and column are basically identical just assigned to different properties
+// and checking a different array, so we can dynamically create the functions to
+// reduce the code size
+$.each( [
+	{ type: 'row', prop: 'aoData' },
+	{ type: 'column', prop: 'aoColumns' }
+], function ( i, o ) {
+	DataTable.ext.selector[ o.type ].push( function ( settings, opts, indexes ) {
+		var selected = opts.selected;
+		var data;
+		var out = [];
+
+		if ( selected !== true && selected !== false ) {
+			return indexes;
+		}
+
+		for ( var i=0, ien=indexes.length ; i<ien ; i++ ) {
+			data = settings[ o.prop ][ indexes[i] ];
+
+			if ( (selected === true && data._select_selected === true) ||
+			     (selected === false && ! data._select_selected )
+			) {
+				out.push( indexes[i] );
+			}
+		}
+
+		return out;
+	} );
+} );
+
+DataTable.ext.selector.cell.push( function ( settings, opts, cells ) {
+	var selected = opts.selected;
+	var rowData;
+	var out = [];
+
+	if ( selected === undefined ) {
+		return cells;
+	}
+
+	for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
+		rowData = settings.aoData[ cells[i].row ];
+
+		if ( (selected === true && rowData._selected_cells && rowData._selected_cells[ cells[i].column ] === true) ||
+		     (selected === false && ( ! rowData._selected_cells || ! rowData._selected_cells[ cells[i].column ] ) )
+		) {
+			out.push( cells[i] );
+		}
+	}
+
+	return out;
+} );
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables API
+ *
+ * For complete documentation, please refer to the docs/api directory or the
+ * DataTables site
+ */
+
+// Local variables to improve compression
+var apiRegister = DataTable.Api.register;
+var apiRegisterPlural = DataTable.Api.registerPlural;
+
+apiRegister( 'select()', function () {
+	return this.iterator( 'table', function ( ctx ) {
+		DataTable.select.init( new DataTable.Api( ctx ) );
+	} );
+} );
+
+apiRegister( 'select.blurable()', function ( flag ) {
+	if ( flag === undefined ) {
+		return this.context[0]._select.blurable;
+	}
+
+	return this.iterator( 'table', function ( ctx ) {
+		ctx._select.blurable = flag;
+	} );
+} );
+
+apiRegister( 'select.toggleable()', function ( flag ) {
+	if ( flag === undefined ) {
+		return this.context[0]._select.toggleable;
+	}
+
+	return this.iterator( 'table', function ( ctx ) {
+		ctx._select.toggleable = flag;
+	} );
+} );
+
+apiRegister( 'select.info()', function ( flag ) {
+	if ( flag === undefined ) {
+		return this.context[0]._select.info;
+	}
+
+	return this.iterator( 'table', function ( ctx ) {
+		ctx._select.info = flag;
+	} );
+} );
+
+apiRegister( 'select.items()', function ( items ) {
+	if ( items === undefined ) {
+		return this.context[0]._select.items;
+	}
+
+	return this.iterator( 'table', function ( ctx ) {
+		ctx._select.items = items;
+
+		eventTrigger( new DataTable.Api( ctx ), 'selectItems', [ items ] );
+	} );
+} );
+
+// Takes effect from the _next_ selection. None disables future selection, but
+// does not clear the current selection. Use the `deselect` methods for that
+apiRegister( 'select.style()', function ( style ) {
+	if ( style === undefined ) {
+		return this.context[0]._select.style;
+	}
+
+	return this.iterator( 'table', function ( ctx ) {
+		ctx._select.style = style;
+
+		if ( ! ctx._select_init ) {
+			init( ctx );
+		}
+
+		// Add / remove mouse event handlers. They aren't required when only
+		// API selection is available
+		var dt = new DataTable.Api( ctx );
+		disableMouseSelection( dt );
+
+		if ( style !== 'api' ) {
+			enableMouseSelection( dt );
+		}
+
+		eventTrigger( new DataTable.Api( ctx ), 'selectStyle', [ style ] );
+	} );
+} );
+
+apiRegister( 'select.selector()', function ( selector ) {
+	if ( selector === undefined ) {
+		return this.context[0]._select.selector;
+	}
+
+	return this.iterator( 'table', function ( ctx ) {
+		disableMouseSelection( new DataTable.Api( ctx ) );
+
+		ctx._select.selector = selector;
+
+		if ( ctx._select.style !== 'api' ) {
+			enableMouseSelection( new DataTable.Api( ctx ) );
+		}
+	} );
+} );
+
+
+
+apiRegisterPlural( 'rows().select()', 'row().select()', function ( select ) {
+	var api = this;
+
+	if ( select === false ) {
+		return this.deselect();
+	}
+
+	this.iterator( 'row', function ( ctx, idx ) {
+		clear( ctx );
+
+		ctx.aoData[ idx ]._select_selected = true;
+		$( ctx.aoData[ idx ].nTr ).addClass( ctx._select.className );
+	} );
+
+	this.iterator( 'table', function ( ctx, i ) {
+		eventTrigger( api, 'select', [ 'row', api[i] ], true );
+	} );
+
+	return this;
+} );
+
+apiRegisterPlural( 'columns().select()', 'column().select()', function ( select ) {
+	var api = this;
+
+	if ( select === false ) {
+		return this.deselect();
+	}
+
+	this.iterator( 'column', function ( ctx, idx ) {
+		clear( ctx );
+
+		ctx.aoColumns[ idx ]._select_selected = true;
+
+		var column = new DataTable.Api( ctx ).column( idx );
+
+		$( column.header() ).addClass( ctx._select.className );
+		$( column.footer() ).addClass( ctx._select.className );
+
+		column.nodes().to$().addClass( ctx._select.className );
+	} );
+
+	this.iterator( 'table', function ( ctx, i ) {
+		eventTrigger( api, 'select', [ 'column', api[i] ], true );
+	} );
+
+	return this;
+} );
+
+apiRegisterPlural( 'cells().select()', 'cell().select()', function ( select ) {
+	var api = this;
+
+	if ( select === false ) {
+		return this.deselect();
+	}
+
+	this.iterator( 'cell', function ( ctx, rowIdx, colIdx ) {
+		clear( ctx );
+
+		var data = ctx.aoData[ rowIdx ];
+
+		if ( data._selected_cells === undefined ) {
+			data._selected_cells = [];
+		}
+
+		data._selected_cells[ colIdx ] = true;
+
+		if ( data.anCells ) {
+			$( data.anCells[ colIdx ] ).addClass( ctx._select.className );
+		}
+	} );
+
+	this.iterator( 'table', function ( ctx, i ) {
+		eventTrigger( api, 'select', [ 'cell', api.cells(api[i]).indexes().toArray() ], true );
+	} );
+
+	return this;
+} );
+
+
+apiRegisterPlural( 'rows().deselect()', 'row().deselect()', function () {
+	var api = this;
+
+	this.iterator( 'row', function ( ctx, idx ) {
+		ctx.aoData[ idx ]._select_selected = false;
+		ctx._select_lastCell = null;
+		$( ctx.aoData[ idx ].nTr ).removeClass( ctx._select.className );
+	} );
+
+	this.iterator( 'table', function ( ctx, i ) {
+		eventTrigger( api, 'deselect', [ 'row', api[i] ], true );
+	} );
+
+	return this;
+} );
+
+apiRegisterPlural( 'columns().deselect()', 'column().deselect()', function () {
+	var api = this;
+
+	this.iterator( 'column', function ( ctx, idx ) {
+		ctx.aoColumns[ idx ]._select_selected = false;
+
+		var api = new DataTable.Api( ctx );
+		var column = api.column( idx );
+
+		$( column.header() ).removeClass( ctx._select.className );
+		$( column.footer() ).removeClass( ctx._select.className );
+
+		// Need to loop over each cell, rather than just using
+		// `column().nodes()` as cells which are individually selected should
+		// not have the `selected` class removed from them
+		api.cells( null, idx ).indexes().each( function (cellIdx) {
+			var data = ctx.aoData[ cellIdx.row ];
+			var cellSelected = data._selected_cells;
+
+			if ( data.anCells && (! cellSelected || ! cellSelected[ cellIdx.column ]) ) {
+				$( data.anCells[ cellIdx.column  ] ).removeClass( ctx._select.className );
+			}
+		} );
+	} );
+
+	this.iterator( 'table', function ( ctx, i ) {
+		eventTrigger( api, 'deselect', [ 'column', api[i] ], true );
+	} );
+
+	return this;
+} );
+
+apiRegisterPlural( 'cells().deselect()', 'cell().deselect()', function () {
+	var api = this;
+
+	this.iterator( 'cell', function ( ctx, rowIdx, colIdx ) {
+		var data = ctx.aoData[ rowIdx ];
+
+		data._selected_cells[ colIdx ] = false;
+
+		// Remove class only if the cells exist, and the cell is not column
+		// selected, in which case the class should remain (since it is selected
+		// in the column)
+		if ( data.anCells && ! ctx.aoColumns[ colIdx ]._select_selected ) {
+			$( data.anCells[ colIdx ] ).removeClass( ctx._select.className );
+		}
+	} );
+
+	this.iterator( 'table', function ( ctx, i ) {
+		eventTrigger( api, 'deselect', [ 'cell', api[i] ], true );
+	} );
+
+	return this;
+} );
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Buttons
+ */
+function i18n( label, def ) {
+	return function (dt) {
+		return dt.i18n( 'buttons.'+label, def );
+	};
+}
+
+// Common events with suitable namespaces
+function namespacedEvents ( config ) {
+	var unique = config._eventNamespace;
+
+	return 'draw.dt.DT'+unique+' select.dt.DT'+unique+' deselect.dt.DT'+unique;
+}
+
+function enabled ( dt, config ) {
+	if ( $.inArray( 'rows', config.limitTo ) !== -1 && dt.rows( { selected: true } ).any() ) {
+		return true;
+	}
+
+	if ( $.inArray( 'columns', config.limitTo ) !== -1 && dt.columns( { selected: true } ).any() ) {
+		return true;
+	}
+
+	if ( $.inArray( 'cells', config.limitTo ) !== -1 && dt.cells( { selected: true } ).any() ) {
+		return true;
+	}
+
+	return false;
+}
+
+var _buttonNamespace = 0;
+
+$.extend( DataTable.ext.buttons, {
+	selected: {
+		text: i18n( 'selected', 'Selected' ),
+		className: 'buttons-selected',
+		limitTo: [ 'rows', 'columns', 'cells' ],
+		init: function ( dt, node, config ) {
+			var that = this;
+			config._eventNamespace = '.select'+(_buttonNamespace++);
+
+			// .DT namespace listeners are removed by DataTables automatically
+			// on table destroy
+			dt.on( namespacedEvents(config), function () {
+				that.enable( enabled(dt, config) );
+			} );
+
+			this.disable();
+		},
+		destroy: function ( dt, node, config ) {
+			dt.off( config._eventNamespace );
+		}
+	},
+	selectedSingle: {
+		text: i18n( 'selectedSingle', 'Selected single' ),
+		className: 'buttons-selected-single',
+		init: function ( dt, node, config ) {
+			var that = this;
+			config._eventNamespace = '.select'+(_buttonNamespace++);
+
+			dt.on( namespacedEvents(config), function () {
+				var count = dt.rows( { selected: true } ).flatten().length +
+				            dt.columns( { selected: true } ).flatten().length +
+				            dt.cells( { selected: true } ).flatten().length;
+
+				that.enable( count === 1 );
+			} );
+
+			this.disable();
+		},
+		destroy: function ( dt, node, config ) {
+			dt.off( config._eventNamespace );
+		}
+	},
+	selectAll: {
+		text: i18n( 'selectAll', 'Select all' ),
+		className: 'buttons-select-all',
+		action: function () {
+			var items = this.select.items();
+			this[ items+'s' ]().select();
+		}
+	},
+	selectNone: {
+		text: i18n( 'selectNone', 'Deselect all' ),
+		className: 'buttons-select-none',
+		action: function () {
+			clear( this.settings()[0], true );
+		},
+		init: function ( dt, node, config ) {
+			var that = this;
+			config._eventNamespace = '.select'+(_buttonNamespace++);
+
+			dt.on( namespacedEvents(config), function () {
+				var count = dt.rows( { selected: true } ).flatten().length +
+				            dt.columns( { selected: true } ).flatten().length +
+				            dt.cells( { selected: true } ).flatten().length;
+
+				that.enable( count > 0 );
+			} );
+
+			this.disable();
+		},
+		destroy: function ( dt, node, config ) {
+			dt.off( config._eventNamespace );
+		}
+	}
+} );
+
+$.each( [ 'Row', 'Column', 'Cell' ], function ( i, item ) {
+	var lc = item.toLowerCase();
+
+	DataTable.ext.buttons[ 'select'+item+'s' ] = {
+		text: i18n( 'select'+item+'s', 'Select '+lc+'s' ),
+		className: 'buttons-select-'+lc+'s',
+		action: function () {
+			this.select.items( lc );
+		},
+		init: function ( dt ) {
+			var that = this;
+
+			dt.on( 'selectItems.dt.DT', function ( e, ctx, items ) {
+				that.active( items === lc );
+			} );
+		}
+	};
+} );
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Initialisation
+ */
+
+// DataTables creation - check if select has been defined in the options. Note
+// this required that the table be in the document! If it isn't then something
+// needs to trigger this method unfortunately. The next major release of
+// DataTables will rework the events and address this.
+$(document).on( 'preInit.dt.dtSelect', function (e, ctx) {
+	if ( e.namespace !== 'dt' ) {
+		return;
+	}
+
+	DataTable.select.init( new DataTable.Api( ctx ) );
+} );
+
+
+return DataTable.select;
+}));
+
+/*!
+ Select for DataTables 1.3.3
+ 2015-2021 SpryMedia Ltd - datatables.net/license/mit
+*/
+(function(e){"function"===typeof define&&define.amd?define(["jquery","datatables.net"],function(i){return e(i,window,document)}):"object"===typeof exports?module.exports=function(i,m){i||(i=window);if(!m||!m.fn.dataTable)m=require("datatables.net")(i,m).$;return e(m,i,i.document)}:e(jQuery,window,document)})(function(e,i,m,h){function x(a,c,b){var d;d=function(b,c){if(b>c)var d=c,c=b,b=d;var f=!1;return a.columns(":visible").indexes().filter(function(a){a===b&&(f=!0);return a===c?(f=!1,!0):f})};var f=
+function(b,c){var d=a.rows({search:"applied"}).indexes();if(d.indexOf(b)>d.indexOf(c))var f=c,c=b,b=f;var e=!1;return d.filter(function(a){a===b&&(e=!0);return a===c?(e=!1,!0):e})};!a.cells({selected:!0}).any()&&!b?(d=d(0,c.column),b=f(0,c.row)):(d=d(b.column,c.column),b=f(b.row,c.row));b=a.cells(b,d).flatten();a.cells(c,{selected:!0}).any()?a.cells(b).deselect():a.cells(b).select()}function t(a){var c=a.settings()[0]._select.selector;e(a.table().container()).off("mousedown.dtSelect",c).off("mouseup.dtSelect",
+c).off("click.dtSelect",c);e("body").off("click.dtSelect"+z(a.table().node()))}function A(a){var c=e(a.table().container()),b=a.settings()[0],d=b._select.selector,f;c.on("mousedown.dtSelect",d,function(b){if(b.shiftKey||b.metaKey||b.ctrlKey)c.css("-moz-user-select","none").one("selectstart.dtSelect",d,function(){return!1});i.getSelection&&(f=i.getSelection())}).on("mouseup.dtSelect",d,function(){c.css("-moz-user-select","")}).on("click.dtSelect",d,function(b){var c=a.select.items();if(f){var d=i.getSelection();
+if((!d.anchorNode||e(d.anchorNode).closest("table")[0]===a.table().node())&&d!==f)return}var d=a.settings()[0],k=a.settings()[0].oClasses.sWrapper.trim().replace(/ +/g,".");if(e(b.target).closest("div."+k)[0]==a.table().container()&&(k=a.cell(e(b.target).closest("td, th")),k.any())){var g=e.Event("user-select.dt");l(a,g,[c,k,b]);g.isDefaultPrevented()||(g=k.index(),"row"===c?(c=g.row,u(b,a,d,"row",c)):"column"===c?(c=k.index().column,u(b,a,d,"column",c)):"cell"===c&&(c=k.index(),u(b,a,d,"cell",c)),
+d._select_lastCell=g)}});e("body").on("click.dtSelect"+z(a.table().node()),function(c){b._select.blurable&&!e(c.target).parents().filter(a.table().container()).length&&(0!==e(c.target).parents("html").length&&!e(c.target).parents("div.DTE").length)&&q(b,!0)})}function l(a,c,b,d){if(!d||a.flatten().length)"string"===typeof c&&(c+=".dt"),b.unshift(a),e(a.table().node()).trigger(c,b)}function B(a,c,b,d){var f=a[c+"s"]({search:"applied"}).indexes(),d=e.inArray(d,f),n=e.inArray(b,f);if(!a[c+"s"]({selected:!0}).any()&&
+-1===d)f.splice(e.inArray(b,f)+1,f.length);else{if(d>n)var g=n,n=d,d=g;f.splice(n+1,f.length);f.splice(0,d)}a[c](b,{selected:!0}).any()?(f.splice(e.inArray(b,f),1),a[c+"s"](f).deselect()):a[c+"s"](f).select()}function q(a,c){if(c||"single"===a._select.style){var b=new g.Api(a);b.rows({selected:!0}).deselect();b.columns({selected:!0}).deselect();b.cells({selected:!0}).deselect()}}function u(a,c,b,d,f){var e=c.select.style(),g=c.select.toggleable(),j=c[d](f,{selected:!0}).any();if(!j||g)"os"===e?a.ctrlKey||
+a.metaKey?c[d](f).select(!j):a.shiftKey?"cell"===d?x(c,f,b._select_lastCell||null):B(c,d,f,b._select_lastCell?b._select_lastCell[d]:null):(a=c[d+"s"]({selected:!0}),j&&1===a.flatten().length?c[d](f).deselect():(a.deselect(),c[d](f).select())):"multi+shift"==e?a.shiftKey?"cell"===d?x(c,f,b._select_lastCell||null):B(c,d,f,b._select_lastCell?b._select_lastCell[d]:null):c[d](f).select(!j):c[d](f).select(!j)}function z(a){return a.id.replace(/[^a-zA-Z0-9\-\_]/g,"-")}function r(a,c){return function(b){return b.i18n("buttons."+
+a,c)}}function v(a){a=a._eventNamespace;return"draw.dt.DT"+a+" select.dt.DT"+a+" deselect.dt.DT"+a}var g=e.fn.dataTable;g.select={};g.select.version="1.3.3";g.select.init=function(a){var c=a.settings()[0],b=c.oInit.select,d=g.defaults.select,b=b===h?d:b,d="row",f="api",n=!1,y=!0,j=!0,k="td, th",i="selected",s=!1;c._select={};if(!0===b)f="os",s=!0;else if("string"===typeof b)f=b,s=!0;else if(e.isPlainObject(b)&&(b.blurable!==h&&(n=b.blurable),b.toggleable!==h&&(y=b.toggleable),b.info!==h&&(j=b.info),
+b.items!==h&&(d=b.items),f=b.style!==h?b.style:"os",s=!0,b.selector!==h&&(k=b.selector),b.className!==h))i=b.className;a.select.selector(k);a.select.items(d);a.select.style(f);a.select.blurable(n);a.select.toggleable(y);a.select.info(j);c._select.className=i;e.fn.dataTable.ext.order["select-checkbox"]=function(b,c){return this.api().column(c,{order:"index"}).nodes().map(function(c){return"row"===b._select.items?e(c).parent().hasClass(b._select.className):"cell"===b._select.items?e(c).hasClass(b._select.className):
+!1})};!s&&e(a.table().node()).hasClass("selectable")&&a.select.style("os")};e.each([{type:"row",prop:"aoData"},{type:"column",prop:"aoColumns"}],function(a,c){g.ext.selector[c.type].push(function(b,a,f){var a=a.selected,e,g=[];if(!0!==a&&!1!==a)return f;for(var j=0,k=f.length;j<k;j++)e=b[c.prop][f[j]],(!0===a&&!0===e._select_selected||!1===a&&!e._select_selected)&&g.push(f[j]);return g})});g.ext.selector.cell.push(function(a,c,b){var c=c.selected,d,f=[];if(c===h)return b;for(var e=0,g=b.length;e<
+g;e++)d=a.aoData[b[e].row],(!0===c&&d._selected_cells&&!0===d._selected_cells[b[e].column]||!1===c&&(!d._selected_cells||!d._selected_cells[b[e].column]))&&f.push(b[e]);return f});var o=g.Api.register,p=g.Api.registerPlural;o("select()",function(){return this.iterator("table",function(a){g.select.init(new g.Api(a))})});o("select.blurable()",function(a){return a===h?this.context[0]._select.blurable:this.iterator("table",function(c){c._select.blurable=a})});o("select.toggleable()",function(a){return a===
+h?this.context[0]._select.toggleable:this.iterator("table",function(c){c._select.toggleable=a})});o("select.info()",function(a){return a===h?this.context[0]._select.info:this.iterator("table",function(c){c._select.info=a})});o("select.items()",function(a){return a===h?this.context[0]._select.items:this.iterator("table",function(c){c._select.items=a;l(new g.Api(c),"selectItems",[a])})});o("select.style()",function(a){return a===h?this.context[0]._select.style:this.iterator("table",function(c){c._select.style=
+a;if(!c._select_init){var b=new g.Api(c);c.aoRowCreatedCallback.push({fn:function(b,a,d){a=c.aoData[d];a._select_selected&&e(b).addClass(c._select.className);b=0;for(d=c.aoColumns.length;b<d;b++)(c.aoColumns[b]._select_selected||a._selected_cells&&a._selected_cells[b])&&e(a.anCells[b]).addClass(c._select.className)},sName:"select-deferRender"});b.on("preXhr.dt.dtSelect",function(c,a){if(a===b.settings()[0]){var d=b.rows({selected:!0}).ids(!0).filter(function(b){return b!==h}),e=b.cells({selected:!0}).eq(0).map(function(a){var c=
+b.row(a.row).id(!0);return c?{row:c,column:a.column}:h}).filter(function(b){return b!==h});b.one("draw.dt.dtSelect",function(){b.rows(d).select();e.any()&&e.each(function(a){b.cells(a.row,a.column).select()})})}});b.on("draw.dtSelect.dt select.dtSelect.dt deselect.dtSelect.dt info.dt",function(){var a=b.settings()[0];if(a._select.info&&a.aanFeatures.i&&"api"!==b.select.style()){var c=b.rows({selected:!0}).flatten().length,d=b.columns({selected:!0}).flatten().length,g=b.cells({selected:!0}).flatten().length,
+h=function(a,c,d){a.append(e('<span class="select-item"/>').append(b.i18n("select."+c+"s",{_:"%d "+c+"s selected","0":"",1:"1 "+c+" selected"},d)))};e.each(a.aanFeatures.i,function(b,a){var a=e(a),f=e('<span class="select-info"/>');h(f,"row",c);h(f,"column",d);h(f,"cell",g);var i=a.children("span.select-info");i.length&&i.remove();""!==f.text()&&a.append(f)})}});b.on("destroy.dtSelect",function(){b.rows({selected:!0}).deselect();t(b);b.off(".dtSelect")})}var d=new g.Api(c);t(d);"api"!==a&&A(d);l(new g.Api(c),
+"selectStyle",[a])})});o("select.selector()",function(a){return a===h?this.context[0]._select.selector:this.iterator("table",function(c){t(new g.Api(c));c._select.selector=a;"api"!==c._select.style&&A(new g.Api(c))})});p("rows().select()","row().select()",function(a){var c=this;if(!1===a)return this.deselect();this.iterator("row",function(b,a){q(b);b.aoData[a]._select_selected=!0;e(b.aoData[a].nTr).addClass(b._select.className)});this.iterator("table",function(b,a){l(c,"select",["row",c[a]],!0)});
+return this});p("columns().select()","column().select()",function(a){var c=this;if(!1===a)return this.deselect();this.iterator("column",function(b,a){q(b);b.aoColumns[a]._select_selected=!0;var c=(new g.Api(b)).column(a);e(c.header()).addClass(b._select.className);e(c.footer()).addClass(b._select.className);c.nodes().to$().addClass(b._select.className)});this.iterator("table",function(b,a){l(c,"select",["column",c[a]],!0)});return this});p("cells().select()","cell().select()",function(a){var c=this;
+if(!1===a)return this.deselect();this.iterator("cell",function(b,a,c){q(b);a=b.aoData[a];a._selected_cells===h&&(a._selected_cells=[]);a._selected_cells[c]=!0;a.anCells&&e(a.anCells[c]).addClass(b._select.className)});this.iterator("table",function(a,d){l(c,"select",["cell",c.cells(c[d]).indexes().toArray()],!0)});return this});p("rows().deselect()","row().deselect()",function(){var a=this;this.iterator("row",function(a,b){a.aoData[b]._select_selected=!1;a._select_lastCell=null;e(a.aoData[b].nTr).removeClass(a._select.className)});
+this.iterator("table",function(c,b){l(a,"deselect",["row",a[b]],!0)});return this});p("columns().deselect()","column().deselect()",function(){var a=this;this.iterator("column",function(a,b){a.aoColumns[b]._select_selected=!1;var d=new g.Api(a),f=d.column(b);e(f.header()).removeClass(a._select.className);e(f.footer()).removeClass(a._select.className);d.cells(null,b).indexes().each(function(b){var d=a.aoData[b.row],f=d._selected_cells;d.anCells&&(!f||!f[b.column])&&e(d.anCells[b.column]).removeClass(a._select.className)})});
+this.iterator("table",function(c,b){l(a,"deselect",["column",a[b]],!0)});return this});p("cells().deselect()","cell().deselect()",function(){var a=this;this.iterator("cell",function(a,b,d){b=a.aoData[b];b._selected_cells[d]=!1;b.anCells&&!a.aoColumns[d]._select_selected&&e(b.anCells[d]).removeClass(a._select.className)});this.iterator("table",function(c,b){l(a,"deselect",["cell",a[b]],!0)});return this});var w=0;e.extend(g.ext.buttons,{selected:{text:r("selected","Selected"),className:"buttons-selected",
+limitTo:["rows","columns","cells"],init:function(a,c,b){var d=this;b._eventNamespace=".select"+w++;a.on(v(b),function(){d.enable(-1!==e.inArray("rows",b.limitTo)&&a.rows({selected:!0}).any()||-1!==e.inArray("columns",b.limitTo)&&a.columns({selected:!0}).any()||-1!==e.inArray("cells",b.limitTo)&&a.cells({selected:!0}).any()?!0:!1)});this.disable()},destroy:function(a,c,b){a.off(b._eventNamespace)}},selectedSingle:{text:r("selectedSingle","Selected single"),className:"buttons-selected-single",init:function(a,
+c,b){var d=this;b._eventNamespace=".select"+w++;a.on(v(b),function(){var b=a.rows({selected:!0}).flatten().length+a.columns({selected:!0}).flatten().length+a.cells({selected:!0}).flatten().length;d.enable(1===b)});this.disable()},destroy:function(a,c,b){a.off(b._eventNamespace)}},selectAll:{text:r("selectAll","Select all"),className:"buttons-select-all",action:function(){this[this.select.items()+"s"]().select()}},selectNone:{text:r("selectNone","Deselect all"),className:"buttons-select-none",action:function(){q(this.settings()[0],
+!0)},init:function(a,c,b){var d=this;b._eventNamespace=".select"+w++;a.on(v(b),function(){var b=a.rows({selected:!0}).flatten().length+a.columns({selected:!0}).flatten().length+a.cells({selected:!0}).flatten().length;d.enable(0<b)});this.disable()},destroy:function(a,c,b){a.off(b._eventNamespace)}}});e.each(["Row","Column","Cell"],function(a,c){var b=c.toLowerCase();g.ext.buttons["select"+c+"s"]={text:r("select"+c+"s","Select "+b+"s"),className:"buttons-select-"+b+"s",action:function(){this.select.items(b)},
+init:function(a){var c=this;a.on("selectItems.dt.DT",function(a,d,e){c.active(e===b)})}}});e(m).on("preInit.dt.dtSelect",function(a,c){"dt"===a.namespace&&g.select.init(new g.Api(c))});return g.select});
 
 /*! Bootstrap 4 styling wrapper for Select
  * ©2018 SpryMedia Ltd - datatables.net/license
