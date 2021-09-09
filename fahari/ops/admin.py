@@ -2,7 +2,15 @@ from django.contrib import admin
 
 from fahari.common.admin import BaseAdmin
 
-from .models import Commodity, FacilitySystem, FacilitySystemTicket, TimeSheet, UoM, UoMCategory
+from .models import (
+    Commodity,
+    FacilitySystem,
+    FacilitySystemTicket,
+    StockReceiptVerification,
+    TimeSheet,
+    UoM,
+    UoMCategory,
+)
 
 
 @admin.register(FacilitySystem)
@@ -35,6 +43,11 @@ class CommodityAdmin(BaseAdmin):
         "is_pharmacy_commodity",
         "active",
     )
+
+
+@admin.register(StockReceiptVerification)
+class StockReceiptVerificationAdmin(BaseAdmin):
+    pass
 
 
 @admin.register(UoM)

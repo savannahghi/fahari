@@ -28,7 +28,6 @@ from fahari.ops.models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
-    default_commodity,
 )
 
 fake = Faker()
@@ -320,13 +319,20 @@ class StockReceiptsViewsetTest(LoggedInMixin, APITestCase):
             county=random.choice(WHITELIST_COUNTIES),
             organisation=self.global_organisation,
         )
+        self.pack_sizes = baker.make(UoM, 5, organisation=self.global_organisation)
+        self.commodity = baker.make(
+            Commodity,
+            pack_sizes=self.pack_sizes,
+            organisation=self.global_organisation,
+        )
         super().setUp()
 
     def test_create(self):
         data = {
             "facility": self.facility.pk,
+            "commodity": self.commodity.pk,
+            "pack_size": self.pack_sizes[0].pk,
             "description": fake.text(),
-            "pack_size": fake.text(),
             "delivery_note_number": fake.name()[:63],
             "quantity_received": "10.0",
             "batch_number": fake.name()[:63],
@@ -367,13 +373,15 @@ class StockReceiptsViewsetTest(LoggedInMixin, APITestCase):
     def test_put(self):
         instance = baker.make(
             StockReceiptVerification,
+            commodity=self.commodity,
+            pack_size=self.pack_sizes[2],
             facility=self.facility,
             organisation=self.global_organisation,
         )
         data = {
             "facility": self.facility.pk,
             "description": fake.text(),
-            "pack_size": fake.text(),
+            "pack_size": self.pack_sizes[1].pk,
             "delivery_note_number": fake.name()[:63],
             "quantity_received": "10.0",
             "batch_number": fake.name()[:63],
@@ -397,7 +405,12 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
             county=random.choice(WHITELIST_COUNTIES),
             organisation=self.global_organisation,
         )
-        self.default_commodity = default_commodity()
+        self.pack_sizes = baker.make(UoM, 5, organisation=self.global_organisation)
+        self.commodity = baker.make(
+            Commodity,
+            pack_sizes=self.pack_sizes,
+            organisation=self.global_organisation,
+        )
         super().setUp()
 
     def test_create(self):
@@ -407,7 +420,7 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
             data = {
                 "facility": self.facility.pk,
                 "description": fake.text(),
-                "pack_size": fake.text(),
+                "pack_size": self.pack_sizes[0].pk,
                 "delivery_note_number": fake.name()[:63],
                 "quantity_received": "10.0",
                 "batch_number": fake.name()[:63],
@@ -416,7 +429,7 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
                 "comments": fake.text(),
                 "organisation": self.global_organisation.pk,
                 "delivery_note_image": image_file,
-                "commodity": self.default_commodity,
+                "commodity": self.commodity.pk,
                 "active": False,
             }
             response = self.client.post(
@@ -430,6 +443,8 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
     def test_update(self):
         instance = baker.make(
             StockReceiptVerification,
+            commodity=self.commodity,
+            pack_size=self.pack_sizes[2],
             facility=self.facility,
             organisation=self.global_organisation,
         )
@@ -440,7 +455,7 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
                 "pk": instance.pk,
                 "facility": self.facility.pk,
                 "description": fake.text(),
-                "pack_size": fake.text(),
+                "pack_size": self.pack_sizes[1].pk,
                 "delivery_note_number": fake.name()[:63],
                 "quantity_received": "10.0",
                 "batch_number": fake.name()[:63],
@@ -449,7 +464,7 @@ class StockReceiptsFormTest(LoggedInMixin, TestCase):
                 "comments": fake.text(),
                 "organisation": self.global_organisation.pk,
                 "delivery_note_image": image_file,
-                "commodity": self.default_commodity,
+                "commodity": self.commodity.pk,
                 "active": False,
             }
             response = self.client.post(
@@ -1163,12 +1178,14 @@ class CommodityViewsetTest(LoggedInMixin, APITestCase):
     def setUp(self):
         self.url_list = reverse("api:commodity-list")
         self.detail_url_name = "api:commodity-detail"
+        self.pack_sizes = baker.make(UoM, 3, organisation=self.global_organisation)
         super().setUp()
 
     def test_create(self):
         data = {
             "name": fake.name()[:127],
             "code": fake.name()[:64],
+            "pack_sizes": map(lambda p: p.pk, self.pack_sizes),
             "description": fake.text(),
             "is_lab_commodity": random.choice([True, False]),
             "is_pharmacy_commodity": random.choice([True, False]),
@@ -1181,6 +1198,7 @@ class CommodityViewsetTest(LoggedInMixin, APITestCase):
     def test_retrieve(self):
         instance = baker.make(
             Commodity,
+            pack_sizes=self.pack_sizes,
             organisation=self.global_organisation,
         )
         response = self.client.get(self.url_list)
@@ -1193,6 +1211,7 @@ class CommodityViewsetTest(LoggedInMixin, APITestCase):
     def test_patch(self):
         instance = baker.make(
             Commodity,
+            pack_sizes=self.pack_sizes,
             organisation=self.global_organisation,
         )
         edit = {"active": False}
@@ -1205,11 +1224,13 @@ class CommodityViewsetTest(LoggedInMixin, APITestCase):
     def test_put(self):
         instance = baker.make(
             Commodity,
+            pack_sizes=self.pack_sizes,
             organisation=self.global_organisation,
         )
         data = {
             "name": fake.name()[:127],
             "code": fake.name()[:64],
+            "pack_sizes": map(lambda p: p.pk, self.pack_sizes),
             "description": fake.text(),
             "is_lab_commodity": random.choice([True, False]),
             "is_pharmacy_commodity": random.choice([True, False]),
@@ -1225,9 +1246,11 @@ class CommodityViewsetTest(LoggedInMixin, APITestCase):
 
 class CommodityFormTest(LoggedInMixin, TestCase):
     def test_create(self):
+        pack_sizes = baker.make(UoM, 5, organisation=self.global_organisation)
         data = {
             "name": fake.name()[:127],
             "code": fake.name()[:64],
+            "pack_sizes": map(lambda p: p.pk, pack_sizes),
             "description": fake.text(),
             "is_lab_commodity": random.choice([True, False]),
             "is_pharmacy_commodity": random.choice([True, False]),
@@ -1240,13 +1263,16 @@ class CommodityFormTest(LoggedInMixin, TestCase):
         )
 
     def test_update(self):
+        pack_sizes = baker.make(UoM, 3, organisation=self.global_organisation)
         instance = baker.make(
             Commodity,
+            pack_sizes=pack_sizes,
             organisation=self.global_organisation,
         )
         data = {
             "name": fake.name()[:127],
             "code": fake.name()[:64],
+            "pack_sizes": map(lambda p: p.pk, instance.pack_sizes.all()),
             "description": fake.text(),
             "is_lab_commodity": random.choice([True, False]),
             "is_pharmacy_commodity": random.choice([True, False]),

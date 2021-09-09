@@ -326,7 +326,7 @@ class Commodity(AbstractBase):
     description = models.TextField(default="-", null=False, blank=False)
     is_lab_commodity = models.BooleanField(default=False)
     is_pharmacy_commodity = models.BooleanField(default=False)
-    unit_of_measure = models.ForeignKey("UoM", on_delete=models.PROTECT, null=True, blank=True)
+    pack_sizes = models.ManyToManyField("UoM", help_text="Valid pack sizes for this commodity.")
 
     def __str__(self) -> str:
         return f"{self.name} ({self.code})"
@@ -343,9 +343,7 @@ class StockReceiptVerification(AbstractBase):
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     commodity = models.ForeignKey(Commodity, on_delete=models.PROTECT, default=default_commodity)
     description = models.TextField(default="-")
-    unit_of_measure = models.ForeignKey(
-        "UoM", on_delete=models.PROTECT, null=True, blank=True, verbose_name="Pack size"
-    )
+    pack_size = models.ForeignKey("UoM", on_delete=models.PROTECT, null=True, blank=True)
     delivery_note_number = models.CharField(max_length=64)
     quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
     batch_number = models.CharField(max_length=64)
@@ -359,12 +357,25 @@ class StockReceiptVerification(AbstractBase):
     )
     comments = models.TextField()
 
-    def __str__(self):
-        return f"{self.facility.name} (Delivery Note: {self.delivery_note_number})"
+    model_validators = ["check_pack_size_is_valid_for_selected_commodity"]
+
+    def check_pack_size_is_valid_for_selected_commodity(self):
+        """Ensure that the selected pack size is valid for the selected commodity."""
+        if self.pack_size and not (self.pack_size in self.commodity.pack_sizes.all()):
+            raise ValidationError(
+                {
+                    "pack_size": '"%s" is not a valid pack size for the commodity "%s"'
+                    % (self.pack_size.name, self.commodity.name)
+                },
+                code="invalid",
+            )
 
     def get_absolute_url(self):
         update_url = reverse_lazy("ops:stock_receipt_verification_update", kwargs={"pk": self.pk})
         return update_url
+
+    def __str__(self):
+        return f"{self.facility.name} (Delivery Note: {self.delivery_note_number})"
 
 
 class OperationalArea(AbstractBase):

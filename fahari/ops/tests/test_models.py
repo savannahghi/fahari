@@ -8,6 +8,7 @@ from faker import Faker
 from model_bakery import baker
 
 from fahari.common.models import Facility, Organisation, System
+from fahari.common.tests.test_api import global_organisation
 from fahari.ops.models import (
     DEFAULT_COMMODITY_PK,
     Activity,
@@ -255,3 +256,37 @@ def test_uom_category_url():
     uom_category = baker.make(UoMCategory, name="Pack size")
     url = uom_category.get_absolute_url()
     assert f"/ops/uom_category_update/{uom_category.pk}" in url
+
+
+def test_stock_receipt_verification_with_valid_pack_size():
+    organisation = global_organisation()
+    pack_sizes = baker.make(UoM, 4, organisation=organisation)
+    commodity = baker.make(Commodity, pack_sizes=pack_sizes, organisation=organisation)
+    stock_receipt = baker.make(
+        StockReceiptVerification,
+        commodity=commodity,
+        pack_size=pack_sizes[0],
+        organisation=organisation,
+    )
+
+    assert stock_receipt is not None
+    assert stock_receipt.pack_size in commodity.pack_sizes.all()
+
+
+def test_stock_receipt_verification_with_invalid_pack_size():
+    organisation = global_organisation()
+    pack_size = baker.make(UoM, organisation=organisation)
+    pack_sizes = baker.make(UoM, 4, organisation=organisation)
+    commodity = baker.make(Commodity, pack_sizes=pack_sizes, organisation=organisation)
+    with pytest.raises(ValidationError) as e:
+        baker.make(
+            StockReceiptVerification,
+            commodity=commodity,
+            pack_size=pack_size,
+            organisation=organisation,
+        )
+
+    assert (
+        '"%s" is not a valid pack size for the commodity "%s"' % (pack_size.name, commodity.name)
+        in e.value.messages
+    )
