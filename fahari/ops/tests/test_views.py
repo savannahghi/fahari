@@ -8,6 +8,9 @@ from rest_framework import status
 from fahari.ops.models import FacilitySystemTicket, TimeSheet
 from fahari.ops.views import (
     CommoditiesListView,
+    FacilityDeviceRequestsListView,
+    FacilityDevicesListView,
+    FacilityNetworkStatusListView,
     FacilitySystemsView,
     FacilitySystemTicketsView,
     TimeSheetApproveView,
@@ -161,3 +164,45 @@ def test_uom_categories_context_data():
     ctx = v.get_context_data()
     assert ctx["active"] == "inventory-nav"
     assert ctx["selected"] == "uom_categories"
+
+
+def test_network_status_context_data():
+    v = FacilityNetworkStatusListView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "hardware-network-nav"
+    assert ctx["selected"] == "facility_network_status"
+
+
+def test_facility_devices_context_data():
+    v = FacilityDevicesListView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "hardware-network-nav"
+    assert ctx["selected"] == "facility_devices"
+
+
+def test_facility_device_request_context_data():
+    v = FacilityDeviceRequestsListView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "hardware-network-nav"
+    assert ctx["selected"] == "facility_device_requests"
+
+
+def test_facility_network_status_view(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    url = reverse("ops:facility_network_status")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_facility_device_view(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    url = reverse("ops:facility_devices")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_facility_device_request_view(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    url = reverse("ops:facility_device_requests")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK

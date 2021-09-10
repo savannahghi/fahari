@@ -6,6 +6,9 @@ from .models import (
     ActivityLog,
     Commodity,
     DailyUpdate,
+    FacilityDevice,
+    FacilityDeviceRequest,
+    FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
     SiteMentorship,
@@ -110,4 +113,28 @@ class UoMSerializer(BaseSerializer):
 class UoMCategorySerializer(BaseSerializer):
     class Meta(BaseSerializer.Meta):
         model = UoMCategory
+        fields = "__all__"
+
+
+class FacilityNetworkStatusSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = FacilityNetworkStatus
+        fields = "__all__"
+
+
+class FacilityDeviceSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = FacilityDevice
+        fields = "__all__"
+
+
+class FacilityDeviceRequestSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = FacilityDeviceRequest
         fields = "__all__"

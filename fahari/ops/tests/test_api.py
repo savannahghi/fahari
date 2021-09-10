@@ -20,6 +20,9 @@ from fahari.ops.models import (
     ActivityLog,
     Commodity,
     DailyUpdate,
+    FacilityDevice,
+    FacilityDeviceRequest,
+    FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
     SiteMentorship,
@@ -1366,6 +1369,374 @@ class UoMCategoryFormTest(LoggedInMixin, TestCase):
         instance = baker.make(UoMCategory, organisation=self.global_organisation)
         response = self.client.post(
             reverse("ops:uom_category_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class FacilityNetworkStatusViewsetTest(LoggedInMixin, APITestCase):
+    def setUp(self):
+        self.url_list = reverse("api:facilitynetworkstatus-list")
+        self.facility = baker.make(Facility, organisation=self.global_organisation)
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "has_network": fake.pybool(),
+            "has_internet": fake.pybool(),
+        }
+        response = self.client.post(self.url_list, data)
+        assert response.status_code == 201, response.json()
+        assert response.data["has_network"] == data["has_network"]
+        assert response.data["has_internet"] == data["has_internet"]
+
+    def test_retrieve(self):
+        instance = baker.make(
+            FacilityNetworkStatus,
+            organisation=self.global_organisation,
+            has_internet=fake.pybool(),
+        )
+        response = self.client.get(self.url_list)
+        assert response.status_code == 200, response.json()
+        assert response.data["count"] >= 1, response.json()
+
+        internet_connections = [a["has_internet"] for a in response.data["results"]]
+        assert instance.has_internet in internet_connections
+
+    def test_patch(self):
+        instance = baker.make(
+            FacilityNetworkStatus, organisation=self.global_organisation, has_network=fake.pybool()
+        )
+        edit = {"has_network": fake.pybool()}
+        url = reverse("api:facilitynetworkstatus-detail", kwargs={"pk": instance.pk})
+        response = self.client.patch(url, edit)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["has_network"] == edit["has_network"]
+
+    def test_put(self):
+        instance = baker.make(
+            FacilityNetworkStatus,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "facility": self.facility.pk,
+            "organisation": self.global_organisation.pk,
+            "has_network": fake.pybool(),
+            "has_internet": fake.pybool(),
+        }
+        url = reverse("api:facilitynetworkstatus-detail", kwargs={"pk": instance.pk})
+        response = self.client.put(url, data)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["has_network"] == data["has_network"]
+        assert response.data["has_internet"] == data["has_internet"]
+
+
+class FacilityNetworkStatusFormTest(LoggedInMixin, TestCase):
+    def setUp(self):
+        self.user = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
+        self.facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            operation_status="Operational",
+            organisation=self.global_organisation,
+        )
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "has_network": fake.pybool(),
+            "has_internet": fake.pybool(),
+        }
+        response = self.client.post(reverse("ops:network_status_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance = baker.make(
+            FacilityNetworkStatus,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "pk": instance.pk,
+            "facility": self.facility.pk,
+            "has_network": fake.pybool(),
+            "has_internet": fake.pybool(),
+        }
+        response = self.client.post(
+            reverse("ops:network_status_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance = baker.make(
+            FacilityNetworkStatus,
+            organisation=self.global_organisation,
+        )
+        response = self.client.post(
+            reverse("ops:network_status_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class FacilityDeviceViewsetTest(LoggedInMixin, APITestCase):
+    def setUp(self):
+        self.url_list = reverse("api:facilitydevice-list")
+        self.facility = baker.make(Facility, organisation=self.global_organisation)
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "number_of_devices": random.randint(1, 10),
+            "number_of_ups": random.randint(1, 10),
+            "server_specification": fake.text(),
+        }
+        response = self.client.post(self.url_list, data)
+        assert response.status_code == 201, response.json()
+        assert response.data["number_of_devices"] == data["number_of_devices"]
+        assert response.data["number_of_ups"] == data["number_of_ups"]
+        assert response.data["server_specification"] == data["server_specification"]
+
+    def test_retrieve(self):
+        instance = baker.make(
+            FacilityDevice,
+            organisation=self.global_organisation,
+            number_of_ups=random.randint(1, 10),
+        )
+        response = self.client.get(self.url_list)
+        assert response.status_code == 200, response.json()
+        assert response.data["count"] >= 1, response.json()
+
+        ups = [a["number_of_ups"] for a in response.data["results"]]
+        assert instance.number_of_ups in ups
+
+    def test_patch(self):
+        instance = baker.make(
+            FacilityDevice,
+            organisation=self.global_organisation,
+        )
+        edit = {"number_of_devices": random.randint(1, 10)}
+        url = reverse("api:facilitydevice-detail", kwargs={"pk": instance.pk})
+        response = self.client.patch(url, edit)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["number_of_devices"] == edit["number_of_devices"]
+
+    def test_put(self):
+        instance = baker.make(
+            FacilityDevice,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "facility": self.facility.pk,
+            "organisation": self.global_organisation.pk,
+            "number_of_devices": random.randint(1, 10),
+            "number_of_ups": random.randint(1, 10),
+            "server_specification": fake.text(),
+        }
+        url = reverse("api:facilitydevice-detail", kwargs={"pk": instance.pk})
+        response = self.client.put(url, data)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["number_of_devices"] == data["number_of_devices"]
+        assert response.data["number_of_ups"] == data["number_of_ups"]
+        assert response.data["server_specification"] == data["server_specification"]
+
+
+class FacilityDeviceFormTest(LoggedInMixin, TestCase):
+    def setUp(self):
+        self.user = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
+        self.facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            operation_status="Operational",
+            organisation=self.global_organisation,
+        )
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "number_of_devices": random.randint(1, 10),
+            "number_of_ups": random.randint(1, 10),
+            "server_specification": fake.text(),
+        }
+        response = self.client.post(reverse("ops:facility_device_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance = baker.make(
+            FacilityDevice,
+            organisation=self.global_organisation,
+        )
+        data = {
+            "pk": instance.pk,
+            "facility": self.facility.pk,
+            "number_of_devices": random.randint(1, 10),
+            "number_of_ups": random.randint(1, 10),
+            "server_specification": fake.text(),
+        }
+        response = self.client.post(
+            reverse("ops:facility_device_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance = baker.make(
+            FacilityDevice,
+            organisation=self.global_organisation,
+        )
+        response = self.client.post(
+            reverse("ops:facility_device_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class FacilityDeviceRequestViewsetTest(LoggedInMixin, APITestCase):
+    def setUp(self):
+        self.url_list = reverse("api:facilitydevicerequest-list")
+        self.facility = baker.make(Facility, organisation=self.global_organisation)
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "device_requested": fake.text(max_nb_chars=50),
+            "request_type": "NEW",
+            "request_details": fake.text(),
+            "date_requested": date.today().isoformat(),
+            "delivery_date": date.today().isoformat(),
+        }
+        response = self.client.post(self.url_list, data)
+        assert response.status_code == 201, response.json()
+        assert response.data["device_requested"] == data["device_requested"]
+        assert response.data["request_details"] == data["request_details"]
+
+    def test_retrieve(self):
+        instance = baker.make(
+            FacilityDeviceRequest,
+            organisation=self.global_organisation,
+            device_requested=fake.text(max_nb_chars=50),
+        )
+        response = self.client.get(self.url_list)
+        assert response.status_code == 200, response.json()
+        assert response.data["count"] >= 1, response.json()
+
+        devices = [a["device_requested"] for a in response.data["results"]]
+        assert instance.device_requested in devices
+
+    def test_patch(self):
+        instance = baker.make(
+            FacilityDeviceRequest,
+            organisation=self.global_organisation,
+            device_requested=fake.text(max_nb_chars=50),
+        )
+        edit = {"device_requested": fake.text(max_nb_chars=50)}
+        url = reverse("api:facilitydevicerequest-detail", kwargs={"pk": instance.pk})
+        response = self.client.patch(url, edit)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["device_requested"] == edit["device_requested"]
+
+    def test_put(self):
+        instance = baker.make(
+            FacilityDeviceRequest,
+            organisation=self.global_organisation,
+            device_requested=fake.text(max_nb_chars=50),
+        )
+        data = {
+            "facility": self.facility.pk,
+            "device_requested": fake.text(max_nb_chars=50),
+            "request_type": "NEW",
+            "request_details": fake.text(),
+        }
+        url = reverse("api:facilitydevicerequest-detail", kwargs={"pk": instance.pk})
+        response = self.client.put(url, data)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["device_requested"] == data["device_requested"]
+        assert response.data["request_details"] == data["request_details"]
+
+
+class FacilityDeviceRequestFormTest(LoggedInMixin, TestCase):
+    def setUp(self):
+        self.user = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
+        self.facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            operation_status="Operational",
+            organisation=self.global_organisation,
+        )
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "device_requested": fake.text(max_nb_chars=50),
+            "request_type": "NEW",
+            "request_details": fake.text(),
+        }
+        response = self.client.post(reverse("ops:facility_device_request_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+    def test_update(self):
+        instance = baker.make(
+            FacilityDeviceRequest,
+            organisation=self.global_organisation,
+            device_requested=fake.text(max_nb_chars=50),
+            request_details=fake.text(),
+        )
+        data = {
+            "pk": instance.pk,
+            "facility": self.facility.pk,
+            "device_requested": fake.text(max_nb_chars=50),
+            "request_details": fake.text(),
+        }
+        response = self.client.post(
+            reverse("ops:facility_device_request_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+    def test_delete(self):
+        instance = baker.make(
+            FacilityDeviceRequest,
+            organisation=self.global_organisation,
+            device_requested=fake.text(max_nb_chars=50),
+        )
+        response = self.client.post(
+            reverse("ops:facility_device_request_delete", kwargs={"pk": instance.pk}),
         )
         self.assertEqual(
             response.status_code,

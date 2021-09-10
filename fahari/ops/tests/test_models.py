@@ -1,5 +1,5 @@
+import random
 from datetime import date
-from random import randint
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -15,6 +15,9 @@ from fahari.ops.models import (
     ActivityLog,
     Commodity,
     DailyUpdate,
+    FacilityDevice,
+    FacilityDeviceRequest,
+    FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
     OperationalArea,
@@ -101,9 +104,9 @@ def test_facility_ticket_status(staff_user):
 
 
 def get_random_date():
-    year = randint(1900, 2100)
-    month = randint(1, 12)
-    day = randint(1, 28)
+    year = random.randint(1900, 2100)
+    month = random.randint(1, 12)
+    day = random.randint(1, 28)
     return date(year=year, month=month, day=day)
 
 
@@ -290,3 +293,70 @@ def test_stock_receipt_verification_with_invalid_pack_size():
         '"%s" is not a valid pack size for the commodity "%s"' % (pack_size.name, commodity.name)
         in e.value.messages
     )
+
+
+def test_facility_network_status_str():
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name=fake.text(max_nb_chars=30))
+    network_status = baker.make(
+        FacilityNetworkStatus,
+        facility=facility,
+        has_network=fake.pybool(),
+        has_internet=fake.pybool(),
+    )
+    assert str(network_status) == "Facility: %s, Has network: %s, Has internet: %s" % (
+        network_status.facility.name,
+        network_status.has_network,
+        network_status.has_internet,
+    )
+
+
+def test_facility_network_status():
+    set_network = baker.make(FacilityNetworkStatus, has_network=True)
+    assert set_network.has_network
+
+    set_internet = baker.make(FacilityNetworkStatus, has_internet=False)
+    assert not set_internet.has_internet
+
+
+def test_facility_device_str():
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name=fake.text(max_nb_chars=30))
+    facility_device = baker.make(
+        FacilityDevice,
+        facility=facility,
+        number_of_devices=random.randint(1, 10),
+        number_of_ups=random.randint(1, 10),
+        server_specification=fake.text(),
+    )
+    assert str(facility_device) == "Facility: %s, No.of devices: %s" % (
+        facility_device.facility.name,
+        facility_device.number_of_devices,
+    )
+
+
+def test_facility_hardware_count():
+    device_count = baker.make(FacilityDevice, number_of_devices=random.randint(1, 10))
+    assert device_count.number_of_devices >= 1
+
+    ups_count = baker.make(FacilityDevice, number_of_ups=random.randint(1, 10))
+    assert ups_count.number_of_ups >= 1
+
+
+def test_facility_device_request_str():
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name=fake.text(max_nb_chars=30))
+    facility_device_req = baker.make(
+        FacilityDeviceRequest,
+        facility=facility,
+        device_requested=fake.text(max_nb_chars=50),
+        request_type="NEW",
+        request_details=fake.text(),
+    )
+    assert str(facility_device_req) == "Facility: %s, Request type: %s, Device requested: %s" % (
+        facility_device_req.facility.name,
+        facility_device_req.request_type,
+        facility_device_req.device_requested,
+    )
+    url = facility_device_req.get_absolute_url()
+    assert f"/ops/facility_device_request_update/{facility_device_req.pk}" in url

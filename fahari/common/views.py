@@ -46,7 +46,7 @@ class BaseFormMixin(ModelFormMixin, View):
         return super().form_valid(form)
 
 
-class FacilitySystemFormMixin(ModelFormMixin, LoginRequiredMixin, View):
+class GetKwargsMixin(ModelFormMixin, LoginRequiredMixin, View):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["request"] = self.request

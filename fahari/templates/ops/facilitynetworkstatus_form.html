@@ -1,0 +1,51 @@
+
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+    Add/Edit Network status
+{% endblock title %}
+{% block content %}
+<a href="{% url 'ops:facility_network_status' %}">&larr; Back</a>
+{% if perms.ops.change_facilitynetworkstatus %}
+<div class="row">
+  <div class="col-xl-10 col-lg-10 col-md-10 col-sm-12">
+    <div class="row align-page-content">
+      <div class="card-header">
+        <div class="toolbar float-right">
+            {% if object.pk %}
+                {% if perms.ops.delete_facilitynetworkstatus %}
+                    <a href="{% url 'ops:network_status_delete' object.pk %}" class="btn btn-danger btn-icon-split">
+                        <span class="icon text-white-50">
+                            <i class="fas fa-trash"></i>
+                        </span>
+                        <span class="text">Delete Facility Status</span>
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+      </div>
+
+      <div class="row d-block">
+        <div class="col-lg-2"></div>
+        <div class="col-lg-8 center-form">
+          <div class="p-lg-5 p-xs-1 p-sm-1">
+            <div class="text-left">
+                <h1 class="h4 text-gray-900 mb-4">
+                    {% if object.pk %}
+                        Edit Facility Network
+                    {% else %}
+                        Create Facility Network
+                    {% endif %}
+                </h1>
+            </div>
+            {% crispy form %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+    <p>You do not have permission to edit network status.</p>
+{% endif %}
+{% endblock content %}
