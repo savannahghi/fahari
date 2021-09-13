@@ -10,12 +10,15 @@ from django.views.generic import CreateView, DeleteView, TemplateView, UpdateVie
 from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
 from django.views.generic.edit import FormMixin, ProcessFormView
 
-from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, FacilitySystemFormMixin
+from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, GetKwargsMixin
 
 from .filters import (
     ActivityLogFilter,
     CommodityFilter,
     DailyUpdateFilter,
+    FacilityDeviceFilter,
+    FacilityDeviceRequestFilter,
+    FacilityNetworkStatusFilter,
     FacilitySystemFilter,
     FacilitySystemTicketFilter,
     SiteMentorshipFilter,
@@ -29,6 +32,9 @@ from .forms import (
     ActivityLogForm,
     CommodityForm,
     DailyUpdateForm,
+    FacilityDeviceForm,
+    FacilityDeviceRequestForm,
+    FacilityNetworkStatusForm,
     FacilitySystemForm,
     FacilitySystemTicketForm,
     FacilitySystemTicketResolveForm,
@@ -43,6 +49,9 @@ from .models import (
     ActivityLog,
     Commodity,
     DailyUpdate,
+    FacilityDevice,
+    FacilityDeviceRequest,
+    FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
     SiteMentorship,
@@ -56,6 +65,9 @@ from .serializers import (
     ActivityLogSerializer,
     CommoditySerializer,
     DailyUpdateSerializer,
+    FacilityDeviceRequestSerializer,
+    FacilityDeviceSerializer,
+    FacilityNetworkStatusSerializer,
     FacilitySystemSerializer,
     FacilitySystemTicketSerializer,
     SiteMentorshipSerializer,
@@ -136,7 +148,7 @@ class FacilitySystemTicketsView(
 
 
 class FacilitySystemTicketCreateView(
-    FacilitySystemTicketContextMixin, BaseFormMixin, FacilitySystemFormMixin, CreateView
+    FacilitySystemTicketContextMixin, BaseFormMixin, GetKwargsMixin, CreateView
 ):
     form_class = FacilitySystemTicketForm
     success_url = reverse_lazy("ops:tickets")
@@ -144,7 +156,7 @@ class FacilitySystemTicketCreateView(
 
 
 class FacilitySystemTicketUpdateView(
-    FacilitySystemTicketContextMixin, BaseFormMixin, FacilitySystemFormMixin, UpdateView
+    FacilitySystemTicketContextMixin, BaseFormMixin, GetKwargsMixin, UpdateView
 ):
     form_class = FacilitySystemTicketForm
     model = FacilitySystemTicket
@@ -652,3 +664,165 @@ class UoMCategoryViewSet(BaseView):
     filterset_class = UoMCategoryFilter
     ordering_fields = ("name", "measure_type")
     serializer_fields = ("name", "measure_type")
+
+
+class NetworkStatusMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "hardware-network-nav"  # id of active nav element
+        context["selected"] = "facility_network_status"  # id of selected page
+        return context
+
+
+class FacilityNetworkStatusListView(
+    NetworkStatusMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/facility_network_status.html"
+    permission_required = "ops.view_facilitynetworkstatus"
+
+
+class FacilityNetworkStatusCreateView(NetworkStatusMixin, BaseFormMixin, CreateView):
+    form_class = FacilityNetworkStatusForm
+    model = FacilityNetworkStatus
+    success_url = reverse_lazy("ops:facility_network_status")
+
+
+class FacilityNetworkStatusUpdateView(NetworkStatusMixin, UpdateView, BaseFormMixin):
+    form_class = FacilityNetworkStatusForm
+    model = FacilityNetworkStatus
+    success_url = reverse_lazy("ops:facility_network_status")
+
+
+class FacilityNetworkStatusDeleteView(NetworkStatusMixin, DeleteView, BaseFormMixin):
+    form_class = FacilityNetworkStatusForm
+    model = FacilityNetworkStatus
+    success_url = reverse_lazy("ops:facility_network_status")
+
+
+class FacilityNetworkStatusViewSet(BaseView):
+    queryset = FacilityNetworkStatus.objects.filter(
+        active=True,
+    )
+
+    serializer_class = FacilityNetworkStatusSerializer
+    filterset_class = FacilityNetworkStatusFilter
+    ordering_fields = (
+        "facility__name",
+        "has_network",
+        "has_internet",
+    )
+    search_fields = (
+        "facility__name",
+        "has_network",
+        "has_internet",
+    )
+
+
+class FacilityDevicesMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "hardware-network-nav"  # id of active nav element
+        context["selected"] = "facility_devices"  # id of selected page
+        return context
+
+
+class FacilityDevicesListView(
+    FacilityDevicesMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/facility_devices.html"
+    permission_required = "ops.view_facilitydevice"
+
+
+class FacilityDeviceCreateView(FacilityDevicesMixin, BaseFormMixin, CreateView):
+    form_class = FacilityDeviceForm
+    model = FacilityDevice
+    success_url = reverse_lazy("ops:facility_devices")
+
+
+class FacilityDeviceUpdateView(FacilityDevicesMixin, UpdateView, BaseFormMixin):
+    form_class = FacilityDeviceForm
+    model = FacilityDevice
+    success_url = reverse_lazy("ops:facility_devices")
+
+
+class FacilityDeviceDeleteView(FacilityDevicesMixin, DeleteView, BaseFormMixin):
+    form_class = FacilityDeviceForm
+    model = FacilityDevice
+    success_url = reverse_lazy("ops:facility_devices")
+
+
+class FacilityDeviceViewSet(BaseView):
+    queryset = FacilityDevice.objects.filter(
+        active=True,
+    )
+
+    serializer_class = FacilityDeviceSerializer
+    filterset_class = FacilityDeviceFilter
+    ordering_fields = (
+        "facility__name",
+        "number_of_devices",
+        "number_of_ups",
+        "server_specification",
+    )
+    search_fields = (
+        "facility__name",
+        "number_of_devices",
+        "number_of_ups",
+    )
+
+
+class FacilityDeviceRequestsMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "hardware-network-nav"  # id of active nav element
+        context["selected"] = "facility_device_requests"  # id of selected page
+        return context
+
+
+class FacilityDeviceRequestsListView(
+    FacilityDeviceRequestsMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/facility_device_requests.html"
+    permission_required = "ops.view_facilitydevicerequest"
+
+
+class FacilityDeviceRequestCreateView(FacilityDeviceRequestsMixin, BaseFormMixin, CreateView):
+    form_class = FacilityDeviceRequestForm
+    model = FacilityDeviceRequest
+    success_url = reverse_lazy("ops:facility_device_requests")
+
+
+class FacilityDeviceRequestUpdateView(FacilityDeviceRequestsMixin, UpdateView, BaseFormMixin):
+    form_class = FacilityDeviceRequestForm
+    model = FacilityDeviceRequest
+    success_url = reverse_lazy("ops:facility_device_requests")
+
+
+class FacilityDeviceRequestDeleteView(FacilityDeviceRequestsMixin, DeleteView, BaseFormMixin):
+    form_class = FacilityDeviceRequestForm
+    model = FacilityDeviceRequest
+    success_url = reverse_lazy("ops:facility_device_requests")
+
+
+class FacilityDeviceRequestViewSet(BaseView):
+    queryset = FacilityDeviceRequest.objects.filter(
+        active=True,
+    )
+
+    serializer_class = FacilityDeviceRequestSerializer
+    filterset_class = FacilityDeviceRequestFilter
+    ordering_fields = (
+        "facility__name",
+        "device_requested",
+        "request_type",
+        "request_details",
+        "date_requested",
+        "delivery_date",
+    )
+    search_fields = (
+        "facility__name",
+        "device_requested",
+        "request_type",
+        "date_requested",
+        "delivery_date",
+    )

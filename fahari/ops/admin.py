@@ -4,6 +4,9 @@ from fahari.common.admin import BaseAdmin
 
 from .models import (
     Commodity,
+    FacilityDevice,
+    FacilityDeviceRequest,
+    FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
     StockReceiptVerification,
@@ -58,3 +61,52 @@ class UoMAdmin(BaseAdmin):
 @admin.register(UoMCategory)
 class UoMCategoryAdmin(BaseAdmin):
     pass
+
+
+@admin.register(FacilityNetworkStatus)
+class FacilityNetworkStatusAdmin(BaseAdmin):
+
+    list_display = (
+        "facility",
+        "has_network",
+        "has_internet",
+    )
+    list_filter = (
+        "facility",
+        "has_network",
+        "has_internet",
+    )
+
+
+@admin.register(FacilityDevice)
+class FacilityDeviceAdmin(BaseAdmin):
+
+    list_display = (
+        "facility",
+        "number_of_devices",
+        "number_of_ups",
+        "server_specification",
+    )
+    list_filter = (
+        "facility",
+        "number_of_devices",
+        "number_of_ups",
+    )
+
+
+@admin.register(FacilityDeviceRequest)
+class FacilityDeviceRequestAdmin(BaseAdmin):
+
+    list_display = (
+        "facility",
+        "device_requested",
+        "request_type",
+        "request_details",
+        "date_requested",
+        "delivery_date",
+    )
+    list_filter = (
+        "facility",
+        "date_requested",
+        "request_type",
+    )

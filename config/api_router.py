@@ -6,6 +6,9 @@ from fahari.ops.views import (
     ActivityLogViewSet,
     CommodityViewSet,
     DailyUpdateViewSet,
+    FacilityDeviceRequestViewSet,
+    FacilityDeviceViewSet,
+    FacilityNetworkStatusViewSet,
     FacilitySystemTicketViewSet,
     FacilitySystemViewSet,
     SiteMentorshipViewSet,
@@ -37,6 +40,9 @@ router.register("weekly_updates", WeeklyProgramUpdateViewSet)
 router.register("commodities", CommodityViewSet)
 router.register("uoms", UoMViewSet)
 router.register("uom_categories", UoMCategoryViewSet)
+router.register("network_status", FacilityNetworkStatusViewSet)
+router.register("facility_devices", FacilityDeviceViewSet)
+router.register("facility_device_requests", FacilityDeviceRequestViewSet)
 
 app_name = "api"
 urlpatterns = router.urls

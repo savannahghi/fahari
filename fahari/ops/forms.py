@@ -1,7 +1,7 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django import forms
-from django.forms.widgets import DateTimeInput, Select, Textarea, TextInput
+from django.forms.widgets import DateInput, DateTimeInput, Select, Textarea, TextInput
 
 from fahari.common.dashboard import get_fahari_facilities_queryset
 from fahari.common.forms import BaseModelForm
@@ -12,6 +12,9 @@ from .models import (
     ActivityLog,
     Commodity,
     DailyUpdate,
+    FacilityDevice,
+    FacilityDeviceRequest,
+    FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
     SiteMentorship,
@@ -377,3 +380,70 @@ class UoMCategoryForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = UoMCategory
+
+
+class FacilityNetworkStatusForm(BaseModelForm):
+    field_order = (
+        "facility",
+        "has_network",
+        "has_internet",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "facility_network_status_form"
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+
+    class Meta(BaseModelForm.Meta):
+        model = FacilityNetworkStatus
+        widgets = {
+            "facility": SearchableComboBox(),
+        }
+
+
+class FacilityDeviceForm(BaseModelForm):
+    field_order = (
+        "facility",
+        "number_of_devices",
+        "number_of_ups",
+        "server_specification",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "facility_device_form"
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+
+    class Meta(BaseModelForm.Meta):
+        model = FacilityDevice
+        widgets = {
+            "facility": SearchableComboBox(),
+        }
+
+
+class FacilityDeviceRequestForm(BaseModelForm):
+    field_order = (
+        "facility",
+        "device_requested",
+        "request_type",
+        "request_details",
+        "date_requested",
+        "delivery_date",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "facility_device_request_form"
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+
+    class Meta(BaseModelForm.Meta):
+        model = FacilityDeviceRequest
+        widgets = {
+            "facility": SearchableComboBox(),
+            "date_requested": DateInput(attrs={"hidden": True}),
+            "delivery_date": DateInput(
+                attrs={
+                    "hidden": True,
+                }
+            ),
+        }

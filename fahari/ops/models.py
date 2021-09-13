@@ -7,7 +7,9 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.utils import IntegrityError, InternalError, ProgrammingError
 from django.urls import reverse_lazy
+from django.urls.base import reverse
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from fahari.common.models import AbstractBase, Facility, Organisation, System, get_directory
 
@@ -474,3 +476,88 @@ class UoMCategory(AbstractBase):
 
     def __str__(self):
         return self.name
+
+
+class FacilityNetworkStatus(AbstractBase):
+    """Facility network connection status."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    has_network = models.BooleanField(default=True)
+    has_internet = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return "Facility: %s, Has network: %s, Has internet: %s" % (
+            self.facility.name,
+            self.has_network,
+            self.has_internet,
+        )
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:network_status_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        unique_together = ("facility",)
+        ordering = (
+            "-updated",
+            "facility__name",
+        )
+
+
+class FacilityDevice(AbstractBase):
+    """Facility devices ."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    number_of_devices = models.PositiveSmallIntegerField(default=0)
+    number_of_ups = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Number of UPS",
+    )
+    server_specification = models.TextField(default="-")
+
+    def __str__(self) -> str:
+        return "Facility: %s, No.of devices: %s" % (
+            self.facility.name,
+            self.number_of_devices,
+        )
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:facility_device_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        ordering = ("facility__name", "-updated")
+
+
+class FacilityDeviceRequest(AbstractBase):
+    """Facility devices request by users."""
+
+    class TypeOfRequests(models.TextChoices):
+        NEW = "NEW", _("New")
+        REPLACEMENT = "REPLACEMENT", _("Replacement")
+        REPAIR = "REPAIR", _("Repair")
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    device_requested = models.CharField(max_length=50, default="")
+    request_type = models.CharField(
+        max_length=20,
+        choices=TypeOfRequests.choices,
+        default=TypeOfRequests.NEW,
+    )
+    request_details = models.TextField(default="-")
+    date_requested = models.DateField(default=timezone.datetime.today)
+    delivery_date = models.DateField(blank=True, null=True)
+
+    def __str__(self) -> str:
+        return "Facility: %s, Request type: %s, Device requested: %s" % (
+            self.facility.name,
+            self.request_type,
+            self.device_requested,
+        )
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:facility_device_request_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        ordering = ("facility__name", "-updated")

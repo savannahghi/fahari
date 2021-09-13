@@ -1,0 +1,54 @@
+{% load static i18n compress%}
+
+<li class="nav-item {% if active == "hardware-network-nav" %}active {% endif %}" id="hardware-network-nav">
+    <a class="nav-link collapsed" href="#" data-toggle="collapse" id="hardware-network-menu-link" data-target="#hardware-network-menu" aria-expanded="true" aria-controls="hardware-network-menu">
+        <i class="fas fa-fw fa-tasks"></i>
+        <span>Hardware and Network</span>
+    </a>
+    <div id="hardware-network-menu" class="collapse {% if active == "hardware-network-nav" %}show{% endif %}"  data-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            {% if perms.ops.view_facilitynetworkcondition %}
+                <a class="collapse-item {% if selected == "facility_network_status" %}active {% endif %}" id="facility_network_status" href="{% url 'ops:facility_network_status' %}">
+                   Network Status
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_facilitydevice %}
+                <a class="collapse-item {% if selected == "facility_devices" %}active {% endif %}" id="facility_devices" href="{% url 'ops:facility_devices' %}">
+                   Hardware Devices
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_facilitydevicerequest %}
+                <a class="collapse-item {% if selected == "facility_device_requests" %}active {% endif %}" id="facility_device_requests" href="{% url 'ops:facility_device_requests' %}">
+                   Hardware Requests
+                </a>
+            {% endif %}
+
+        </div>
+    </div>
+</li>
+
+
+<script>
+
+
+
+
+function collapseMenu(){
+const network_menu_link = document.getElementById("hardware-network-menu-link");
+network_menu_link.className = "nav-link collapsed";
+const network_menu = document.getElementById("hardware-network-menu");
+network_menu.className = "collapse";
+}
+
+const network_items = document.querySelectorAll('.collapse-item');
+network_items.forEach(input => input.addEventListener('click', collapseMenu()));
+
+
+document.addEventListener("DOMContentLoaded", () => {
+collapseMenu()
+});
+
+
+</script>

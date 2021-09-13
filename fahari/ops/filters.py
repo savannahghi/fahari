@@ -6,6 +6,9 @@ from .models import (
     ActivityLog,
     Commodity,
     DailyUpdate,
+    FacilityDevice,
+    FacilityDeviceRequest,
+    FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
     SiteMentorship,
@@ -128,4 +131,34 @@ class UoMCategoryFilter(CommonFieldsFilterset):
     class Meta:
 
         model = UoMCategory
+        fields = "__all__"
+
+
+class FacilityNetworkStatusFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = FacilityNetworkStatus
+        fields = "__all__"
+
+
+class FacilityDeviceFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = FacilityDevice
+        fields = "__all__"
+
+
+class FacilityDeviceRequestFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = FacilityDeviceRequest
         fields = "__all__"
