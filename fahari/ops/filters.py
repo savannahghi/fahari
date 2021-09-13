@@ -11,6 +11,7 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
@@ -161,4 +162,14 @@ class FacilityDeviceRequestFilter(CommonFieldsFilterset):
     class Meta:
 
         model = FacilityDeviceRequest
+        fields = "__all__"
+
+
+class SecurityIncidenceFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = SecurityIncidence
         fields = "__all__"

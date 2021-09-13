@@ -25,6 +25,7 @@ from fahari.ops.models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
@@ -1737,6 +1738,139 @@ class FacilityDeviceRequestFormTest(LoggedInMixin, TestCase):
         )
         response = self.client.post(
             reverse("ops:facility_device_request_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class SecurityIncidenceViewsetTest(LoggedInMixin, APITestCase):
+    def setUp(self):
+        self.url_list = reverse("api:securityincidence-list")
+        self.facility = baker.make(Facility, organisation=self.global_organisation)
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "title": fake.text(max_nb_chars=50),
+            "details": fake.text(),
+            "reported_on": date.today().isoformat(),
+            "reported_by": self.user.pk,
+        }
+        response = self.client.post(self.url_list, data)
+        assert response.status_code == 201, response.json()
+        assert response.data["title"] == data["title"]
+        assert response.data["details"] == data["details"]
+        assert response.data["reported_on"] == data["reported_on"]
+        assert response.data["reported_by"] == data["reported_by"]
+
+    def test_retrieve(self):
+        instance = baker.make(
+            SecurityIncidence,
+            organisation=self.global_organisation,
+            title=fake.text(max_nb_chars=50),
+        )
+        response = self.client.get(self.url_list)
+        assert response.status_code == 200, response.json()
+        assert response.data["count"] >= 1, response.json()
+
+        incidences = [a["title"] for a in response.data["results"]]
+        assert instance.title in incidences
+
+    def test_patch(self):
+        instance = baker.make(
+            SecurityIncidence,
+            organisation=self.global_organisation,
+            title=fake.text(max_nb_chars=50),
+        )
+        edit = {"title": fake.text(max_nb_chars=50)}
+        url = reverse("api:securityincidence-detail", kwargs={"pk": instance.pk})
+        response = self.client.patch(url, edit)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["title"] == edit["title"]
+
+    def test_put(self):
+        instance = baker.make(
+            SecurityIncidence,
+            organisation=self.global_organisation,
+            title=fake.text(max_nb_chars=50),
+        )
+        data = {
+            "facility": self.facility.pk,
+            "title": fake.text(max_nb_chars=50),
+            "details": fake.text(),
+            "reported_on": date.today().isoformat(),
+            "reported_by": self.user.pk,
+        }
+        url = reverse("api:securityincidence-detail", kwargs={"pk": instance.pk})
+        response = self.client.put(url, data)
+
+        assert response.status_code == 200, response.json()
+        assert response.data["title"] == data["title"]
+        assert response.data["details"] == data["details"]
+        assert response.data["reported_on"] == data["reported_on"]
+        assert response.data["reported_by"] == data["reported_by"]
+
+
+class SecurityIncidenceFormTest(LoggedInMixin, TestCase):
+    def setUp(self):
+        self.user = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
+        self.facility = baker.make(
+            Facility,
+            is_fahari_facility=True,
+            county=random.choice(WHITELIST_COUNTIES),
+            operation_status="Operational",
+            organisation=self.global_organisation,
+        )
+        super().setUp()
+
+    def test_create(self):
+        data = {
+            "facility": self.facility.pk,
+            "title": fake.text(max_nb_chars=50),
+            "details": fake.text(),
+            "reported_on": date.today().isoformat(),
+            "reported_by": self.user.pk,
+        }
+        response = self.client.post(reverse("ops:security_incidence_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance = baker.make(
+            SecurityIncidence,
+            title=fake.text(max_nb_chars=50),
+            details=fake.text(),
+        )
+        data = {
+            "pk": instance.pk,
+            "facility": self.facility.pk,
+            "title": fake.text(max_nb_chars=50),
+            "details": fake.text(),
+            "reported_on": date.today().isoformat(),
+            "reported_by": self.user.pk,
+        }
+        response = self.client.post(
+            reverse("ops:security_incidence_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance = baker.make(
+            SecurityIncidence,
+            organisation=self.global_organisation,
+            title=fake.text(max_nb_chars=50),
+        )
+        response = self.client.post(
+            reverse("ops:security_incidence_delete", kwargs={"pk": instance.pk}),
         )
         self.assertEqual(
             response.status_code,

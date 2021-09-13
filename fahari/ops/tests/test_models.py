@@ -21,6 +21,7 @@ from fahari.ops.models import (
     FacilitySystem,
     FacilitySystemTicket,
     OperationalArea,
+    SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
@@ -360,3 +361,20 @@ def test_facility_device_request_str():
     )
     url = facility_device_req.get_absolute_url()
     assert f"/ops/facility_device_request_update/{facility_device_req.pk}" in url
+
+
+def test_security_incidence_str():
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name=fake.text(max_nb_chars=30))
+    sec_incidence = baker.make(
+        SecurityIncidence,
+        facility=facility,
+        title=fake.text(max_nb_chars=50),
+        details=fake.text(),
+    )
+    assert str(sec_incidence) == "Facility: %s, Security incidence: %s" % (
+        sec_incidence.facility.name,
+        sec_incidence.title,
+    )
+    url = sec_incidence.get_absolute_url()
+    assert f"/ops/security_incidence_update/{sec_incidence.pk}" in url

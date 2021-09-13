@@ -13,6 +13,7 @@ from fahari.ops.views import (
     FacilityNetworkStatusListView,
     FacilitySystemsView,
     FacilitySystemTicketsView,
+    SecurityIncidentsListView,
     TimeSheetApproveView,
     UoMCategoryListView,
     UoMListView,
@@ -187,6 +188,13 @@ def test_facility_device_request_context_data():
     assert ctx["selected"] == "facility_device_requests"
 
 
+def test_security_incidence_context_data():
+    v = SecurityIncidentsListView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "hardware-network-nav"
+    assert ctx["selected"] == "security_incidents"
+
+
 def test_facility_network_status_view(user_with_all_permissions, client):
     client.force_login(user_with_all_permissions)
     url = reverse("ops:facility_network_status")
@@ -204,5 +212,12 @@ def test_facility_device_view(user_with_all_permissions, client):
 def test_facility_device_request_view(user_with_all_permissions, client):
     client.force_login(user_with_all_permissions)
     url = reverse("ops:facility_device_requests")
+    response = client.get(url)
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_security_incidence_view(user_with_all_permissions, client):
+    client.force_login(user_with_all_permissions)
+    url = reverse("ops:security_incidents")
     response = client.get(url)
     assert response.status_code == status.HTTP_200_OK

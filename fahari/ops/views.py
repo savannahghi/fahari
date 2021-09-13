@@ -21,6 +21,7 @@ from .filters import (
     FacilityNetworkStatusFilter,
     FacilitySystemFilter,
     FacilitySystemTicketFilter,
+    SecurityIncidenceFilter,
     SiteMentorshipFilter,
     StockReceiptVerificationFilter,
     TimeSheetFilter,
@@ -38,6 +39,7 @@ from .forms import (
     FacilitySystemForm,
     FacilitySystemTicketForm,
     FacilitySystemTicketResolveForm,
+    SecurityIncidenceForm,
     SiteMentorshipForm,
     StockReceiptVerificationForm,
     TimeSheetForm,
@@ -54,6 +56,7 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
@@ -70,6 +73,7 @@ from .serializers import (
     FacilityNetworkStatusSerializer,
     FacilitySystemSerializer,
     FacilitySystemTicketSerializer,
+    SecurityIncidenceSerializer,
     SiteMentorshipSerializer,
     StockReceiptVerificationSerializer,
     TimeSheetSerializer,
@@ -825,4 +829,59 @@ class FacilityDeviceRequestViewSet(BaseView):
         "request_type",
         "date_requested",
         "delivery_date",
+    )
+
+
+class SecurityIncidenceMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "hardware-network-nav"  # id of active nav element
+        context["selected"] = "security_incidents"  # id of selected page
+        return context
+
+
+class SecurityIncidentsListView(
+    SecurityIncidenceMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/security_incidents.html"
+    permission_required = "ops.view_securityincidence"
+
+
+class SecurityIncidenceCreateView(SecurityIncidenceMixin, BaseFormMixin, CreateView):
+    form_class = SecurityIncidenceForm
+    model = SecurityIncidence
+    success_url = reverse_lazy("ops:security_incidents")
+
+
+class SecurityIncidenceUpdateView(SecurityIncidenceMixin, UpdateView, BaseFormMixin):
+    form_class = SecurityIncidenceForm
+    model = SecurityIncidence
+    success_url = reverse_lazy("ops:security_incidents")
+
+
+class SecurityIncidenceDeleteView(SecurityIncidenceMixin, DeleteView, BaseFormMixin):
+    form_class = SecurityIncidenceForm
+    model = SecurityIncidence
+    success_url = reverse_lazy("ops:security_incidents")
+
+
+class SecurityIncidenceViewSet(BaseView):
+    queryset = SecurityIncidence.objects.filter(
+        active=True,
+    )
+
+    serializer_class = SecurityIncidenceSerializer
+    filterset_class = SecurityIncidenceFilter
+    ordering_fields = (
+        "facility__name",
+        "title",
+        "details",
+        "reported_on",
+        "reported_by",
+    )
+    search_fields = (
+        "facility__name",
+        "title",
+        "reported_on",
+        "reported_by",
     )

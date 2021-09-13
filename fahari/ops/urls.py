@@ -34,6 +34,10 @@ from .views import (
     FacilitySystemTicketsView,
     FacilitySystemTicketUpdateView,
     FacilitySystemUpdateView,
+    SecurityIncidenceCreateView,
+    SecurityIncidenceDeleteView,
+    SecurityIncidenceUpdateView,
+    SecurityIncidentsListView,
     SiteMentorshipCreateView,
     SiteMentorshipDeleteView,
     SiteMentorshipUpdateView,
@@ -304,5 +308,25 @@ urlpatterns = [
         "facility_device_request_delete/<pk>",
         view=FacilityDeviceRequestDeleteView.as_view(),
         name="facility_device_request_delete",
+    ),
+    path(
+        "security_incidents",
+        view=SecurityIncidentsListView.as_view(),
+        name="security_incidents",
+    ),
+    path(
+        "security_incidence_create",
+        view=SecurityIncidenceCreateView.as_view(),
+        name="security_incidence_create",
+    ),
+    path(
+        "security_incidence_update/<pk>",
+        view=SecurityIncidenceUpdateView.as_view(),
+        name="security_incidence_update",
+    ),
+    path(
+        "security_incidence_delete/<pk>",
+        view=SecurityIncidenceDeleteView.as_view(),
+        name="security_incidence_delete",
     ),
 ]
