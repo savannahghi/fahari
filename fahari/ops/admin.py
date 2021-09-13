@@ -9,6 +9,7 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    SecurityIncidence,
     StockReceiptVerification,
     TimeSheet,
     UoM,
@@ -109,4 +110,22 @@ class FacilityDeviceRequestAdmin(BaseAdmin):
         "facility",
         "date_requested",
         "request_type",
+    )
+
+
+@admin.register(SecurityIncidence)
+class SecurityIncidenceAdmin(BaseAdmin):
+
+    list_display = (
+        "facility",
+        "title",
+        "details",
+        "reported_on",
+        "reported_by",
+    )
+    list_filter = (
+        "facility",
+        "title",
+        "reported_on",
+        "reported_by",
     )

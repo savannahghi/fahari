@@ -17,6 +17,7 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
@@ -446,4 +447,26 @@ class FacilityDeviceRequestForm(BaseModelForm):
                     "hidden": True,
                 }
             ),
+        }
+
+
+class SecurityIncidenceForm(BaseModelForm):
+    field_order = (
+        "facility",
+        "title",
+        "details",
+        "reported_on",
+        "reported_by",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "security_incidence_form"
+        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+
+    class Meta(BaseModelForm.Meta):
+        model = SecurityIncidence
+        widgets = {
+            "facility": SearchableComboBox(),
+            "reported_on": DateInput(attrs={"hidden": True}),
         }

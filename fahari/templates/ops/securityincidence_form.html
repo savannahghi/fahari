@@ -1,0 +1,51 @@
+
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+    Add/Edit Security Incidence
+{% endblock title %}
+{% block content %}
+<a href="{% url 'ops:security_incidents' %}">&larr; Back</a>
+{% if perms.ops.change_securityincidence %}
+<div class="row">
+  <div class="col-xl-10 col-lg-10 col-md-10 col-sm-12">
+    <div class="row align-page-content">
+      <div class="card-header">
+        <div class="toolbar float-right">
+            {% if object.pk %}
+                {% if perms.ops.delete_securityincidence %}
+                    <a href="{% url 'ops:security_incidence_delete' object.pk %}" class="btn btn-danger btn-icon-split">
+                        <span class="icon text-white-50">
+                            <i class="fas fa-trash"></i>
+                        </span>
+                        <span class="text">Delete Activity Log</span>
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+      </div>
+
+      <div class="row d-block">
+        <div class="col-lg-2"></div>
+        <div class="col-lg-8 center-form">
+          <div class="p-lg-5 p-xs-1 p-sm-1">
+            <div class="text-left">
+                <h1 class="h4 text-gray-900 mb-4">
+                    {% if object.pk %}
+                        Edit Incidence
+                    {% else %}
+                        Create Incidence
+                    {% endif %}
+                </h1>
+            </div>
+            {% crispy form %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+    <p>You do not have permission to edit security incidence.</p>
+{% endif %}
+{% endblock content %}

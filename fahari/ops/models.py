@@ -561,3 +561,23 @@ class FacilityDeviceRequest(AbstractBase):
 
     class Meta:
         ordering = ("facility__name", "-updated")
+
+
+class SecurityIncidence(AbstractBase):
+    """Facility security incidences."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    title = models.CharField(max_length=200, verbose_name="Incidence title")
+    details = models.TextField(default="-", verbose_name="Incidence details")
+    reported_on = models.DateField(default=timezone.datetime.today, editable=False)
+    reported_by = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"Facility: {self.facility.name}, Security incidence: {self.title}"
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:security_incidence_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        ordering = ("facility__name", "-updated")

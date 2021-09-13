@@ -25,6 +25,12 @@
                 </a>
             {% endif %}
 
+            {% if perms.ops.view_securityincidence %}
+                <a class="collapse-item {% if selected == "security_incidents" %}active {% endif %}" id="security_incidents" href="{% url 'ops:security_incidents' %}">
+                   Security Incidence
+                </a>
+            {% endif %}
+
         </div>
     </div>
 </li>

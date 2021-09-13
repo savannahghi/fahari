@@ -11,6 +11,7 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
@@ -137,4 +138,12 @@ class FacilityDeviceRequestSerializer(BaseSerializer):
 
     class Meta(BaseSerializer.Meta):
         model = FacilityDeviceRequest
+        fields = "__all__"
+
+
+class SecurityIncidenceSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+
+    class Meta(BaseSerializer.Meta):
+        model = SecurityIncidence
         fields = "__all__"
