@@ -28,7 +28,10 @@ class FacilitySystemFilter(CommonFieldsFilterset):
     class Meta:
 
         model = FacilitySystem
-        fields = "__all__"
+        exclude = (
+            "attachment",
+            "trainees",
+        )
 
 
 class FacilitySystemTicketFilter(CommonFieldsFilterset):

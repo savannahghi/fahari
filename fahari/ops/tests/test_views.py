@@ -1,11 +1,15 @@
+import json
 import uuid
 
 import pytest
 from django.urls import reverse
+from faker.proxy import Faker
 from model_bakery import baker
 from rest_framework import status
 
-from fahari.ops.models import FacilitySystemTicket, TimeSheet
+from fahari.common.models.common_models import Facility, System
+from fahari.common.models.organisation_models import Organisation
+from fahari.ops.models import FacilitySystem, FacilitySystemTicket, TimeSheet
 from fahari.ops.views import (
     CommoditiesListView,
     FacilityDeviceRequestsListView,
@@ -20,6 +24,8 @@ from fahari.ops.views import (
 )
 
 pytestmark = pytest.mark.django_db
+
+fake = Faker()
 
 
 def test_system_versions_view(user_with_all_permissions, client):
@@ -112,16 +118,42 @@ def test_timesheet_approve_view_error_case(request_with_user):
 
 
 def test_ticket_resolve_view_get(user_with_all_permissions, client):
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name="Test")
+    system = baker.make(System, organisation=org, name="System")
+    vrs = "0.0.1"
+    facility_system = baker.make(
+        FacilitySystem,
+        facility=facility,
+        system=system,
+        version=vrs,
+        trainees=json.dumps([fake.name(), fake.name()]),
+    )
     client.force_login(user_with_all_permissions)
-    open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
+    open_ticket = baker.make(
+        FacilitySystemTicket, facility_system=facility_system, resolved=None, resolved_by=None
+    )
     url = reverse("ops:ticket_resolve", args=[open_ticket.pk])
     response = client.get(url, format="json")
     assert response.status_code == 200
 
 
 def test_ticket_resolve_view_post(user_with_all_permissions, client):
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name="Test")
+    system = baker.make(System, organisation=org, name="System")
+    vrs = "0.0.1"
+    facility_system = baker.make(
+        FacilitySystem,
+        facility=facility,
+        system=system,
+        version=vrs,
+        trainees=json.dumps([fake.name(), fake.name()]),
+    )
     client.force_login(user_with_all_permissions)
-    open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
+    open_ticket = baker.make(
+        FacilitySystemTicket, facility_system=facility_system, resolved=None, resolved_by=None
+    )
     url = reverse("ops:ticket_resolve", args=[open_ticket.pk])
     response = client.post(url, None, format="json")
     assert response.status_code == 302
@@ -133,8 +165,21 @@ def test_ticket_resolve_view_post(user_with_all_permissions, client):
 
 
 def test_ticket_resolve_view_post_with_note(user_with_all_permissions, client):
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name="Test")
+    system = baker.make(System, organisation=org, name="System")
+    vrs = "0.0.1"
+    facility_system = baker.make(
+        FacilitySystem,
+        facility=facility,
+        system=system,
+        version=vrs,
+        trainees=json.dumps([fake.name(), fake.name()]),
+    )
     client.force_login(user_with_all_permissions)
-    open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
+    open_ticket = baker.make(
+        FacilitySystemTicket, facility_system=facility_system, resolved=None, resolved_by=None
+    )
     url = reverse("ops:ticket_resolve", args=[open_ticket.pk])
     data = {"resolve_note": "All issues solved ..."}
     response = client.post(url, data, format="json")

@@ -1,3 +1,4 @@
+import json
 import random
 from datetime import date
 
@@ -6,9 +7,10 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from faker import Faker
 from model_bakery import baker
+from rest_framework.test import APITestCase
 
 from fahari.common.models import Facility, Organisation, System
-from fahari.common.tests.test_api import global_organisation
+from fahari.common.tests.test_api import LoggedInMixin, global_organisation
 from fahari.ops.models import (
     DEFAULT_COMMODITY_PK,
     Activity,
@@ -38,70 +40,63 @@ pytestmark = pytest.mark.django_db
 fake = Faker()
 
 
-def test_facility_system_str():
-    org = baker.make(Organisation)
-    facility = baker.make(Facility, organisation=org, name="Test")
-    system = baker.make(System, organisation=org, name="System")
-    vrs = "0.0.1"
-    facility_system = baker.make(
-        FacilitySystem,
-        facility=facility,
-        system=system,
-        version=vrs,
-    )
-    assert str(facility_system) == "Test - System, version 0.0.1"
+class InitializeTestData(LoggedInMixin, APITestCase):
+    def setUp(self):
+        org = baker.make(Organisation)
+        facility = baker.make(Facility, organisation=org, name="Test")
+        system = baker.make(System, organisation=org, name="System")
+        vrs = "0.0.1"
+        self.facility_system = baker.make(
+            FacilitySystem,
+            facility=facility,
+            system=system,
+            version=vrs,
+            organisation=org,
+            trainees=json.dumps([fake.name(), fake.name()]),
+        )
+        super().setUp()
 
+    def test_facility_system_str(self):
+        assert str(self.facility_system) == "Test - System, version 0.0.1"
 
-def test_facility_system_ticket_str():
-    org = baker.make(Organisation)
-    facility = baker.make(Facility, organisation=org, name="Test")
-    system = baker.make(System, organisation=org, name="System")
-    vrs = "0.0.1"
-    facility_system = baker.make(
-        FacilitySystem,
-        facility=facility,
-        system=system,
-        version=vrs,
-    )
-    facility_system_details = baker.make(
-        FacilitySystemTicket,
-        facility_system=facility_system,
-        details="Details",
-    )
-    assert (
-        str(facility_system_details) == "Facility: Test; System: System; Version: 0.0.1 (Details)"
-    )
+    def test_facility_system_ticket_str(self):
+        facility_system_details = baker.make(
+            FacilitySystemTicket,
+            facility_system=self.facility_system,
+            details="Details",
+        )
+        assert (
+            str(facility_system_details)
+            == "Facility: Test; System: System; Version: 0.0.1 (Details)"
+        )
 
+    def test_facility_system_ticket_is_resolved(self):
+        facility_system_details = baker.make(
+            FacilitySystemTicket,
+            facility_system=self.facility_system,
+            details="Details",
+            resolved=timezone.now(),
+            resolved_by="User",
+        )
+        assert facility_system_details.is_resolved is True
 
-def test_facility_system_ticket_is_resolved():
-    org = baker.make(Organisation)
-    facility = baker.make(Facility, organisation=org, name="Test")
-    system = baker.make(System, organisation=org, name="System")
-    vrs = "0.0.1"
-    facility_system = baker.make(
-        FacilitySystem,
-        facility=facility,
-        system=system,
-        version=vrs,
-    )
-    facility_system_details = baker.make(
-        FacilitySystemTicket,
-        facility_system=facility_system,
-        details="Details",
-        resolved=timezone.now(),
-        resolved_by="User",
-    )
-    assert facility_system_details.is_resolved is True
+    def test_facility_ticket_status(self):
 
+        open_ticket = baker.make(
+            FacilitySystemTicket,
+            facility_system=self.facility_system,
+            resolved=None,
+            resolved_by=None,
+        )
+        assert open_ticket.is_open is True
 
-def test_facility_ticket_status(staff_user):
-    open_ticket = baker.make(FacilitySystemTicket, resolved=None, resolved_by=None)
-    assert open_ticket.is_open is True
-
-    closed_ticket = baker.make(
-        FacilitySystemTicket, resolved=timezone.now(), resolved_by=staff_user
-    )
-    assert closed_ticket.is_open is False
+        closed_ticket = baker.make(
+            FacilitySystemTicket,
+            facility_system=self.facility_system,
+            resolved=timezone.now(),
+            resolved_by=self.user,
+        )
+        assert closed_ticket.is_open is False
 
 
 def get_random_date():

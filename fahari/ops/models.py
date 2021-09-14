@@ -110,6 +110,14 @@ class FacilitySystem(AbstractBase):
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     system = models.ForeignKey(System, on_delete=models.PROTECT)
     version = models.CharField(max_length=64)
+    release_notes = models.TextField(default="-")
+    trainees = ArrayField(
+        models.TextField(),
+        help_text="Use commas to separate trainees names",
+    )
+    attachment = models.FileField(
+        upload_to=get_directory, verbose_name="Attach File or Photo", null=True, blank=True
+    )
 
     def get_absolute_url(self):
         update_url = reverse_lazy("ops:version_update", kwargs={"pk": self.pk})
