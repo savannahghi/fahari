@@ -4,7 +4,7 @@ from django.db.models import Case, IntegerField, Value, When
 from rest_framework import filters
 from rest_framework.filters import SearchFilter
 
-from .models import Facility, FacilityUser, System
+from .models import Facility, FacilityUser, System, UserFacilityAllotment
 
 
 class CommonFieldsFilterset(django_filters.FilterSet):
@@ -99,3 +99,12 @@ class FacilityUserFilter(CommonFieldsFilterset):
             "facility",
             "user",
         )
+
+
+class UserFacilityAllotmentFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+        model = UserFacilityAllotment
+        fields = ("user",)

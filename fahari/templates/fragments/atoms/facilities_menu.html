@@ -19,6 +19,12 @@
                 </a>
             {% endif %}
 
+            {% if perms.common.view_userfacilityallotment %}
+                <a class="collapse-item {% if selected == "user-facility-allotments" %}active {% endif %}" id="user-facility-allotments" href="{% url 'common:user_facility_allotments' %}">
+                    User Facility Allotments
+                </a>
+            {% endif %}
+
             {% if perms.common.view_system %}
             <a class="collapse-item {% if selected == "systems" %}active {% endif %}" id="systems" href="{% url 'common:systems' %}">
                 Systems
@@ -41,7 +47,6 @@
 </li>
 
 <script>
-
 function collapseMenu(){
 const facilities_nav_link = document.getElementById("facilities-nav-link");
 facilities_nav_link.className = "nav-link collapsed";
@@ -52,11 +57,7 @@ facilities_menu.className = "collapse";
 const items = document.querySelectorAll('.collapse-item');
 items.forEach(input => input.addEventListener('click', collapseMenu()));
 
-
 document.addEventListener("DOMContentLoaded", () => {
 collapseMenu()
 });
-
-
-
 </script>

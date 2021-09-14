@@ -15,7 +15,13 @@ from model_bakery.recipe import Recipe
 from rest_framework.test import APITestCase
 
 from fahari.common.constants import WHITELIST_COUNTIES
-from fahari.common.models import Facility, FacilityUser, Organisation, System
+from fahari.common.models import (
+    Facility,
+    FacilityUser,
+    Organisation,
+    System,
+    UserFacilityAllotment,
+)
 
 from .test_utils import patch_baker
 
@@ -411,7 +417,7 @@ class SystemFormTest(LoggedInMixin, TestCase):
     def test_create(self):
         data = {
             "name": fake.name()[:127],
-            "pattern": "NONE",
+            "pattern": System.SystemPatters.HYBRID.value,
             "description": fake.text(),
             "organisation": self.global_organisation.pk,
         }
@@ -430,7 +436,7 @@ class SystemFormTest(LoggedInMixin, TestCase):
         data = {
             "pk": system.pk,
             "name": fake.name()[:127],
-            "pattern": "NONE",
+            "pattern": System.SystemPatters.POINT_OF_CARE.value,
             "description": fake.text(),
             "organisation": self.global_organisation.pk,
         }
@@ -582,6 +588,75 @@ class FacilityUserFormTest(LoggedInMixin, TestCase):
         )
         response = self.client.post(
             reverse("common:facility_user_delete", kwargs={"pk": instance.pk}),
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+
+class UserFacilityAllotmentFormTest(LoggedInMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.by_both = UserFacilityAllotment.AllotmentType.BY_FACILITY_AND_REGION
+        self.by_facility = UserFacilityAllotment.AllotmentType.BY_FACILITY
+        self.by_region = UserFacilityAllotment.AllotmentType.BY_REGION
+        self.facilities = baker.make(
+            Facility,
+            20,
+            is_fahari_facility=True,
+            county="Nairobi",
+            organisation=self.global_organisation,
+        )
+
+    def test_create(self):
+        data = {
+            "allotment_type": self.by_facility.value,
+            "facilities": map(lambda f: f.pk, self.facilities),
+            "user": self.user.pk,
+            "organisation": self.global_organisation.pk,
+        }
+        response = self.client.post(reverse("common:user_facility_allotment_create"), data=data)
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_update(self):
+        instance: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=self.by_facility.value,
+            facilities=self.facilities,
+            organisation=self.global_organisation,
+            user=self.user,
+        )
+        data = {
+            "pk": instance.pk,
+            "allotment_type": self.by_region.value,
+            "region_type": UserFacilityAllotment.RegionType.COUNTY.value,
+            "counties": ["Nairobi"],
+            "user": self.user.pk,
+            "organisation": self.global_organisation.pk,
+            "active": True,
+        }
+        response = self.client.post(
+            reverse("common:user_facility_allotment_update", kwargs={"pk": instance.pk}), data=data
+        )
+        self.assertEqual(
+            response.status_code,
+            302,
+        )
+
+    def test_delete(self):
+        instance: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=self.by_facility.value,
+            facilities=self.facilities,
+            organisation=self.global_organisation,
+            user=self.user,
+        )
+        response = self.client.post(
+            reverse("common:user_facility_allotment_delete", kwargs={"pk": instance.pk}),
         )
         self.assertEqual(
             response.status_code,

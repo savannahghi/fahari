@@ -19,10 +19,15 @@ from .dashboard import (
     get_fahari_facilities_queryset,
     get_open_ticket_count,
 )
-from .filters import FacilityFilter, FacilityUserFilter, SystemFilter
-from .forms import FacilityForm, FacilityUserForm, SystemForm
-from .models import Facility, FacilityUser, System
-from .serializers import FacilitySerializer, FacilityUserSerializer, SystemSerializer
+from .filters import FacilityFilter, FacilityUserFilter, SystemFilter, UserFacilityAllotmentFilter
+from .forms import FacilityForm, FacilityUserForm, SystemForm, UserFacilityAllotmentForm
+from .models import Facility, FacilityUser, System, UserFacilityAllotment
+from .serializers import (
+    FacilitySerializer,
+    FacilityUserSerializer,
+    SystemSerializer,
+    UserFacilityAllotmentSerializer,
+)
 
 User = get_user_model()
 
@@ -241,3 +246,50 @@ class FacilityUserViewSet(BaseView):
         "facility__name",
         "user__name",
     )
+
+
+class UserFacilityAllotmentContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "facilities-nav"  # id of active nav element
+        context["selected"] = "user-facility-allotments"  # id of selected page
+        return context
+
+
+class UserFacilityAllotmentView(
+    UserFacilityAllotmentContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/common/user_facility_allotments.html"
+    permission_required = "common.view_userfacilityallotment"
+
+
+class UserFacilityAllotmentCreateView(
+    UserFacilityAllotmentContextMixin, BaseFormMixin, CreateView
+):
+    form_class = UserFacilityAllotmentForm
+    model = UserFacilityAllotment
+    success_url = reverse_lazy("common:user_facility_allotments")
+
+
+class UserFacilityAllotmentUpdateView(
+    UserFacilityAllotmentContextMixin, BaseFormMixin, UpdateView
+):
+    form_class = UserFacilityAllotmentForm
+    model = UserFacilityAllotment
+    success_url = reverse_lazy("common:user_facility_allotments")
+
+
+class UserFacilityAllotmentDeleteView(
+    UserFacilityAllotmentContextMixin, BaseFormMixin, DeleteView
+):
+    form_class = UserFacilityAllotmentForm
+    model = UserFacilityAllotment
+    success_url = reverse_lazy("common:user_facility_allotments")
+
+
+class UserFacilityViewSet(BaseView):
+    queryset = UserFacilityAllotment.objects.filter(active=True)
+    serializer_class = UserFacilityAllotmentSerializer
+    filterset_class = UserFacilityAllotmentFilter
+    ordering_fields = ("user__name", "allotment_type")
+    search_fields = ("allotment_type", "user__name")

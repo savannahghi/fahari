@@ -22,6 +22,7 @@ from fahari.common.models import (
     Organisation,
     OwnerlessAbstractBase,
     System,
+    UserFacilityAllotment,
     is_image_type,
     unique_list,
 )
@@ -360,6 +361,17 @@ def test_duplicate_validator_ignored():
     validation_one.assert_called_once_with()
 
 
+def test_abstract_base_manager_get_active():
+    """Tests for AbstractBaseManager."""
+    organisation = baker.make(Organisation)
+    baker.make(Facility, 10, active=True, organisation=organisation)
+    baker.make(Facility, 5, active=False, organisation=organisation)
+
+    assert Facility.objects.count() == 15
+    assert Facility.objects.active().count() == 10
+    assert Facility.objects.non_active().count() == 5
+
+
 class AuditAbstractBaseModelTest(TestCase):
     """Test for AuditAbstract."""
 
@@ -466,3 +478,384 @@ class AuditAbstractBaseModelTest(TestCase):
         fake.save()
 
         assert fake.organisation.org_code == fake.owner
+
+
+class UserFacilityAllotmentTest(TestCase):
+    """Tests for the UserFacilityAllotment model."""
+
+    def setUp(self) -> None:
+        self.by_both = UserFacilityAllotment.AllotmentType.BY_FACILITY_AND_REGION
+        self.by_facility = UserFacilityAllotment.AllotmentType.BY_FACILITY
+        self.by_region = UserFacilityAllotment.AllotmentType.BY_REGION
+        self.organisation = baker.make(Organisation)
+        self.facilities = baker.make(
+            Facility,
+            5,
+            county="Kajiado",
+            sub_county="Kajiado East",
+            organisation=self.organisation,
+        )
+        self.user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        self.user_facility_allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_FACILITY.value,
+            facilities=self.facilities,
+            organisation=self.organisation,
+            user=self.user,
+        )
+
+    def test_constituency_must_be_provided_if_region_type_is_constituency(self):
+        """Test that at least 1 constituency must be provided when region type is constituency."""
+
+        constituency = UserFacilityAllotment.RegionType.CONSTITUENCY
+        with pytest.raises(ValidationError) as e1:
+            baker.make(
+                UserFacilityAllotment,
+                allotment_type=self.by_both.value,
+                region_type=constituency.value,
+            )
+
+        with pytest.raises(ValidationError) as e2:
+            baker.make(
+                UserFacilityAllotment,
+                allotment_type=self.by_region.value,
+                region_type=constituency.value,
+            )
+
+        assert (
+            'At least 1 constituency must be selected if region type is "%s"' % constituency.label
+            in e1.value.messages
+        )
+        assert (
+            'At least 1 constituency must be selected if region type is "%s"' % constituency.label
+            in e2.value.messages
+        )
+
+    def test_county_must_be_provided_if_region_type_is_county(self):
+        """Test that at least 1 county must be provided when region type is county."""
+
+        county = UserFacilityAllotment.RegionType.COUNTY
+        with pytest.raises(ValidationError) as e1:
+            baker.make(
+                UserFacilityAllotment, allotment_type=self.by_both.value, region_type=county.value
+            )
+
+        with pytest.raises(ValidationError) as e2:
+            baker.make(
+                UserFacilityAllotment,
+                allotment_type=self.by_region.value,
+                region_type=county.value,
+            )
+
+        assert (
+            'At least 1 county must be selected if region type is "%s"' % county.label
+            in e1.value.messages
+        )
+        assert (
+            'At least 1 county must be selected if region type is "%s"' % county.label
+            in e2.value.messages
+        )
+
+    def test_sub_county_must_be_provided_if_region_type_is_sub_county(self):
+        """Test that at least 1 sub_county must be provided when region type is sub sub_county."""
+
+        sub_county = UserFacilityAllotment.RegionType.SUB_COUNTY
+        with pytest.raises(ValidationError) as e1:
+            baker.make(
+                UserFacilityAllotment,
+                allotment_type=self.by_both.value,
+                region_type=sub_county.value,
+            )
+
+        with pytest.raises(ValidationError) as e2:
+            baker.make(
+                UserFacilityAllotment,
+                allotment_type=self.by_region.value,
+                region_type=sub_county.value,
+            )
+
+        assert (
+            'At least 1 sub_county must be selected if region type is "%s"' % sub_county.label
+            in e1.value.messages
+        )
+        assert (
+            'At least 1 sub_county must be selected if region type is "%s"' % sub_county.label
+            in e2.value.messages
+        )
+
+    def test_ward_must_be_provided_if_region_type_is_ward(self):
+        """Test that at least 1 ward must be provided when region type is ward."""
+
+        ward = UserFacilityAllotment.RegionType.WARD
+        with pytest.raises(ValidationError) as e1:
+            baker.make(
+                UserFacilityAllotment, allotment_type=self.by_both.value, region_type=ward.value
+            )
+
+        with pytest.raises(ValidationError) as e2:
+            baker.make(
+                UserFacilityAllotment,
+                allotment_type=self.by_region.value,
+                region_type=ward.value,
+            )
+
+        assert (
+            'At least 1 ward must be selected if region type is "%s"' % ward.label
+            in e1.value.messages
+        )
+        assert (
+            'At least 1 ward must be selected if region type is "%s"' % ward.label
+            in e2.value.messages
+        )
+
+    def test_get_absolute_url(self):
+        """Test the `self.get_absolute_url` method."""
+
+        allotment = self.user_facility_allotment
+        assert (
+            allotment.get_absolute_url()
+            == "/common/user_facility_allotment_update/%s" % allotment.pk
+        )
+
+    def test_get_facilities_for_user(self):
+        """Tests for the `UserFacilityAllotment.get_facilities_for_user()` method."""
+
+        user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+
+        assert UserFacilityAllotment.get_facilities_for_user(user).count() == 0
+        assert UserFacilityAllotment.get_facilities_for_user(self.user).count() == len(
+            self.facilities
+        )
+
+    def test_region_type_must_be_provided_if_allot_by_region_or_both(self):
+        """Test that a region type must be provided when allotment type is by region or both."""
+
+        with pytest.raises(ValidationError) as e1:
+            baker.make(UserFacilityAllotment, allotment_type=self.by_both.value, region_type=None)
+
+        with pytest.raises(ValidationError) as e2:
+            baker.make(
+                UserFacilityAllotment,
+                allotment_type=self.by_region.value,
+                region_type=None,
+            )
+
+        assert (
+            'A region type must be provided if allotment type is "%s"' % self.by_both.label
+            in e1.value.messages
+        )
+        assert (
+            'A region type must be provided if allotment type is "%s"' % self.by_region.label
+            in e2.value.messages
+        )
+
+    def test_representation(self):
+        """Test the `self.__str__()` method."""
+
+        assert str(self.user_facility_allotment) == "User: %s; Allotment Type: %s" % (
+            self.user_facility_allotment.user.name,
+            self.user_facility_allotment.get_allotment_type_display(),
+        )
+
+    def test_user_facility_allotment_by_both_facility_and_region(self):
+        """Test that a user can be allotted facilities by both region and facility."""
+
+        baker.make(
+            Facility,
+            20,
+            county="Kajiado",
+            constituency="Kajiado West",
+            organisation=self.organisation,
+            sub_county="Kajiado West",
+            ward="Magadi",
+        )
+        baker.make(
+            Facility,
+            30,
+            county="Nairobi",
+            constituency="Starehe",
+            organisation=self.organisation,
+            sub_county="Starehe",
+            ward="Ngara",
+        )
+        user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=self.by_both.value,
+            facilities=self.facilities,
+            organisation=self.organisation,
+            region_type=UserFacilityAllotment.RegionType.WARD.value,
+            wards=["Magadi"],
+            user=user,
+        )
+
+        assert allotment
+        assert allotment.allotment_type == self.by_both.value
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 25
+
+        allotment.wards = ["Magadi", "Ngara"]
+        allotment.save()
+
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 55
+
+    def test_user_facility_allotment_by_facility(self):
+        """Test that a user can be allotted individual facilities."""
+
+        facilities = baker.make(Facility, 20, organisation=self.organisation)
+        user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_FACILITY.value,
+            facilities=facilities[10:],
+            organisation=self.organisation,
+            region_type=UserFacilityAllotment.RegionType.SUB_COUNTY.value,
+            sub_counties=["Kajiado East"],  # This should not affect the allotted facilities count
+            user=user,
+        )
+
+        assert allotment
+        assert allotment.allotment_type == UserFacilityAllotment.AllotmentType.BY_FACILITY.value
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 10
+
+        allotment.region_type = None
+        allotment.save()
+
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 10
+
+    def test_user_facility_allotment_by_county(self):
+        """Test that a user can be allotted facilities by county."""
+
+        baker.make(Facility, 25, county="Nairobi", organisation=self.organisation)
+        user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_REGION.value,
+            counties=["Nairobi"],
+            facilities=self.facilities,  # This should not affect the allotted facilities count
+            organisation=self.organisation,
+            region_type=UserFacilityAllotment.RegionType.COUNTY.value,
+            user=user,
+        )
+
+        assert allotment
+        assert allotment.allotment_type == UserFacilityAllotment.AllotmentType.BY_REGION.value
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 25
+
+        allotment.counties = ["Nairobi", "Kajiado"]
+        allotment.save()
+
+        # After this, the allotment should have 25 facilities in Nairobi and 5 in Kajiado.
+        # The 5 facilities from Kajiado are created during this fixture setup, i.e check the
+        # `self.setup()` method.
+        assert UserFacilityAllotment.get_facilities_for_user(allotment.user).count() == 30
+
+    def test_user_facility_allotment_by_constituency(self):
+        """Test that a user can be allotted facilities by constituency."""
+
+        baker.make(
+            Facility,
+            25,
+            county="Nairobi",
+            constituency="Westlands",
+            organisation=self.organisation,
+            sub_county="Westlands",
+            ward="Kangemi",
+        )
+        baker.make(
+            Facility,
+            15,
+            county="Nairobi",
+            constituency="Dagoretti North",
+            organisation=self.organisation,
+            sub_county="Dagoretti North",
+            ward="Gatini",
+        )
+        user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_REGION.value,
+            constituencies=["Westlands"],
+            facilities=self.facilities,  # This should not affect the allotted facilities count
+            organisation=self.organisation,
+            region_type=UserFacilityAllotment.RegionType.CONSTITUENCY.value,
+            user=user,
+        )
+
+        assert allotment
+        assert allotment.allotment_type == UserFacilityAllotment.AllotmentType.BY_REGION.value
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 25
+
+        allotment.constituencies = ["Dagoretti North", "Westlands"]
+        allotment.save()
+
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 40
+
+    def test_user_facility_allotment_by_sub_county(self):
+        """Test that a user can be allotted facilities by sub county."""
+
+        baker.make(
+            Facility, 15, county="Nairobi", sub_county="Kamukunji", organisation=self.organisation
+        )
+        baker.make(
+            Facility, 20, county="Kajiado", sub_county="Loitokitok", organisation=self.organisation
+        )
+        user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_REGION.value,
+            facilities=self.facilities,  # This should not affect the allotted facilities count
+            organisation=self.organisation,
+            region_type=UserFacilityAllotment.RegionType.SUB_COUNTY.value,
+            sub_counties=["Kamukunji"],
+            user=user,
+        )
+
+        assert allotment
+        assert allotment.allotment_type == UserFacilityAllotment.AllotmentType.BY_REGION.value
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 15
+
+        allotment.sub_counties = ["Kamukunji", "Loitokitok"]
+        allotment.save()
+
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 35
+
+    def test_user_facility_allotment_by_ward(self):
+        """Test that a user can be allotted facilities by ward."""
+
+        baker.make(
+            Facility,
+            20,
+            county="Kajiado",
+            constituency="Kajiado West",
+            organisation=self.organisation,
+            sub_county="Kajiado West",
+            ward="Magadi",
+        )
+        baker.make(
+            Facility,
+            30,
+            county="Nairobi",
+            constituency="Starehe",
+            organisation=self.organisation,
+            sub_county="Starehe",
+            ward="Ngara",
+        )
+        user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_REGION.value,
+            facilities=self.facilities,  # This should not affect the allotted facilities count
+            organisation=self.organisation,
+            region_type=UserFacilityAllotment.RegionType.WARD.value,
+            wards=["Magadi"],
+            user=user,
+        )
+
+        assert allotment
+        assert allotment.allotment_type == UserFacilityAllotment.AllotmentType.BY_REGION.value
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 20
+
+        allotment.wards = ["Magadi", "Ngara"]
+        allotment.save()
+
+        assert UserFacilityAllotment.get_facilities_for_allotment(allotment).count() == 50

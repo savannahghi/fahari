@@ -18,3 +18,16 @@ class SearchableComboBox(forms.Select):
         # functionality.
         base_attrs.update({"data-live-search": "true"})
         return super().build_attrs(base_attrs, extra_attrs)
+
+
+class MultiSearchableComboBox(forms.SelectMultiple):
+    """A multi-valued combo box with search capabilities.
+
+    This is suitable as a replacement for select multiple widget with many options.
+    """
+
+    def build_attrs(self, base_attrs, extra_attrs=None):  # pragma: nocover
+        # The `data-live-search` attribute is needed to enable the search
+        # functionality.
+        base_attrs.update({"data-live-search": "true"})
+        return super().build_attrs(base_attrs, extra_attrs)

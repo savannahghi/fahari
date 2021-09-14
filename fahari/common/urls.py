@@ -13,6 +13,10 @@ from .views import (
     SystemDeleteView,
     SystemsView,
     SystemUpdateView,
+    UserFacilityAllotmentCreateView,
+    UserFacilityAllotmentDeleteView,
+    UserFacilityAllotmentUpdateView,
+    UserFacilityAllotmentView,
 )
 
 app_name = "common"
@@ -64,5 +68,25 @@ urlpatterns = [
         "facility_user_delete/<pk>",
         view=FacilityUserDeleteView.as_view(),
         name="facility_user_delete",
+    ),
+    path(
+        "user_facility_allotments",
+        view=UserFacilityAllotmentView.as_view(),
+        name="user_facility_allotments",
+    ),
+    path(
+        "user_facility_allotment_create",
+        view=UserFacilityAllotmentCreateView.as_view(),
+        name="user_facility_allotment_create",
+    ),
+    path(
+        "user_facility_allotment_update/<pk>",
+        view=UserFacilityAllotmentUpdateView.as_view(),
+        name="user_facility_allotment_update",
+    ),
+    path(
+        "user_facility_allotment_delete/<pk>",
+        view=UserFacilityAllotmentDeleteView.as_view(),
+        name="user_facility_allotment_delete",
     ),
 ]
