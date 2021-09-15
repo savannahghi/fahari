@@ -113,6 +113,8 @@ class FacilitySystem(AbstractBase):
     release_notes = models.TextField(default="-")
     trainees = ArrayField(
         models.TextField(),
+        blank=True,
+        default=list,
         help_text="Use commas to separate trainees names",
     )
     attachment = models.FileField(
@@ -360,7 +362,7 @@ class StockReceiptVerification(AbstractBase):
     delivery_date = models.DateField(default=timezone.datetime.today)
     expiry_date = models.DateField(default=timezone.datetime.today)
     delivery_note_image = models.ImageField(
-        upload_to="ops/stock_receipts/delivery_notes/",
+        upload_to=get_directory,
         null=True,
         blank=True,
         verbose_name="Delivery note photograph",

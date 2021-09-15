@@ -112,10 +112,10 @@ jobs:
       - name: Run tests and collect coverage
         run: |
           pytest
-          coveralls   --service=github
+#          coveralls   --service=github
 
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.github_token }}
-          parallel-finished: true
+#      - name: Coveralls Finished
+#        uses: coverallsapp/github-action@master
+#        with:
+#          github-token: ${{ secrets.github_token }}
+#          parallel-finished: true

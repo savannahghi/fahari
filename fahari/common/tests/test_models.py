@@ -18,7 +18,6 @@ from PIL import Image
 
 from fahari.common.models import (
     Facility,
-    FacilityUser,
     Organisation,
     OwnerlessAbstractBase,
     System,
@@ -290,19 +289,12 @@ def test_facility_ward_selection_without_sub_county_selection():
     with pytest.raises(ValidationError) as e:
         facility.save()
 
-    assert 'the sub county in which "Ngara" ward belongs to must be provided' in e.value.messages
+    assert 'The sub county in which "Ngara" ward belongs to must be provided' in e.value.messages
 
 
 def test_organisation_string_representation():
     org = baker.make("common.Organisation", organisation_name="Test Organisation")
     assert str(org) == "Test Organisation"
-
-
-def test_facility_user_string_represenation():
-    user = baker.make(get_user_model(), name="Kalulu")
-    facility = baker.make(Facility, name="Hosi")
-    instance = baker.make(FacilityUser, user=user, facility=facility)
-    assert str(instance) == "User: Kalulu; Facility: Hosi"
 
 
 class DictError(OwnerlessAbstractBase):

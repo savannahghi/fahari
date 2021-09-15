@@ -8,13 +8,7 @@ from .base_models import (
     OwnerlessAbstractBaseQuerySet,
     ValidationMetaclass,
 )
-from .common_models import (
-    Facility,
-    FacilityAttachment,
-    FacilityUser,
-    System,
-    UserFacilityAllotment,
-)
+from .common_models import Facility, FacilityAttachment, System, UserFacilityAllotment
 from .organisation_models import (
     Organisation,
     OrganisationAbstractBase,
@@ -29,7 +23,6 @@ __all__ = [
     "Attachment",
     "Facility",
     "FacilityAttachment",
-    "FacilityUser",
     "Organisation",
     "OrganisationAbstractBase",
     "OrganisationSequenceGenerator",

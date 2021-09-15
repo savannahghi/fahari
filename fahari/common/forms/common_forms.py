@@ -1,37 +1,11 @@
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Field, Fieldset, Layout, Submit
-from django.forms import ModelForm, MultipleChoiceField, TextInput
+from crispy_forms.layout import Field, Fieldset, Layout
+from django.forms import MultipleChoiceField, TextInput
 
-from .dashboard import get_fahari_facilities_queryset
-from .models import (
-    Facility,
-    FacilityAttachment,
-    FacilityUser,
-    Organisation,
-    System,
-    UserFacilityAllotment,
-)
-from .utils import get_constituencies, get_counties, get_sub_counties, get_wards
-from .widgets import MultiSearchableComboBox, SearchableComboBox
-
-
-class BaseModelForm(ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.form_method = "post"
-        self.helper.form_action = ""
-        self.helper.add_input(Submit("submit", "Save"))
-        self.helper.html5_required = True
-
-    class Meta:
-        exclude = (
-            "created",
-            "updated",
-            "created_by",
-            "updated_by",
-            "organisation",
-        )
+from ..dashboard import get_fahari_facilities_queryset
+from ..models import Facility, FacilityAttachment, Organisation, System, UserFacilityAllotment
+from ..utils import get_constituencies, get_counties, get_sub_counties, get_wards
+from ..widgets import MultiSearchableComboBox, SearchableComboBox
+from .base_forms import BaseModelForm
 
 
 class FacilityForm(BaseModelForm):
@@ -110,24 +84,6 @@ class OrganisationForm(BaseModelForm):
 class FacilityAttachmentForm(BaseModelForm):
     class Meta:
         model = FacilityAttachment
-        fields = "__all__"
-        widgets = {"facility": SearchableComboBox()}
-
-
-class FacilityUserForm(BaseModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.form_id = "facility_user_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
-
-    field_order = (
-        "facility",
-        "user",
-        "active",
-    )
-
-    class Meta(BaseModelForm.Meta):
-        model = FacilityUser
         fields = "__all__"
         widgets = {"facility": SearchableComboBox()}
 

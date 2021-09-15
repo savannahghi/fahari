@@ -292,6 +292,7 @@ REST_FRAMEWORK = {
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.OrderingFilter",
         "fahari.common.filters.OrganisationFilterBackend",
+        "fahari.common.filters.AllottedFacilitiesFilterBackend",
     ),
     "DEFAULT_PAGINATION_CLASS": (
         "rest_framework_datatables.pagination.DatatablesPageNumberPagination"

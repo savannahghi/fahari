@@ -3,9 +3,7 @@ from crispy_forms.layout import Submit
 from django import forms
 from django.forms.widgets import DateInput, DateTimeInput, Select, Textarea, TextInput
 
-from fahari.common.dashboard import get_fahari_facilities_queryset
-from fahari.common.forms import BaseModelForm
-from fahari.common.models import FacilityUser
+from fahari.common.forms import BaseModelForm, GetAllottedFacilitiesMixin
 from fahari.common.widgets import SearchableComboBox
 
 from .models import (
@@ -27,7 +25,7 @@ from .models import (
 )
 
 
-class FacilitySystemForm(BaseModelForm):
+class FacilitySystemForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "system",
@@ -38,7 +36,7 @@ class FacilitySystemForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "facility_system_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):
         model = FacilitySystem
@@ -47,7 +45,7 @@ class FacilitySystemForm(BaseModelForm):
         }
 
 
-class FacilitySystemTicketForm(BaseModelForm):
+class FacilitySystemTicketForm(GetAllottedFacilitiesMixin, BaseModelForm):
 
     field_order = (
         "facility_system",
@@ -60,20 +58,11 @@ class FacilitySystemTicketForm(BaseModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
-        if request is not None and hasattr(request, "user"):
-            user_facility_ids = FacilityUser.objects.filter(user_id=request.user.id).values_list(
-                "facility_id", flat=True
-            )
-            user_system_facilities = FacilitySystem.objects.filter(
-                facility_id__in=user_facility_ids
-            )
-            self.fields["facility_system"].queryset = user_system_facilities
-        else:
-            self.fields["facility_system"].queryset = FacilitySystem.objects.none()
-
         self.helper.form_id = "facility_system_ticket_form"
+        self.fields["facility_system"].queryset = FacilitySystem.objects.active().filter(
+            facility__in=self.get_allotted_facilities()
+        )
 
     class Meta(BaseModelForm.Meta):
         model = FacilitySystemTicket
@@ -125,7 +114,7 @@ class FacilitySystemTicketResolveForm(forms.Form):
         self.helper.form_id = "facility_system_ticket_resolve_form"
 
 
-class StockReceiptVerificationForm(BaseModelForm):
+class StockReceiptVerificationForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "commodity",
@@ -144,7 +133,7 @@ class StockReceiptVerificationForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "stock_receipt_verification_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
         self.fields["delivery_note_image"].required = True
 
     class Meta(BaseModelForm.Meta):
@@ -216,7 +205,7 @@ class ActivityLogForm(BaseModelForm):
         }
 
 
-class SiteMentorshipForm(BaseModelForm):
+class SiteMentorshipForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "staff_member",
         "site",
@@ -231,7 +220,7 @@ class SiteMentorshipForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "site_mentorship_form"
-        self.fields["site"].queryset = get_fahari_facilities_queryset()
+        self.fields["site"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):
         model = SiteMentorship
@@ -245,7 +234,7 @@ class SiteMentorshipForm(BaseModelForm):
         }
 
 
-class DailyUpdateForm(BaseModelForm):
+class DailyUpdateForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "date",
@@ -263,7 +252,7 @@ class DailyUpdateForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "daily_update_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):
         model = DailyUpdate
@@ -380,7 +369,7 @@ class UoMCategoryForm(BaseModelForm):
         model = UoMCategory
 
 
-class FacilityNetworkStatusForm(BaseModelForm):
+class FacilityNetworkStatusForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "has_network",
@@ -390,7 +379,7 @@ class FacilityNetworkStatusForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "facility_network_status_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):
         model = FacilityNetworkStatus
@@ -399,7 +388,7 @@ class FacilityNetworkStatusForm(BaseModelForm):
         }
 
 
-class FacilityDeviceForm(BaseModelForm):
+class FacilityDeviceForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "number_of_devices",
@@ -410,7 +399,7 @@ class FacilityDeviceForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "facility_device_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):
         model = FacilityDevice
@@ -419,7 +408,7 @@ class FacilityDeviceForm(BaseModelForm):
         }
 
 
-class FacilityDeviceRequestForm(BaseModelForm):
+class FacilityDeviceRequestForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "device_requested",
@@ -432,7 +421,7 @@ class FacilityDeviceRequestForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "facility_device_request_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):
         model = FacilityDeviceRequest
@@ -447,7 +436,7 @@ class FacilityDeviceRequestForm(BaseModelForm):
         }
 
 
-class SecurityIncidenceForm(BaseModelForm):
+class SecurityIncidenceForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "title",
@@ -459,7 +448,7 @@ class SecurityIncidenceForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "security_incidence_form"
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):
         model = SecurityIncidence

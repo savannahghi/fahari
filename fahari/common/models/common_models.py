@@ -213,7 +213,7 @@ class Facility(AbstractBase):
         if self.ward and not self.sub_county:
             raise ValidationError(
                 {
-                    "ward": 'the sub county in which "{}" ward belongs to must be provided'.format(
+                    "ward": 'The sub county in which "{}" ward belongs to must be provided'.format(
                         self.ward
                     )
                 }
@@ -248,25 +248,6 @@ class FacilityAttachment(Attachment):
         ordering = ("-updated", "-created")
 
 
-class FacilityUser(AbstractBase):
-    """A user assigned to a facility."""
-
-    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    user = models.ForeignKey(User, on_delete=models.PROTECT)
-
-    def get_absolute_url(self):
-        update_url = reverse("common:facility_user_update", kwargs={"pk": self.pk})
-        return update_url
-
-    def __str__(self) -> str:
-        return f"User: {self.user.name}; Facility: {self.facility.name}"
-
-    class Meta(AbstractBase.Meta):
-        """Define ordering and other attributes for attachments."""
-
-        ordering = ("-updated", "-created")
-
-
 class System(AbstractBase):
     """List of systems used in the public sector e.g Kenya EMR."""
 
@@ -280,7 +261,7 @@ class System(AbstractBase):
 
     name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     pattern = models.CharField(
-        max_length=100, choices=SystemPatters.choices, default=SystemPatters.NONE.value
+        max_length=10, choices=SystemPatters.choices, default=SystemPatters.NONE.value
     )
     description = models.TextField()
 
@@ -317,7 +298,7 @@ class UserFacilityAllotment(AbstractBase):
         WARD = "ward"
 
     user = models.OneToOneField(User, on_delete=models.PROTECT)
-    allotment_type = models.CharField(max_length=100, choices=AllotmentType.choices)
+    allotment_type = models.CharField(max_length=10, choices=AllotmentType.choices)
     region_type = models.CharField(
         max_length=20, choices=RegionType.choices, null=True, blank=True
     )

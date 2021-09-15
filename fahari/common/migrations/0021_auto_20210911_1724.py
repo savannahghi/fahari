@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='system',
             name='pattern',
-            field=models.CharField(choices=[('poc', 'Point of Care'), ('rde', 'Retrospective Data Entry'), ('hybrid', 'Hybrid'), ('none', 'None')], default='none', max_length=100),
+            field=models.CharField(choices=[('poc', 'Point of Care'), ('rde', 'Retrospective Data Entry'), ('hybrid', 'Hybrid'), ('none', 'None')], default='none', max_length=10),
         ),
         migrations.CreateModel(
             name='UserFacilityAllotment',
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 ('created_by', models.UUIDField(blank=True, null=True)),
                 ('updated', models.DateTimeField(default=django.utils.timezone.now)),
                 ('updated_by', models.UUIDField(blank=True, null=True)),
-                ('allotment_type', models.CharField(choices=[('facility', 'By Facility'), ('region', 'By Region'), ('both', 'By Both Facility and Region')], max_length=100)),
+                ('allotment_type', models.CharField(choices=[('facility', 'By Facility'), ('region', 'By Region'), ('both', 'By Both Facility and Region')], max_length=10)),
                 ('region_type', models.CharField(blank=True, choices=[('county', 'County'), ('constituency', 'Constituency'), ('sub_county', 'Sub County'), ('ward', 'Ward')], max_length=20, null=True)),
                 ('counties', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(blank=True, choices=[('Nairobi', 'Nairobi'), ('Kajiado', 'Kajiado')], max_length=150, null=True), blank=True, help_text='All the facilities in the selected counties will be allocated to the selected user.', null=True, size=None)),
                 ('constituencies', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(blank=True, choices=[('Dagoretti North', 'Dagoretti North'), ('Dagoretti South', 'Dagoretti South'), ('Embakasi Central', 'Embakasi Central'), ('Embakasi East', 'Embakasi East'), ('Embakasi North', 'Embakasi North'), ('Embakasi South', 'Embakasi South'), ('Embakasi West', 'Embakasi West'), ('Kajiado Central', 'Kajiado Central'), ('Kajiado East', 'Kajiado East'), ('Kajiado North', 'Kajiado North'), ('Kajiado West', 'Kajiado West'), ('Kamukunji', 'Kamukunji'), ('Kasarani', 'Kasarani'), ('Kibra', 'Kibra'), ('Langata', 'Langata'), ('Magadi', 'Magadi'), ('Makadara', 'Makadara'), ('Mathare', 'Mathare'), ('Roysambu', 'Roysambu'), ('Ruaraka', 'Ruaraka'), ('Starehe', 'Starehe'), ('Westlands', 'Westlands')], max_length=150, null=True), blank=True, help_text='All the facilities in the selected constituencies will be allocated to the selected user.', null=True, size=None)),

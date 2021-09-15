@@ -9,10 +9,31 @@ from fahari.common.models import Organisation
 LOGGER = logging.getLogger(__name__)
 
 
+def get_organisation(request, initial_data=None):
+    """Determine the organisation based on the user and supplied data."""
+
+    user = request.user
+    organisation = (
+        initial_data.get("organisation")
+        if isinstance(initial_data, dict)
+        else request.data.get("organisation")
+    )
+
+    if organisation:
+        try:
+            org = Organisation.objects.get(id=organisation)
+        except Organisation.DoesNotExist as no_org:
+            error = {"organisation": "Ensure the organisation provided exists."}
+            raise exceptions.ValidationError(error) from no_org
+        return org
+    else:
+        return user.organisation
+
+
 class PartialResponseMixin(object):
     """Mixin that allows API clients to specify fields."""
 
-    def strip_fields(self, request, origi_fields):
+    def strip_fields(self, request, origi_fields):  # noqa
         """
         Select a subset of fields, determined by the `fields` parameter.
 
@@ -33,26 +54,6 @@ class PartialResponseMixin(object):
             fields = [f.strip() for f in fields.split(",")]
             return {field: origi_fields[field] for field in origi_fields if field in fields}
         return origi_fields
-
-
-def get_organisation(request, initial_data=None):
-    """Determine the organisation based on the user and supplied data."""
-    user = request.user
-    organisation = (
-        initial_data.get("organisation")
-        if isinstance(initial_data, dict)
-        else request.data.get("organisation")
-    )
-
-    if organisation:
-        try:
-            org = Organisation.objects.get(id=organisation)
-        except Organisation.DoesNotExist as no_org:
-            error = {"organisation": "Ensure the organisation provided exists."}
-            raise exceptions.ValidationError(error) from no_org
-        return org
-    else:
-        return user.organisation
 
 
 class AuditFieldsMixin(PartialResponseMixin, serializers.ModelSerializer):
