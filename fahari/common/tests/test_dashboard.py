@@ -1,8 +1,10 @@
+import json
 import random
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from faker.proxy import Faker
 from model_bakery import baker
 
 from fahari.common.constants import WHITELIST_COUNTIES
@@ -12,12 +14,15 @@ from fahari.common.dashboard import (
     get_appointments_mtd,
     get_open_ticket_count,
 )
-from fahari.common.models import Facility
-from fahari.ops.models import DailyUpdate, FacilitySystemTicket
+from fahari.common.models import Facility, Organisation
+from fahari.common.models.common_models import System
+from fahari.ops.models import DailyUpdate, FacilitySystem, FacilitySystemTicket
 
 User = get_user_model()
 
 pytestmark = pytest.mark.django_db
+
+fake = Faker()
 
 
 def test_get_active_facility_count(user):
@@ -33,8 +38,21 @@ def test_get_active_facility_count(user):
 
 
 def test_get_open_ticket_count(user):
+    org = baker.make(Organisation)
+    facility = baker.make(Facility, organisation=org, name="Test")
+    system = baker.make(System, organisation=org, name="System")
+    vrs = "0.0.1"
+    facility_system = baker.make(
+        FacilitySystem,
+        facility=facility,
+        system=system,
+        version=vrs,
+        organisation=org,
+        trainees=json.dumps([fake.name(), fake.name()]),
+    )
     baker.make(
         FacilitySystemTicket,
+        facility_system=facility_system,
         resolved=None,
         active=True,
         organisation=user.organisation,

@@ -50,6 +50,7 @@ class FacilitySystemViewsetTest(LoggedInMixin, APITestCase):
             "system": self.system.pk,
             "version": fake.name()[:63],
             "organisation": self.global_organisation.pk,
+            "trainees": json.dumps([fake.name(), fake.name()]),
         }
         response = self.client.post(self.url_list, data)
         assert response.status_code == 201, response.json()
@@ -59,6 +60,7 @@ class FacilitySystemViewsetTest(LoggedInMixin, APITestCase):
         instance = baker.make(
             FacilitySystem,
             organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
         )
         response = self.client.get(self.url_list)
         assert response.status_code == 200, response.json()
@@ -71,6 +73,7 @@ class FacilitySystemViewsetTest(LoggedInMixin, APITestCase):
         instance = baker.make(
             FacilitySystem,
             organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
         )
         edit = {"version": fake.name()[:63]}
         url = reverse("api:facilitysystem-detail", kwargs={"pk": instance.pk})
@@ -83,12 +86,14 @@ class FacilitySystemViewsetTest(LoggedInMixin, APITestCase):
         instance = baker.make(
             FacilitySystem,
             organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
         )
         data = {
             "facility": self.facility.pk,
             "system": self.system.pk,
             "version": fake.name()[:63],
             "organisation": self.global_organisation.pk,
+            "trainees": f"{fake.name()},{fake.name()}",
         }
         url = reverse("api:facilitysystem-detail", kwargs={"pk": instance.pk})
         response = self.client.put(url, data)
@@ -111,7 +116,11 @@ class FacilitySystemFormTest(LoggedInMixin, TestCase):
         super().setUp()
 
     def test_facilitysystem_form_init(self):
-        baker.make(FacilitySystem, organisation=self.global_organisation)
+        baker.make(
+            FacilitySystem,
+            organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
+        )
         form = FacilitySystemTicketForm()
         queryset = form.fields["facility_system"].queryset
         assert FacilitySystem.objects.count() > 0
@@ -123,6 +132,9 @@ class FacilitySystemFormTest(LoggedInMixin, TestCase):
             "system": self.system.pk,
             "version": fake.name()[:63],
             "organisation": self.global_organisation.pk,
+            "release_notes": fake.text(),
+            "trainees": json.dumps([fake.name(), fake.name()]),
+            "attachment": fake.file_name(),
         }
         response = self.client.post(reverse("ops:version_create"), data=data)
         self.assertEqual(
@@ -134,13 +146,17 @@ class FacilitySystemFormTest(LoggedInMixin, TestCase):
         instance = baker.make(
             FacilitySystem,
             organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
         )
         data = {
             "pk": instance.pk,
             "facility": self.facility.pk,
+            "organisation": self.global_organisation.pk,
             "system": self.system.pk,
             "version": fake.name()[:63],
-            "organisation": self.global_organisation.pk,
+            "release_notes": fake.text(),
+            "trainees": f"{fake.name()},{fake.name()}",
+            "attachment": fake.file_name(),
         }
         response = self.client.post(
             reverse("ops:version_update", kwargs={"pk": instance.pk}), data=data
@@ -154,6 +170,7 @@ class FacilitySystemFormTest(LoggedInMixin, TestCase):
         instance = baker.make(
             FacilitySystem,
             organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
         )
         response = self.client.post(
             reverse("ops:version_delete", kwargs={"pk": instance.pk}),
@@ -174,6 +191,7 @@ class FacilitySystemTicketViewsetTest(LoggedInMixin, APITestCase):
             facility=self.facility,
             system=self.system,
             organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
         )
         super().setUp()
 
@@ -254,16 +272,20 @@ class FacilitySystemTicketFormTest(LoggedInMixin, TestCase):
             facility=self.facility,
             system=self.system,
             organisation=self.global_organisation,
+            trainees=json.dumps([fake.name(), fake.name()]),
         )
         super().setUp()
 
     def test_create(self):
         data = {
             "facility_system": self.facility_system.pk,
+            "organisation": self.global_organisation.pk,
             "details": fake.text(),
             "raised": timezone.now().isoformat(),
             "raised_by": fake.name(),
-            "organisation": self.global_organisation.pk,
+            "resolved": timezone.now().isoformat(),
+            "resolved_by": fake.name(),
+            "resolved_note": fake.text(),
         }
         response = self.client.post(reverse("ops:ticket_create"), data=data)
         self.assertEqual(

@@ -280,7 +280,7 @@ class System(AbstractBase):
 
     name = models.CharField(max_length=128, null=False, blank=False, unique=True)
     pattern = models.CharField(
-        max_length=10, choices=SystemPatters.choices, default=SystemPatters.NONE.value
+        max_length=100, choices=SystemPatters.choices, default=SystemPatters.NONE.value
     )
     description = models.TextField()
 
@@ -317,7 +317,7 @@ class UserFacilityAllotment(AbstractBase):
         WARD = "ward"
 
     user = models.OneToOneField(User, on_delete=models.PROTECT)
-    allotment_type = models.CharField(max_length=10, choices=AllotmentType.choices)
+    allotment_type = models.CharField(max_length=100, choices=AllotmentType.choices)
     region_type = models.CharField(
         max_length=20, choices=RegionType.choices, null=True, blank=True
     )
