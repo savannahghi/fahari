@@ -93,6 +93,9 @@ class TimeSheetSerializer(BaseSerializer):
 
 
 class WeeklyProgramUpdateSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+    date_created = serializers.DateTimeField(format="%d/%m/%Y", required=False)
+
     class Meta(BaseSerializer.Meta):
         model = WeeklyProgramUpdate
         fields = "__all__"

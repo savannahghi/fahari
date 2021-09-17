@@ -412,36 +412,6 @@ class Activity(AbstractBase):
         return self.name
 
 
-class WeeklyProgramUpdate(AbstractBase):
-    """
-    Record of updates made at the weekly "touch base" meetings.
-    """
-
-    title = models.CharField(max_length=255, default="-")
-    attendees = ArrayField(
-        models.TextField(),
-        help_text="Use commas to separate attendees names",
-    )
-
-    description = models.TextField(default="-")
-    attachment = models.FileField(upload_to=get_directory, null=True, blank=True)
-    date = models.DateField(default=timezone.datetime.today)
-
-    def __str__(self) -> str:
-        return f"Weekly update: {self.date}, attended by {self.attendees}"
-
-    def get_absolute_url(self):
-        update_url = reverse_lazy("ops:weekly_program_updates_update", kwargs={"pk": self.pk})
-        return update_url
-
-
-class WeeklyProgramUpdateDetail(AbstractBase):
-
-    parent = models.ForeignKey(WeeklyProgramUpdate, on_delete=models.PROTECT)
-    activity = models.ForeignKey(Activity, on_delete=models.PROTECT)
-    comments = models.TextField()
-
-
 class UoM(AbstractBase):
     """Measure by which items are maintained in inventory."""
 
@@ -596,3 +566,76 @@ class SecurityIncidence(AbstractBase):
 
     class Meta:
         ordering = ("facility__name", "-updated")
+
+
+class WeeklyProgramUpdate(AbstractBase):
+    """
+    Record of updates made at the weekly "touch base" meetings.
+    """
+
+    class OperationGroup(models.TextChoices):
+        """The different areas of program operation."""
+
+        ADMIN = "admin", "Administration"
+        FINANCE = "finance", "Finance"
+        AWARD = "awarding", "Awarding"
+        SUBGRANTING = "subgranting", "Subgranting"
+        SII = "sii", "Strategic Information System"
+        PROGRAM = "program", "Program"
+
+    class TaskStatus(models.TextChoices):
+        """The status of weekly program."""
+
+        IN_PROGRESS = "in_progress", "In progress"
+        COMPLETE = "complete", "Complete"
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+
+    operation_area = models.CharField(
+        max_length=20,
+        choices=OperationGroup.choices,
+        help_text="Operation area",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=TaskStatus.choices,
+        help_text="Status",
+    )
+
+    assigned_persons = ArrayField(
+        models.CharField(max_length=255),
+        blank=True,
+        null=True,
+        help_text="Use commas to separate assigned persons names",
+    )
+    date_created = models.DateTimeField(default=timezone.now)
+
+    def __str__(self) -> str:
+        return f"Weekly update: {self.date_created}, assigned persons {self.assigned_persons}"
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:weekly_program_updates_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        ordering = (
+            "facility__name",
+            "operation_area",
+            "status",
+        )
+        unique_together = (
+            "facility",
+            "operation_area",
+            "date_created",
+        )
+
+
+class WeeklyProgramUpdateComment(AbstractBase):
+    """
+    Daily activity comments goes here.
+    """
+
+    weekly_update = models.ForeignKey(
+        WeeklyProgramUpdate, on_delete=models.PROTECT, related_name="updates_comment"
+    )
+    comment = models.TextField(default="-")

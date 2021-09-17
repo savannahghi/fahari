@@ -59,6 +59,7 @@ from .views import (
     UoMDeleteView,
     UoMListView,
     UoMUpdateView,
+    WeeklyProgramCommentsUpdateView,
     WeeklyProgramUpdatesCreateView,
     WeeklyProgramUpdatesDeleteView,
     WeeklyProgramUpdatesUpdateView,
@@ -175,6 +176,11 @@ urlpatterns = [
         "weekly_program_updates_delete/<pk>",
         view=WeeklyProgramUpdatesDeleteView.as_view(),
         name="weekly_program_updates_delete",
+    ),
+    path(
+        "weekly_program_comments_update/<pk>/comments/edit/",
+        view=WeeklyProgramCommentsUpdateView.as_view(),
+        name="weekly_program_comments_update",
     ),
     path("timesheets", view=TimeSheetsView.as_view(), name="timesheets"),
     path(

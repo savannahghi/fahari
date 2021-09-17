@@ -101,7 +101,7 @@ class WeeklyProgramUpdateFilter(CommonFieldsFilterset):
     class Meta:
 
         model = WeeklyProgramUpdate
-        fields = ("date",)
+        exclude = ("assigned_persons",)
 
 
 class CommodityFilter(CommonFieldsFilterset):

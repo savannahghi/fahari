@@ -1,7 +1,8 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django import forms
-from django.forms.widgets import DateInput, DateTimeInput, Select, Textarea, TextInput
+from django.forms.models import inlineformset_factory
+from django.forms.widgets import DateInput, DateTimeInput, HiddenInput, Select, Textarea, TextInput
 
 from fahari.common.forms import BaseModelForm, GetAllottedFacilitiesMixin
 from fahari.common.widgets import SearchableComboBox
@@ -22,6 +23,7 @@ from .models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
 )
 
 
@@ -309,20 +311,24 @@ class TimeSheetForm(BaseModelForm):
 
 class WeeklyProgramUpdateForm(BaseModelForm):
     field_order = (
-        "date",
-        "attendees",
-        "title",
-        "description",
-        "attachment",
+        "facility",
+        "operation_area",
+        "date_created",
+        "status",
+        "assigned_persons",
         "active",
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "weekly_program_update_form"
+        self.fields["date_created"].widget = HiddenInput()
 
     class Meta(BaseModelForm.Meta):
         model = WeeklyProgramUpdate
+        widgets = {
+            "facility": SearchableComboBox(),
+        }
 
 
 class CommodityForm(BaseModelForm):
@@ -456,3 +462,8 @@ class SecurityIncidenceForm(GetAllottedFacilitiesMixin, BaseModelForm):
             "facility": SearchableComboBox(),
             "reported_on": DateInput(attrs={"hidden": True}),
         }
+
+
+WeeklyProgramUpdateCommentFormSet = inlineformset_factory(
+    WeeklyProgramUpdate, WeeklyProgramUpdateComment, fields=("comment",)
+)

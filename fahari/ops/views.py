@@ -1,14 +1,16 @@
 from typing import cast
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.urls.base import reverse
 from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
-from django.views.generic.edit import FormMixin, ProcessFormView
+from django.views.generic.edit import FormMixin, FormView, ProcessFormView
 
 from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, FormContextMixin
 
@@ -45,6 +47,7 @@ from .forms import (
     TimeSheetForm,
     UoMCategoryForm,
     UoMForm,
+    WeeklyProgramUpdateCommentFormSet,
     WeeklyProgramUpdateForm,
 )
 from .models import (
@@ -517,7 +520,7 @@ class WeeklyProgramUpdatesView(
     permission_required = (
         "ops.view_weeklyprogramupdate",
         "ops.view_activity",
-        "ops.view_operationalarea",
+        "ops.view_WeeklyProgramUpdateComment",
     )
 
 
@@ -543,10 +546,11 @@ class WeeklyProgramUpdateViewSet(BaseView):
     queryset = WeeklyProgramUpdate.objects.active()
     serializer_class = WeeklyProgramUpdateSerializer
     filterset_class = WeeklyProgramUpdateFilter
-    ordering_fields = ("-date",)
+    ordering_fields = ("-date_created",)
     search_fields = (
-        "activity__name",
-        "comments",
+        "facility__name",
+        "operation_area",
+        "status",
     )
 
 
@@ -899,3 +903,33 @@ class SecurityIncidenceViewSet(BaseView):
         "reported_by",
     )
     facility_field_lookup = "facility"
+
+
+class WeeklyProgramCommentsUpdateView(SingleObjectMixin, LoginRequiredMixin, FormView):
+
+    model = WeeklyProgramUpdate
+    template_name = "ops/weekly_program_comments_edit.html"
+
+    def get(self, request, *args, **kwargs):
+        """Get object to be edited"""
+        self.object = self.get_object(queryset=WeeklyProgramUpdate.objects.all())
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        """post the data"""
+        self.object = self.get_object(queryset=WeeklyProgramUpdate.objects.all())
+        return super().post(request, *args, **kwargs)
+
+    def get_form(self, form_class=None):
+        return WeeklyProgramUpdateCommentFormSet(**self.get_form_kwargs(), instance=self.object)
+
+    def form_valid(self, form):
+        for data in form.cleaned_data:
+            data["organisation"] = self.object.organisation
+        form.save()
+        messages.add_message(self.request, messages.SUCCESS, "Changes were saved.")
+
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse("ops:weekly_program_updates_update", kwargs={"pk": self.object.pk})

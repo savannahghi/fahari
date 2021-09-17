@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% block title %}
@@ -22,29 +21,29 @@
                         </a>
                     {% endif %}
                 {% endif %}
-        </div>
+          </div>
       </div>
 
       <div class="row d-block">
         <div class="col-lg-2"></div>
         <div class="col-lg-8 center-form">
-          <div class="p-lg-5 p-xs-1 p-sm-1">
-            <div class="text-left">
-                <h1 class="h4 text-gray-900 mb-4">
-                    {% if object.pk %}
-                        Edit Weekly Updates
-                    {% else %}
-                        Create Weekly Update
-                    {% endif %}
-                </h1>
-            </div>
-            {% crispy form %}
+              {% crispy form %}
+              <h3>Week's Program Comments</h3>
+              <hr>
+                  {% for comment in weeklyprogramupdate.updates_comment.all %}
+                  <div><strong>Created at:</strong> {{ comment.created }}</div>
+                  <div><strong>Comment:</strong> {{ comment.comment }}</div>
+                  <hr>
+                  {% endfor %}
+              <p>
+                  <a href="{% url 'ops:weekly_program_comments_update' pk=weeklyprogramupdate.pk %}" role="button" class="btn btn-primary w-100 mb-2">Add/Edit Comments</a>
+                  <a href="{% url 'ops:weekly_program_updates' %}" role="button" class="btn btn-secondary w-100">Back</a>
+              </p>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 {% else %}
     <p>You do not have permission to edit weekly program updates.</p>
 {% endif %}
