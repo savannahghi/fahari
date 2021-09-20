@@ -34,9 +34,10 @@
                 data-ajax="{% url "api:weeklyprogramupdate-list" %}?format=datatables">
                 <thead>
                     <tr>
-                        <th>Status</th>
+                        <th>Created Date</th>
                         <th>Assigned persons</th>
-                        <th></th>
+                        <th>Status</th>
+                        <th>Update</th>
                     </tr>
                 </thead>
             </table>
@@ -52,8 +53,9 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: "status", name: "status"},
+                {data: "date_created", name: "date_created"},
                 {data: "assigned_persons", name: "assigned_persons"},
+                {data: "status", name: "status"},
                 {
                     data: "url",
                     name: "id",
@@ -62,8 +64,8 @@ window.addEventListener("load", function(){
                     render: function ( data, type, row ) {
                         return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
                     }
-                }
-            ]
+                },
+            ],
         } );
     });
 });

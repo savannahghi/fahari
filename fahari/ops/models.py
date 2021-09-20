@@ -636,6 +636,14 @@ class WeeklyProgramUpdateComment(AbstractBase):
     """
 
     weekly_update = models.ForeignKey(
-        WeeklyProgramUpdate, on_delete=models.PROTECT, related_name="updates_comment"
+        WeeklyProgramUpdate,
+        on_delete=models.CASCADE,
     )
+    date_created = models.DateTimeField(default=timezone.now)
     comment = models.TextField(default="-")
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy(
+            "ops:weekly_program_update_comments_update", kwargs={"pk": self.pk}
+        )
+        return update_url

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+    Add/Edit Weekly Comment
+{% endblock title %}
+{% block content %}
+<a href="{% url 'ops:weekly_program_updates' %}">&larr; Back</a>
+{% if perms.ops.change_weeklyprogramupdate %}
+
+<div class="row">
+  <div class="col-xl-10 col-lg-10 col-md-10 col-sm-12">
+    <div class="row align-page-content">
+      <div class="card-header">
+        <div class="toolbar float-right">
+          {% if object.pk %}
+
+            {% if perms.common.create_weeklyprogramupdatecomment %}
+              <a href="{% url 'ops:weekly_program_update_comments_create' %}" class="btn btn-primary btn-icon-split">
+                <span class="icon text-white-50">
+                  <i class="fas fa-plus"></i>
+                </span>
+                <span class="text">Update Comment</span>
+              </a>
+          </div>
+
+            {% endif %}
+            {% if perms.common.delete_weeklyprogramupdate %}
+              <a href="{% url 'ops:weekly_program_updates_delete' object.pk %}" class="btn btn-danger btn-icon-split">
+                <span class="icon text-white-50">
+                  <i class="fas fa-trash"></i>
+                </span>
+                <span class="text">Delete Comment</span>
+              </a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row d-block">
+        <div class="col-lg-2"></div>
+        <div class="col-lg-8 center-form">
+          <div class="p-lg-5 p-xs-1 p-sm-1">
+            <div class="text-left">
+              <h1 class="h4 text-gray-900 mb-4">
+                {% if object.pk %}
+                  Edit Program Comment
+                {% else %}
+                  Create Program Comment
+                {% endif %}
+              </h1>
+            </div>
+            {% crispy form %}
+            <div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+  <p>You do not have permission to edit program comments.</p>
+{% endif %}
+{% endblock content %}

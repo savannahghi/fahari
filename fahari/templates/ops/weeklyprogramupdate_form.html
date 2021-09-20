@@ -1,50 +1,107 @@
-{% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}
-    Add/Edit Weekly Update
-{% endblock title %}
-{% block content %}
+{% extends "base.html" %} {% load crispy_forms_tags %} {% block title %}
+Add/Edit Weekly Update {% endblock title %} {% block content %}
 <a href="{% url 'ops:weekly_program_updates' %}">&larr; Back</a>
 {% if perms.ops.change_weeklyprogramupdate %}
+
 <div class="row">
   <div class="col-xl-10 col-lg-10 col-md-10 col-sm-12">
     <div class="row align-page-content">
       <div class="card-header">
         <div class="toolbar float-right">
-            {% if object.pk %}
-                    {% if perms.ops.delete_weeklyprogramupdate %}
-                        <a href="{% url 'ops:weekly_program_updates_delete' object.pk %}" class="btn btn-danger btn-icon-split">
-                            <span class="icon text-white-50">
-                                <i class="fas fa-trash"></i>
-                            </span>
-                            <span class="text">Delete Weekly Update</span>
-                        </a>
-                    {% endif %}
-                {% endif %}
-          </div>
-      </div>
+          {% if object.pk %}
+          {% if perms.common.create_weeklyprogramupdatecomment %}
 
-      <div class="row d-block">
-        <div class="col-lg-2"></div>
-        <div class="col-lg-8 center-form">
-              {% crispy form %}
-              <h3>Week's Program Comments</h3>
-              <hr>
-                  {% for comment in weeklyprogramupdate.updates_comment.all %}
-                  <div><strong>Created at:</strong> {{ comment.created }}</div>
-                  <div><strong>Comment:</strong> {{ comment.comment }}</div>
-                  <hr>
-                  {% endfor %}
-              <p>
-                  <a href="{% url 'ops:weekly_program_comments_update' pk=weeklyprogramupdate.pk %}" role="button" class="btn btn-primary w-100 mb-2">Add/Edit Comments</a>
-                  <a href="{% url 'ops:weekly_program_updates' %}" role="button" class="btn btn-secondary w-100">Back</a>
-              </p>
+          <button
+            data-toggle="modal"
+            data-target="#addCommentModal"
+            class="btn btn-primary btn-icon-split"
+          >
+            <span class="icon text-white-50">
+              <i class="fas fa-plus"></i>
+            </span>
+            <span class="text">Add Daily Comment</span>
+          </button>
+          {% endif %}
+          {% if perms.common.delete_weeklyprogramupdate %}
+          <a
+            href="{% url 'ops:weekly_program_updates_delete' object.pk %}"
+            class="btn btn-danger btn-icon-split"
+          >
+            <span class="icon text-white-50">
+              <i class="fas fa-trash"></i>
+            </span>
+            <span class="text">Delete Program Update</span>
+          </a>
+          {% endif %} {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="row d-block">
+      <div class="col-lg-2"></div>
+      <div class="col-lg-8 center-form">
+        <div class="p-lg-5 p-xs-1 p-sm-1">
+          <div class="text-left">
+            <h1 class="h4 text-gray-900 mb-4">
+              {% if object.pk %}
+              Edit Program Update
+              {% else %}
+              Create Program Update
+              {% endif %}
+            </h1>
+          </div>
+          {% crispy form %}
+          <div>
+            <div
+              class="modal fade"
+              id="addCommentModal"
+              tabindex="-1"
+              aria-labelledby="addCommentModalLabel"
+              aria-hidden="true"
+            >
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="addCommentModalLabel">
+                      Add comment for the update
+                    </h5>
+                    <button
+                      type="button"
+                      class="close"
+                      data-dismiss="modal"
+                      aria-label="Close"
+                    >
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">{% crispy comments_form %}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-primary">
+              <h4>Daily program comments</h4>
+            </div>
+            {% if object.pk %}
+            {% for obj in object.weeklyprogramupdatecomment_set.all %}
+            <p>
+              {{forloop.counter}}. {{obj.date_created |date:'Y-m-d'}}: {{ obj.comment }}
+
+              <a
+                href="{% url 'ops:weekly_program_update_comments_update' obj.pk %}"
+              >
+                <i class="fas fa-edit"></i>
+              </a>
+            </p>
+            <br />
+            {% endfor %}
+          {% endif %}
           </div>
         </div>
       </div>
     </div>
   </div>
+</div>
+
 {% else %}
-    <p>You do not have permission to edit weekly program updates.</p>
-{% endif %}
-{% endblock content %}
+<p>You do not have permission to edit program updates.</p>
+{% endif %} {% endblock content %}
