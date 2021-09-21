@@ -4,7 +4,7 @@ from django.db.models import Case, IntegerField, Value, When
 from rest_framework import filters
 from rest_framework.filters import SearchFilter
 
-from .models import Facility, FacilityUser, System, UserFacilityAllotment
+from .models import Facility, System, UserFacilityAllotment
 
 
 class CommonFieldsFilterset(django_filters.FilterSet):
@@ -65,6 +65,25 @@ class OrganisationFilterBackend(filters.BaseFilterBackend):
         return queryset.filter(organisation=request.user.organisation)
 
 
+class AllottedFacilitiesFilterBackend(filters.BaseFilterBackend):
+    """Users are only allowed to view records relating to facilities they have been allotted to.
+
+    For this to work, the attribute `facility_field_lookup` must be present on a view. The
+    attribute should contain a lookup to a facility and should be usable from the queryset
+    returned by the view. If the aforementioned attribute is not present on a view, then no
+    filtering is performed and the queryset is returned as is.
+    """
+
+    def filter_queryset(self, request, queryset, view):
+        """Filter records to"""
+        lookup = getattr(view, "facility_field_lookup", None)
+        if not lookup:
+            return queryset
+        allotted_facilities = UserFacilityAllotment.get_facilities_for_user(request.user)
+        qs_filter = {"%s__in" % lookup: allotted_facilities}
+        return queryset.filter(**qs_filter)
+
+
 class FacilityFilter(CommonFieldsFilterset):
     """Filter facilities."""
 
@@ -87,18 +106,6 @@ class SystemFilter(CommonFieldsFilterset):
 
         model = System
         fields = "__all__"
-
-
-class FacilityUserFilter(CommonFieldsFilterset):
-
-    search = filters.SearchFilter()
-
-    class Meta:
-        model = FacilityUser
-        fields = (
-            "facility",
-            "user",
-        )
 
 
 class UserFacilityAllotmentFilter(CommonFieldsFilterset):

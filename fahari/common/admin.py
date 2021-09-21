@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Facility, FacilityAttachment, FacilityUser, Organisation, System
+from .models import Facility, FacilityAttachment, Organisation, System
 
 
 class BaseAdmin(admin.ModelAdmin):
@@ -22,16 +22,13 @@ class BaseAdmin(admin.ModelAdmin):
         obj.save()
 
 
-class FacilityUserInline(admin.TabularInline):
-    model = FacilityUser
-
-
 class FacilityAttachmentInline(admin.TabularInline):
     model = FacilityAttachment
 
 
+@admin.register(Facility)
 class FacilityAdmin(BaseAdmin):
-    inlines = [FacilityUserInline, FacilityAttachmentInline]
+    inlines = [FacilityAttachmentInline]
     list_display = (
         "name",
         "mfl_code",
@@ -51,24 +48,16 @@ class FacilityAdmin(BaseAdmin):
     )
 
 
+@admin.register(FacilityAttachment)
 class FacilityAttachmentAdmin(BaseAdmin):
     pass
 
 
-class FacilityUserAdmin(BaseAdmin):
-    pass
-
-
+@admin.register(Organisation)
 class OrganisationAdmin(BaseAdmin):
     pass
 
 
+@admin.register(System)
 class SystemAdmin(BaseAdmin):
     pass
-
-
-admin.site.register(Facility, FacilityAdmin)
-admin.site.register(FacilityAttachment, FacilityAttachmentAdmin)
-admin.site.register(FacilityUser, FacilityUserAdmin)
-admin.site.register(Organisation, OrganisationAdmin)
-admin.site.register(System, SystemAdmin)

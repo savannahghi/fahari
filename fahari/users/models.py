@@ -87,6 +87,10 @@ class User(AbstractUser):
         """
         return reverse("users:detail", kwargs={"username": self.username})
 
+    def __str__(self):
+        username = self.get_username()
+        return f"{self.name} ({username})" if self.name else username
+
     class Meta(AbstractUser.Meta):
         permissions = [
             ("can_view_dashboard", "Can View Dashboard"),

@@ -290,7 +290,7 @@ class FacilitySystemTicketFormTest(LoggedInMixin, TestCase):
         response = self.client.post(reverse("ops:ticket_create"), data=data)
         self.assertEqual(
             response.status_code,
-            200,
+            302,
         )
 
     def test_update(self):
@@ -315,7 +315,7 @@ class FacilitySystemTicketFormTest(LoggedInMixin, TestCase):
 
         self.assertEqual(
             response.status_code,
-            200,
+            302,
         )
 
     def test_delete(self):

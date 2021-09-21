@@ -15,13 +15,7 @@ from model_bakery.recipe import Recipe
 from rest_framework.test import APITestCase
 
 from fahari.common.constants import WHITELIST_COUNTIES
-from fahari.common.models import (
-    Facility,
-    FacilityUser,
-    Organisation,
-    System,
-    UserFacilityAllotment,
-)
+from fahari.common.models import Facility, Organisation, System, UserFacilityAllotment
 
 from .test_utils import patch_baker
 
@@ -75,6 +69,16 @@ class LoggedInMixin(APITestCase):
             self.user.user_permissions.add(perm)
         self.user.organisation = self.global_organisation
         self.user.save()
+
+        # Allot the given users to all the facilities in FYJ counties
+        self.user_facility_allotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_REGION.value,
+            counties=WHITELIST_COUNTIES,
+            organisation=self.global_organisation,
+            region_type=UserFacilityAllotment.RegionType.COUNTY.value,
+            user=self.user,
+        )
 
         assert self.client.login(username=username, password="pass123") is True
 
@@ -463,136 +467,97 @@ class SystemFormTest(LoggedInMixin, TestCase):
         )
 
 
-class FacilityUserViewsetTest(LoggedInMixin, APITestCase):
+class UserFacilityViewSetTest(LoggedInMixin, APITestCase):
     def setUp(self):
-        self.url_list = reverse("api:facilityuser-list")
-        self.detail_url_name = "api:facilityuser-detail"
-        self.facility = baker.make(
+        super().setUp()
+        self.by_both = UserFacilityAllotment.AllotmentType.BY_FACILITY_AND_REGION
+        self.by_facility = UserFacilityAllotment.AllotmentType.BY_FACILITY
+        self.by_region = UserFacilityAllotment.AllotmentType.BY_REGION
+        self.facilities = baker.make(
             Facility,
+            20,
             is_fahari_facility=True,
-            county=random.choice(WHITELIST_COUNTIES),
+            county="Nairobi",
             organisation=self.global_organisation,
         )
-        super().setUp()
 
     def test_create(self):
+        user = baker.make(get_user_model(), organisation=self.global_organisation)
         data = {
-            "facility": self.facility.pk,
-            "user": self.user.pk,
+            "allotment_type": self.by_facility.value,
+            "facilities": map(lambda f: f.pk, self.facilities),
+            "user": user.pk,
             "organisation": self.global_organisation.pk,
         }
-        response = self.client.post(self.url_list, data)
-        assert response.status_code == 201, response.json()
-        assert response.data["facility"] == data["facility"]
+        response = self.client.post(reverse("api:userfacilityallotment-list"), data=data)
+        assert response.status_code == 201
 
     def test_retrieve(self):
-        instance = baker.make(
-            FacilityUser,
-            facility=self.facility,
-            user=self.user,
+        user = baker.make(get_user_model(), organisation=self.global_organisation)
+        instance: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=self.by_facility.value,
+            facilities=self.facilities,
             organisation=self.global_organisation,
+            user=user,
         )
 
-        response = self.client.get(self.url_list)
+        response = self.client.get(reverse("api:userfacilityallotment-list"))
         assert response.status_code == 200, response.json()
         assert response.data["count"] >= 1, response.json()
 
-        facilities = [a["facility"] for a in response.data["results"]]
-        assert instance.facility.pk in facilities
+        allotments = [entry["id"] for entry in response.data["results"]]
+        assert str(instance.pk) in allotments
 
     def test_patch(self):
-        instance = baker.make(
-            FacilityUser,
-            facility=self.facility,
-            user=self.user,
+        user = baker.make(get_user_model(), organisation=self.global_organisation)
+        instance: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=self.by_facility.value,
+            facilities=self.facilities,
             organisation=self.global_organisation,
+            user=user,
         )
 
-        edit = {"active": False}
-        url = reverse(self.detail_url_name, kwargs={"pk": instance.pk})
-        response = self.client.patch(url, edit)
-
+        data = {
+            "allotment_type": self.by_region.value,
+            "region_type": UserFacilityAllotment.RegionType.COUNTY.value,
+            "counties": ["Nairobi"],
+        }
+        response = self.client.patch(
+            reverse("api:userfacilityallotment-detail", kwargs={"pk": instance.pk}), data
+        )
         assert response.status_code == 200, response.json()
-        assert response.data["active"] == edit["active"]
+        assert response.data["allotment_type"] == data["allotment_type"]
+        assert response.data["region_type"] == data["region_type"]
+        assert response.data["counties"] == data["counties"]
 
     def test_put(self):
-        instance = baker.make(
-            FacilityUser,
-            facility=self.facility,
-            user=self.user,
+        user = baker.make(get_user_model(), organisation=self.global_organisation)
+        instance: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=self.by_facility.value,
+            facilities=self.facilities,
             organisation=self.global_organisation,
+            user=user,
         )
-        data = {
-            "facility": self.facility.pk,
-            "user": self.user.pk,
-            "organisation": self.global_organisation.pk,
-            "active": False,
-        }
-        url = reverse(self.detail_url_name, kwargs={"pk": instance.pk})
-        response = self.client.put(url, data)
 
+        data = {
+            "active": False,
+            "allotment_type": self.by_region.value,
+            "counties": ["Nairobi"],
+            "organisation": self.global_organisation.pk,
+            "region_type": UserFacilityAllotment.RegionType.COUNTY.value,
+            "user": user.pk,
+        }
+        response = self.client.put(
+            reverse("api:userfacilityallotment-detail", kwargs={"pk": instance.pk}), data
+        )
         assert response.status_code == 200, response.json()
         assert response.data["active"] == data["active"]
-
-
-class FacilityUserFormTest(LoggedInMixin, TestCase):
-    def setUp(self):
-        self.facility = baker.make(
-            Facility,
-            is_fahari_facility=True,
-            county=random.choice(WHITELIST_COUNTIES),
-            organisation=self.global_organisation,
-        )
-        super().setUp()
-
-    def test_create(self):
-        data = {
-            "facility": self.facility.pk,
-            "user": self.user.pk,
-            "organisation": self.global_organisation.pk,
-        }
-        response = self.client.post(reverse("common:facility_user_create"), data=data)
-        self.assertEqual(
-            response.status_code,
-            302,
-        )
-
-    def test_update(self):
-        instance = baker.make(
-            FacilityUser,
-            facility=self.facility,
-            user=self.user,
-            organisation=self.global_organisation,
-        )
-        data = {
-            "pk": instance.pk,
-            "facility": self.facility.pk,
-            "user": self.user.pk,
-            "organisation": self.global_organisation.pk,
-            "active": False,
-        }
-        response = self.client.post(
-            reverse("common:facility_user_update", kwargs={"pk": instance.pk}), data=data
-        )
-        self.assertEqual(
-            response.status_code,
-            302,
-        )
-
-    def test_delete(self):
-        instance = baker.make(
-            FacilityUser,
-            facility=self.facility,
-            user=self.user,
-            organisation=self.global_organisation,
-        )
-        response = self.client.post(
-            reverse("common:facility_user_delete", kwargs={"pk": instance.pk}),
-        )
-        self.assertEqual(
-            response.status_code,
-            302,
-        )
+        assert response.data["allotment_type"] == data["allotment_type"]
+        assert response.data["region_type"] == data["region_type"]
+        assert response.data["counties"] == data["counties"]
 
 
 class UserFacilityAllotmentFormTest(LoggedInMixin, TestCase):
@@ -610,10 +575,11 @@ class UserFacilityAllotmentFormTest(LoggedInMixin, TestCase):
         )
 
     def test_create(self):
+        user = baker.make(get_user_model(), organisation=self.global_organisation)
         data = {
             "allotment_type": self.by_facility.value,
             "facilities": map(lambda f: f.pk, self.facilities),
-            "user": self.user.pk,
+            "user": user.pk,
             "organisation": self.global_organisation.pk,
         }
         response = self.client.post(reverse("common:user_facility_allotment_create"), data=data)
@@ -623,21 +589,14 @@ class UserFacilityAllotmentFormTest(LoggedInMixin, TestCase):
         )
 
     def test_update(self):
-        instance: UserFacilityAllotment = baker.make(
-            UserFacilityAllotment,
-            allotment_type=self.by_facility.value,
-            facilities=self.facilities,
-            organisation=self.global_organisation,
-            user=self.user,
-        )
+        instance = self.user_facility_allotment
         data = {
             "pk": instance.pk,
-            "allotment_type": self.by_region.value,
-            "region_type": UserFacilityAllotment.RegionType.COUNTY.value,
-            "counties": ["Nairobi"],
+            "allotment_type": self.by_facility.value,
+            "facilities": map(lambda f: f.pk, self.facilities),
             "user": self.user.pk,
             "organisation": self.global_organisation.pk,
-            "active": True,
+            "active": False,
         }
         response = self.client.post(
             reverse("common:user_facility_allotment_update", kwargs={"pk": instance.pk}), data=data
@@ -648,12 +607,13 @@ class UserFacilityAllotmentFormTest(LoggedInMixin, TestCase):
         )
 
     def test_delete(self):
+        user = baker.make(get_user_model(), organisation=self.global_organisation)
         instance: UserFacilityAllotment = baker.make(
             UserFacilityAllotment,
             allotment_type=self.by_facility.value,
             facilities=self.facilities,
             organisation=self.global_organisation,
-            user=self.user,
+            user=user,
         )
         response = self.client.post(
             reverse("common:user_facility_allotment_delete", kwargs={"pk": instance.pk}),

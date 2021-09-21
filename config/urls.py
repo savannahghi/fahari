@@ -3,8 +3,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views import defaults as default_views
+from django.views.generic import RedirectView
 from rest_framework.authtoken.views import obtain_auth_token
 
 from fahari.common.views import AboutView, HomeView
@@ -22,9 +23,14 @@ urlpatterns = [
     # User management
     path("users/", include("fahari.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
-    # our apps
+    # Our apps
     path("common/", include("fahari.common.urls", namespace="common")),
     path("ops/", include("fahari.ops.urls", namespace="ops")),
+    # favicon
+    re_path(
+        r"^favicon\.ico$",
+        RedirectView.as_view(url=settings.STATIC_URL + "favicon.ico", permanent=True),
+    ),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

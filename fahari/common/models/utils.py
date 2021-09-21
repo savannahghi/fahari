@@ -17,7 +17,8 @@ def unique_list(list_object):
 def get_directory(instance, filename):
     """Determine the upload_to path for every model inheriting Attachment."""
     org = instance.organisation.organisation_name
-    return "{}/{}/{}".format(org, instance.__class__.__name__.lower(), filename)
+    app = instance._meta.app_label  # noqa
+    return "{}/{}/{}/{}".format(org, app, instance.__class__.__name__.lower(), filename)
 
 
 def is_image_type(file_type):

@@ -10,7 +10,7 @@ from django.views.generic import CreateView, DeleteView, TemplateView, UpdateVie
 from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
 from django.views.generic.edit import FormMixin, ProcessFormView
 
-from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, GetKwargsMixin
+from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, FormContextMixin
 
 from .filters import (
     ActivityLogFilter,
@@ -98,30 +98,33 @@ class FacilitySystemsView(
     permission_required = "ops.view_facilitysystem"
 
 
-class FacilitySystemCreateView(FacilitySystemContextMixin, BaseFormMixin, CreateView):
+class FacilitySystemCreateView(
+    FacilitySystemContextMixin, FormContextMixin, BaseFormMixin, CreateView
+):
 
     form_class = FacilitySystemForm
     success_url = reverse_lazy("ops:versions")
     model = FacilitySystem
 
 
-class FacilitySystemUpdateView(FacilitySystemContextMixin, UpdateView, BaseFormMixin):
+class FacilitySystemUpdateView(
+    FacilitySystemContextMixin, FormContextMixin, UpdateView, BaseFormMixin
+):
     form_class = FacilitySystemForm
     model = FacilitySystem
     success_url = reverse_lazy("ops:versions")
 
 
-class FacilitySystemDeleteView(FacilitySystemContextMixin, DeleteView, BaseFormMixin):
+class FacilitySystemDeleteView(
+    FacilitySystemContextMixin, FormContextMixin, DeleteView, BaseFormMixin
+):
     form_class = FacilitySystemForm
     model = FacilitySystem
     success_url = reverse_lazy("ops:versions")
 
 
 class FacilitySystemViewSet(BaseView):
-    queryset = FacilitySystem.objects.filter(
-        active=True,
-    )
-
+    queryset = FacilitySystem.objects.active()
     serializer_class = FacilitySystemSerializer
     filterset_class = FacilitySystemFilter
     ordering_fields = (
@@ -134,6 +137,7 @@ class FacilitySystemViewSet(BaseView):
         "system__name",
         "-version",
     )
+    facility_field_lookup = "facility"
 
 
 class FacilitySystemTicketContextMixin:
@@ -152,22 +156,24 @@ class FacilitySystemTicketsView(
 
 
 class FacilitySystemTicketCreateView(
-    FacilitySystemTicketContextMixin, BaseFormMixin, GetKwargsMixin, CreateView
+    FacilitySystemTicketContextMixin, BaseFormMixin, FormContextMixin, CreateView
 ):
     form_class = FacilitySystemTicketForm
-    success_url = reverse_lazy("ops:tickets")
     model = FacilitySystemTicket
+    success_url = reverse_lazy("ops:tickets")
 
 
 class FacilitySystemTicketUpdateView(
-    FacilitySystemTicketContextMixin, BaseFormMixin, GetKwargsMixin, UpdateView
+    FacilitySystemTicketContextMixin, BaseFormMixin, FormContextMixin, UpdateView
 ):
     form_class = FacilitySystemTicketForm
     model = FacilitySystemTicket
     success_url = reverse_lazy("ops:tickets")
 
 
-class FacilitySystemTicketDeleteView(FacilitySystemTicketContextMixin, DeleteView, BaseFormMixin):
+class FacilitySystemTicketDeleteView(
+    FacilitySystemTicketContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
     form_class = FacilitySystemTicketForm
     model = FacilitySystemTicket
     success_url = reverse_lazy("ops:tickets")
@@ -207,9 +213,7 @@ class FacilitySystemTicketResolveView(
 
 
 class FacilitySystemTicketViewSet(BaseView):
-    queryset = FacilitySystemTicket.objects.filter(
-        active=True,
-    )
+    queryset = FacilitySystemTicket.objects.active()
     serializer_class = FacilitySystemTicketSerializer
     filterset_class = FacilitySystemTicketFilter
     ordering_fields = (
@@ -222,6 +226,7 @@ class FacilitySystemTicketViewSet(BaseView):
         "facility_system__facility__name",
         "facility_system__system__name",
     )
+    facility_field_lookup = "facility_system__facility"
 
 
 class StockReceiptVerificationContextMixin:
@@ -240,7 +245,7 @@ class StockReceiptVerificationView(
 
 
 class StockReceiptVerificationCreateView(
-    StockReceiptVerificationContextMixin, BaseFormMixin, CreateView
+    StockReceiptVerificationContextMixin, BaseFormMixin, FormContextMixin, CreateView
 ):
     form_class = StockReceiptVerificationForm
     model = StockReceiptVerification
@@ -248,7 +253,7 @@ class StockReceiptVerificationCreateView(
 
 
 class StockReceiptVerificationUpdateView(
-    StockReceiptVerificationContextMixin, UpdateView, BaseFormMixin
+    StockReceiptVerificationContextMixin, BaseFormMixin, FormContextMixin, UpdateView
 ):
     form_class = StockReceiptVerificationForm
     model = StockReceiptVerification
@@ -256,7 +261,7 @@ class StockReceiptVerificationUpdateView(
 
 
 class StockReceiptVerificationDeleteView(
-    StockReceiptVerificationContextMixin, DeleteView, BaseFormMixin
+    StockReceiptVerificationContextMixin, BaseFormMixin, FormContextMixin, DeleteView
 ):
     form_class = StockReceiptVerificationForm
     model = StockReceiptVerification
@@ -264,9 +269,7 @@ class StockReceiptVerificationDeleteView(
 
 
 class StockReceiptVerificationViewSet(BaseView):
-    queryset = StockReceiptVerification.objects.filter(
-        active=True,
-    )
+    queryset = StockReceiptVerification.objects.active()
     serializer_class = StockReceiptVerificationSerializer
     filterset_class = StockReceiptVerificationFilter
     ordering_fields = (
@@ -278,6 +281,7 @@ class StockReceiptVerificationViewSet(BaseView):
         "description",
         "comments",
     )
+    facility_field_lookup = "facility"
 
 
 class ActivityLogContextMixin:
@@ -312,9 +316,7 @@ class ActivityLogDeleteView(ActivityLogContextMixin, DeleteView, BaseFormMixin):
 
 
 class ActivityLogViewSet(BaseView):
-    queryset = ActivityLog.objects.filter(
-        active=True,
-    )
+    queryset = ActivityLog.objects.active()
     serializer_class = ActivityLogSerializer
     filterset_class = ActivityLogFilter
     ordering_fields = (
@@ -343,28 +345,32 @@ class SiteMentorshipView(
     permission_required = "ops.view_sitementorship"
 
 
-class SiteMentorshipCreateView(SiteMentorshipContextMixin, BaseFormMixin, CreateView):
+class SiteMentorshipCreateView(
+    SiteMentorshipContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
     form_class = SiteMentorshipForm
     model = SiteMentorship
     success_url = reverse_lazy("ops:site_mentorships")
 
 
-class SiteMentorshipUpdateView(SiteMentorshipContextMixin, UpdateView, BaseFormMixin):
+class SiteMentorshipUpdateView(
+    SiteMentorshipContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
     form_class = SiteMentorshipForm
     model = SiteMentorship
     success_url = reverse_lazy("ops:site_mentorships")
 
 
-class SiteMentorshipDeleteView(SiteMentorshipContextMixin, DeleteView, BaseFormMixin):
+class SiteMentorshipDeleteView(
+    SiteMentorshipContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
     form_class = SiteMentorshipForm
     model = SiteMentorship
     success_url = reverse_lazy("ops:site_mentorships")
 
 
 class SiteMentorshipViewSet(BaseView):
-    queryset = SiteMentorship.objects.filter(
-        active=True,
-    )
+    queryset = SiteMentorship.objects.active()
     serializer_class = SiteMentorshipSerializer
     filterset_class = SiteMentorshipFilter
     ordering_fields = (
@@ -378,6 +384,7 @@ class SiteMentorshipViewSet(BaseView):
         "site__name",
         "objective",
     )
+    facility_field_lookup = "site"
 
 
 class DailySiteUpdatesContextMixin:
@@ -395,28 +402,32 @@ class DailySiteUpdatesView(
     permission_required = "ops.view_dailyupdate"
 
 
-class DailyUpdateCreateView(DailySiteUpdatesContextMixin, BaseFormMixin, CreateView):
+class DailyUpdateCreateView(
+    DailySiteUpdatesContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
     form_class = DailyUpdateForm
     model = DailyUpdate
     success_url = reverse_lazy("ops:daily_site_updates")
 
 
-class DailyUpdateUpdateView(DailySiteUpdatesContextMixin, UpdateView, BaseFormMixin):
+class DailyUpdateUpdateView(
+    DailySiteUpdatesContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
     form_class = DailyUpdateForm
     model = DailyUpdate
     success_url = reverse_lazy("ops:daily_site_updates")
 
 
-class DailyUpdateDeleteView(DailySiteUpdatesContextMixin, DeleteView, BaseFormMixin):
+class DailyUpdateDeleteView(
+    DailySiteUpdatesContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
     form_class = DailyUpdateForm
     model = DailyUpdate
     success_url = reverse_lazy("ops:daily_site_updates")
 
 
 class DailyUpdateViewSet(BaseView):
-    queryset = DailyUpdate.objects.filter(
-        active=True,
-    )
+    queryset = DailyUpdate.objects.active()
     serializer_class = DailyUpdateSerializer
     filterset_class = DailyUpdateFilter
     ordering_fields = (
@@ -424,6 +435,7 @@ class DailyUpdateViewSet(BaseView):
         "facility__name",
     )
     search_fields = ("facility__name",)
+    facility_field_lookup = "facility"
 
 
 class TimeSheetContextMixin:
@@ -474,9 +486,7 @@ class TimeSheetApproveView(TimeSheetContextMixin, TemplateView):
 
 
 class TimeSheetViewSet(BaseView):
-    queryset = TimeSheet.objects.filter(
-        active=True,
-    )
+    queryset = TimeSheet.objects.active()
     serializer_class = TimeSheetSerializer
     filterset_class = TimeSheetFilter
     ordering_fields = (
@@ -530,9 +540,7 @@ class WeeklyProgramUpdatesDeleteView(WeeklyProgramUpdateContextMixin, DeleteView
 
 
 class WeeklyProgramUpdateViewSet(BaseView):
-    queryset = WeeklyProgramUpdate.objects.filter(
-        active=True,
-    )
+    queryset = WeeklyProgramUpdate.objects.active()
     serializer_class = WeeklyProgramUpdateSerializer
     filterset_class = WeeklyProgramUpdateFilter
     ordering_fields = ("-date",)
@@ -574,9 +582,7 @@ class CommodityDeleteView(CommodityContextMixin, DeleteView, BaseFormMixin):
 
 
 class CommodityViewSet(BaseView):
-    queryset = Commodity.objects.filter(
-        active=True,
-    )
+    queryset = Commodity.objects.active()
     serializer_class = CommoditySerializer
     filterset_class = CommodityFilter
     ordering_fields = (
@@ -622,7 +628,7 @@ class UoMDeleteView(UoMContextMixin, BaseFormMixin, DeleteView):
 
 
 class UoMViewSet(BaseView):
-    queryset = UoM.objects.filter(active=True)
+    queryset = UoM.objects.active()
     serializer_class = UoMSerializer
     filterset_class = UoMFilter
     ordering_fields = ("name",)
@@ -663,7 +669,7 @@ class UoMCategoryDeleteView(UoMCategoryContextMixin, BaseFormMixin, DeleteView):
 
 
 class UoMCategoryViewSet(BaseView):
-    queryset = UoMCategory.objects.filter(active=True)
+    queryset = UoMCategory.objects.active()
     serializer_class = UoMCategorySerializer
     filterset_class = UoMCategoryFilter
     ordering_fields = ("name", "measure_type")
@@ -685,29 +691,30 @@ class FacilityNetworkStatusListView(
     permission_required = "ops.view_facilitynetworkstatus"
 
 
-class FacilityNetworkStatusCreateView(NetworkStatusMixin, BaseFormMixin, CreateView):
+class FacilityNetworkStatusCreateView(
+    NetworkStatusMixin, BaseFormMixin, FormContextMixin, CreateView
+):
     form_class = FacilityNetworkStatusForm
     model = FacilityNetworkStatus
     success_url = reverse_lazy("ops:facility_network_status")
 
 
-class FacilityNetworkStatusUpdateView(NetworkStatusMixin, UpdateView, BaseFormMixin):
+class FacilityNetworkStatusUpdateView(
+    NetworkStatusMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
     form_class = FacilityNetworkStatusForm
     model = FacilityNetworkStatus
     success_url = reverse_lazy("ops:facility_network_status")
 
 
-class FacilityNetworkStatusDeleteView(NetworkStatusMixin, DeleteView, BaseFormMixin):
+class FacilityNetworkStatusDeleteView(NetworkStatusMixin, BaseFormMixin, FormMixin, DeleteView):
     form_class = FacilityNetworkStatusForm
     model = FacilityNetworkStatus
     success_url = reverse_lazy("ops:facility_network_status")
 
 
 class FacilityNetworkStatusViewSet(BaseView):
-    queryset = FacilityNetworkStatus.objects.filter(
-        active=True,
-    )
-
+    queryset = FacilityNetworkStatus.objects.active()
     serializer_class = FacilityNetworkStatusSerializer
     filterset_class = FacilityNetworkStatusFilter
     ordering_fields = (
@@ -720,6 +727,7 @@ class FacilityNetworkStatusViewSet(BaseView):
         "has_network",
         "has_internet",
     )
+    facility_field_lookup = "facility"
 
 
 class FacilityDevicesMixin:
@@ -737,29 +745,26 @@ class FacilityDevicesListView(
     permission_required = "ops.view_facilitydevice"
 
 
-class FacilityDeviceCreateView(FacilityDevicesMixin, BaseFormMixin, CreateView):
+class FacilityDeviceCreateView(FacilityDevicesMixin, BaseFormMixin, FormContextMixin, CreateView):
     form_class = FacilityDeviceForm
     model = FacilityDevice
     success_url = reverse_lazy("ops:facility_devices")
 
 
-class FacilityDeviceUpdateView(FacilityDevicesMixin, UpdateView, BaseFormMixin):
+class FacilityDeviceUpdateView(FacilityDevicesMixin, BaseFormMixin, FormContextMixin, UpdateView):
     form_class = FacilityDeviceForm
     model = FacilityDevice
     success_url = reverse_lazy("ops:facility_devices")
 
 
-class FacilityDeviceDeleteView(FacilityDevicesMixin, DeleteView, BaseFormMixin):
+class FacilityDeviceDeleteView(FacilityDevicesMixin, BaseFormMixin, FormContextMixin, DeleteView):
     form_class = FacilityDeviceForm
     model = FacilityDevice
     success_url = reverse_lazy("ops:facility_devices")
 
 
 class FacilityDeviceViewSet(BaseView):
-    queryset = FacilityDevice.objects.filter(
-        active=True,
-    )
-
+    queryset = FacilityDevice.objects.active()
     serializer_class = FacilityDeviceSerializer
     filterset_class = FacilityDeviceFilter
     ordering_fields = (
@@ -773,6 +778,7 @@ class FacilityDeviceViewSet(BaseView):
         "number_of_devices",
         "number_of_ups",
     )
+    facility_field_lookup = "facility"
 
 
 class FacilityDeviceRequestsMixin:
@@ -790,29 +796,32 @@ class FacilityDeviceRequestsListView(
     permission_required = "ops.view_facilitydevicerequest"
 
 
-class FacilityDeviceRequestCreateView(FacilityDeviceRequestsMixin, BaseFormMixin, CreateView):
+class FacilityDeviceRequestCreateView(
+    FacilityDeviceRequestsMixin, BaseFormMixin, FormContextMixin, CreateView
+):
     form_class = FacilityDeviceRequestForm
     model = FacilityDeviceRequest
     success_url = reverse_lazy("ops:facility_device_requests")
 
 
-class FacilityDeviceRequestUpdateView(FacilityDeviceRequestsMixin, UpdateView, BaseFormMixin):
+class FacilityDeviceRequestUpdateView(
+    FacilityDeviceRequestsMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
     form_class = FacilityDeviceRequestForm
     model = FacilityDeviceRequest
     success_url = reverse_lazy("ops:facility_device_requests")
 
 
-class FacilityDeviceRequestDeleteView(FacilityDeviceRequestsMixin, DeleteView, BaseFormMixin):
+class FacilityDeviceRequestDeleteView(
+    FacilityDeviceRequestsMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
     form_class = FacilityDeviceRequestForm
     model = FacilityDeviceRequest
     success_url = reverse_lazy("ops:facility_device_requests")
 
 
 class FacilityDeviceRequestViewSet(BaseView):
-    queryset = FacilityDeviceRequest.objects.filter(
-        active=True,
-    )
-
+    queryset = FacilityDeviceRequest.objects.active()
     serializer_class = FacilityDeviceRequestSerializer
     filterset_class = FacilityDeviceRequestFilter
     ordering_fields = (
@@ -830,6 +839,7 @@ class FacilityDeviceRequestViewSet(BaseView):
         "date_requested",
         "delivery_date",
     )
+    facility_field_lookup = "facility"
 
 
 class SecurityIncidenceMixin:
@@ -847,29 +857,32 @@ class SecurityIncidentsListView(
     permission_required = "ops.view_securityincidence"
 
 
-class SecurityIncidenceCreateView(SecurityIncidenceMixin, BaseFormMixin, CreateView):
+class SecurityIncidenceCreateView(
+    SecurityIncidenceMixin, BaseFormMixin, FormContextMixin, CreateView
+):
     form_class = SecurityIncidenceForm
     model = SecurityIncidence
     success_url = reverse_lazy("ops:security_incidents")
 
 
-class SecurityIncidenceUpdateView(SecurityIncidenceMixin, UpdateView, BaseFormMixin):
+class SecurityIncidenceUpdateView(
+    SecurityIncidenceMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
     form_class = SecurityIncidenceForm
     model = SecurityIncidence
     success_url = reverse_lazy("ops:security_incidents")
 
 
-class SecurityIncidenceDeleteView(SecurityIncidenceMixin, DeleteView, BaseFormMixin):
+class SecurityIncidenceDeleteView(
+    SecurityIncidenceMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
     form_class = SecurityIncidenceForm
     model = SecurityIncidence
     success_url = reverse_lazy("ops:security_incidents")
 
 
 class SecurityIncidenceViewSet(BaseView):
-    queryset = SecurityIncidence.objects.filter(
-        active=True,
-    )
-
+    queryset = SecurityIncidence.objects.active()
     serializer_class = SecurityIncidenceSerializer
     filterset_class = SecurityIncidenceFilter
     ordering_fields = (
@@ -885,3 +898,4 @@ class SecurityIncidenceViewSet(BaseView):
         "reported_on",
         "reported_by",
     )
+    facility_field_lookup = "facility"
