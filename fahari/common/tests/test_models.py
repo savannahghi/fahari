@@ -472,10 +472,141 @@ class AuditAbstractBaseModelTest(TestCase):
         assert fake.organisation.org_code == fake.owner
 
 
+class LinkedRecordsBaseTest(TestCase):
+    """Tests for the `LinkedRecordsBase` model and it's associated manager and queryset."""
+
+    def setUp(self) -> None:
+        super(LinkedRecordsBaseTest, self).setUp()
+        # Since `LinkedRecordsBase` is an abstract class, we use one of it's
+        # concrete descendants for the tests.
+        from fahari.ops.models import FacilitySystem
+
+        self.organisation = baker.make(Organisation)
+        self.facilities = baker.make(
+            Facility,
+            5,
+            county="Kajiado",
+            sub_county="Kajiado East",
+            organisation=self.organisation,
+        )
+        self.systems = baker.make(System, 5, organisation=self.organisation)
+        self.user = baker.make(get_user_model(), name=fake.name(), organisation=self.organisation)
+        self.user_facility_allotment: UserFacilityAllotment = baker.make(
+            UserFacilityAllotment,
+            allotment_type=UserFacilityAllotment.AllotmentType.BY_FACILITY.value,
+            facilities=self.facilities,
+            organisation=self.organisation,
+            user=self.user,
+        )
+        self.linked_instance: FacilitySystem = baker.make(
+            FacilitySystem,
+            facility=self.facilities[0],
+            organisation=self.organisation,
+            previous_node=None,
+            system=self.systems[0],
+            version="1.0.0",
+        )
+
+    def test_create_root_node(self):
+        """Test that creation of root nodes works as expected."""
+
+        from fahari.ops.models import FacilitySystem
+
+        data = {
+            "facility": self.facilities[1],
+            "organisation": self.organisation,
+            "system": self.systems[1],
+            "version": "1.0.0",
+        }
+        root_node: FacilitySystem = FacilitySystem.objects.create_root_node(**data)
+
+        assert root_node is not None
+        assert root_node.is_root_node
+        assert root_node.previous_node is None
+        assert root_node in FacilitySystem.root_nodes()
+
+    def test_create_leaf_node(self):
+        """Test that creation of leaf nodes works as expected."""
+
+        from fahari.ops.models import FacilitySystem
+
+        data = {
+            "facility": self.facilities[0],
+            "organisation": self.organisation,
+            "system": self.systems[0],
+            "version": "2.0.0",
+        }
+        leaf_node: FacilitySystem = FacilitySystem.objects.create_leaf_node(**data)
+
+        assert leaf_node is not None
+        assert leaf_node.is_leaf_node
+        assert leaf_node.next_node is None
+        assert leaf_node.previous_node == self.linked_instance
+        assert self.linked_instance.next_node == leaf_node
+        assert FacilitySystem.nodes(**data).count() == 2
+        assert leaf_node in FacilitySystem.leaf_nodes()
+
+        data["version"] = "2.1.0"
+        leaf_node1: FacilitySystem = FacilitySystem.objects.create_leaf_node(**data)
+        leaf_node.refresh_from_db()
+
+        assert leaf_node1.next_node is None
+        assert leaf_node1.is_leaf_node
+        assert leaf_node1.previous_node == leaf_node
+        assert not leaf_node.is_leaf_node
+        assert leaf_node.next_node == leaf_node1
+        assert leaf_node.previous_node == self.linked_instance
+        assert self.linked_instance.next_node == leaf_node
+        assert FacilitySystem.nodes(**data).count() == 3
+        assert leaf_node not in FacilitySystem.leaf_nodes()
+        assert leaf_node1 in FacilitySystem.leaf_nodes()
+
+    def test_create_leaf_node_of_a_non_existing_link(self):
+        """Assert that creating a leaf node of a non existing link leads to a new link."""
+
+        from fahari.ops.models import FacilitySystem
+
+        data = {
+            "facility": self.facilities[1],
+            "organisation": self.organisation,
+            "system": self.systems[1],
+            "version": "1.0.0",
+        }
+        leaf_node: FacilitySystem = FacilitySystem.objects.create_leaf_node(**data)
+
+        assert leaf_node is not None
+        assert leaf_node.is_root_node
+        assert leaf_node.next_node is None
+        assert leaf_node.previous_node is None
+        assert FacilitySystem.nodes(**data).count() == 1
+        assert FacilitySystem.root_nodes().count() == 2
+        assert leaf_node in FacilitySystem.root_nodes()
+
+    def test_delete(self):
+        ...
+
+    def test_leaf_node_methods(self):
+        """"""
+        ...
+
+    def test_leaf_nodes_methods(self):
+        ...
+
+    def test_nodes_methods(self):
+        ...
+
+    def test_root_node_methods(self):
+        ...
+
+    def test_root_nodes_methods(self):
+        ...
+
+
 class UserFacilityAllotmentTest(TestCase):
     """Tests for the UserFacilityAllotment model."""
 
     def setUp(self) -> None:
+        super().setUp()
         self.by_both = UserFacilityAllotment.AllotmentType.BY_FACILITY_AND_REGION
         self.by_facility = UserFacilityAllotment.AllotmentType.BY_FACILITY
         self.by_region = UserFacilityAllotment.AllotmentType.BY_REGION

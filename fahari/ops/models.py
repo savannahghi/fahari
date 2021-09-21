@@ -11,7 +11,15 @@ from django.urls.base import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from fahari.common.models import AbstractBase, Facility, Organisation, System, get_directory
+from fahari.common.models import (
+    AbstractBase,
+    Facility,
+    LinkedRecordsBase,
+    LinkedRecordsManager,
+    Organisation,
+    System,
+    get_directory,
+)
 
 User = get_user_model()
 
@@ -104,7 +112,7 @@ class TimeSheet(AbstractBase):
         ]
 
 
-class FacilitySystem(AbstractBase):
+class FacilitySystem(LinkedRecordsBase):
     """A registry of systems and versions for different facilities."""
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
@@ -121,6 +129,10 @@ class FacilitySystem(AbstractBase):
         upload_to=get_directory, verbose_name="Attach File or Photo", null=True, blank=True
     )
 
+    objects = LinkedRecordsManager(("facility", "system"))
+
+    model_validators = ["check_valid_previous_node"]
+
     def get_absolute_url(self):
         update_url = reverse_lazy("ops:version_update", kwargs={"pk": self.pk})
         return update_url
@@ -133,10 +145,13 @@ class FacilitySystem(AbstractBase):
     def system_name(self):
         return self.system.name
 
+    def check_valid_previous_node(self):
+        ...
+
     def __str__(self):
         return f"{self.facility_name} - {self.system_name}, version {self.version}"
 
-    class Meta:
+    class Meta(LinkedRecordsBase.Meta):
         ordering = (
             "facility__name",
             "system__name",
@@ -148,7 +163,7 @@ class FacilitySystem(AbstractBase):
             models.UniqueConstraint(
                 fields=["facility", "system", "version"],
                 name="unique_together_facility_and_system_and_version",
-            )
+            ),
         ]
 
 
