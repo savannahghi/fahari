@@ -521,37 +521,46 @@ class WeeklyProgramUpdatesView(
     permission_required = (
         "ops.view_weeklyprogramupdate",
         "ops.view_activity",
-        "ops.view_WeeklyProgramUpdateComment",
     )
 
 
-class WeeklyProgramUpdatesCreateView(WeeklyProgramUpdateContextMixin, BaseFormMixin, CreateView):
+class WeeklyProgramUpdatesCreateView(
+    WeeklyProgramUpdateContextMixin, FormContextMixin, BaseFormMixin, CreateView
+):
     form_class = WeeklyProgramUpdateForm
     model = WeeklyProgramUpdate
     success_url = reverse_lazy("ops:weekly_program_updates")
 
 
-class WeeklyProgramUpdatesUpdateView(WeeklyProgramUpdateContextMixin, UpdateView, BaseFormMixin):
+class WeeklyProgramUpdatesUpdateView(
+    WeeklyProgramUpdateContextMixin, FormContextMixin, UpdateView, BaseFormMixin
+):
     form_class = WeeklyProgramUpdateForm
     model = WeeklyProgramUpdate
     success_url = reverse_lazy("ops:weekly_program_updates")
 
     def get_context_data(self, **kwargs):
+        program_update: WeeklyProgramUpdate = self.object  # type: ignore
         context = super().get_context_data(**kwargs)
-        comments_form = WeeklyProgramUpdateCommentForm(
-            initial={"organisation": self.object.organisation.pk, "weekly_update": self.object.pk}
+        create_comments_form = WeeklyProgramUpdateCommentForm(
+            initial={
+                "organisation": program_update.organisation.pk,
+                "weekly_update": program_update.pk,
+            }
         )
-        comments_form.fields["weekly_update"].queryset = WeeklyProgramUpdate.objects.filter(
-            pk=self.object.pk
+        create_comments_form.fields["weekly_update"].queryset = WeeklyProgramUpdate.objects.filter(
+            pk=program_update.pk
         )
-        comments_form.helper.form_action = reverse_lazy(
+        create_comments_form.helper.form_action = reverse_lazy(
             "ops:weekly_program_update_comments_create"
         )
-        context["comments_form"] = comments_form
+        context["create_comments_form"] = create_comments_form
         return context
 
 
-class WeeklyProgramUpdatesDeleteView(WeeklyProgramUpdateContextMixin, DeleteView, BaseFormMixin):
+class WeeklyProgramUpdatesDeleteView(
+    WeeklyProgramUpdateContextMixin, FormContextMixin, DeleteView, BaseFormMixin
+):
     form_class = WeeklyProgramUpdateForm
     model = WeeklyProgramUpdate
     success_url = reverse_lazy("ops:weekly_program_updates")
@@ -567,6 +576,7 @@ class WeeklyProgramUpdateViewSet(BaseView):
         "operation_area",
         "status",
     )
+    facility_field_lookup = "facility"
 
 
 class WeeklyProgramUpdateCommentsContextMixin:
@@ -591,12 +601,12 @@ class WeeklyProgramUpdatesCommentCreateView(
     WeeklyProgramUpdateCommentsContextMixin, CreateView, BaseFormMixin
 ):
     form_class = WeeklyProgramUpdateCommentForm
-    queryset = WeeklyProgramUpdateComment.objects.active()
-    template_name = "pages/ops/weekly_program_updates.html"
+    model = WeeklyProgramUpdateComment
 
-    def get_success_url(self) -> str:
+    def get_success_url(self):
+        weekly_comment: WeeklyProgramUpdateComment = self.object  # type:ignore
         return reverse_lazy(
-            "ops:weekly_program_updates_update", kwargs={"pk": self.object.weekly_update.pk}
+            "ops:weekly_program_updates_update", kwargs={"pk": weekly_comment.weekly_update.pk}
         )
 
 
@@ -605,30 +615,27 @@ class WeeklyProgramUpdatesCommentUpdateView(
 ):
     form_class = WeeklyProgramUpdateCommentForm
     model = WeeklyProgramUpdateComment
-    success_url = reverse_lazy("ops:weekly_program_update_comments")
 
-    def get_success_url(self) -> str:
+    def get_success_url(self):
+        weekly_comment: WeeklyProgramUpdateComment = self.object  # type:ignore
         return reverse_lazy(
-            "ops:weekly_program_updates_update", kwargs={"pk": self.object.weekly_update.pk}
+            "ops:weekly_program_updates_update", kwargs={"pk": weekly_comment.weekly_update.pk}
         )
-
-    def post(self, request, *args, **kwargs):
-        if request.POST.get("action") == "update-comment":
-            comment = request.POST.get("comment")
-            organisation_id = self.POST.get("organisation")
-            weekly_update_id = self.request.POST.get("weekly_update")
-            WeeklyProgramUpdateComment.objects.create(
-                organisation_id=organisation_id, weekly_update_id=weekly_update_id, comment=comment
-            )
-            return super().post(request, *args, **kwargs)
 
 
 class WeeklyProgramUpdatesCommentDeleteView(
     WeeklyProgramUpdateCommentsContextMixin, DeleteView, BaseFormMixin
 ):
+
     form_class = WeeklyProgramUpdateCommentForm
     model = WeeklyProgramUpdateComment
-    success_url = reverse_lazy("ops:weekly_program_update_comments")
+    success_url = reverse_lazy("ops:weekly_program_updates")
+
+    def get_success_url(self) -> str:
+        weekly_comment: WeeklyProgramUpdateComment = self.object  # type:ignore
+        return reverse_lazy(
+            "ops:weekly_program_updates_update", kwargs={"pk": weekly_comment.weekly_update.pk}
+        )
 
 
 class WeeklyProgramUpdateCommentsViewSet(BaseView):
@@ -992,33 +999,3 @@ class SecurityIncidenceViewSet(BaseView):
         "reported_by",
     )
     facility_field_lookup = "facility"
-
-
-class WeeklyProgramCommentsUpdateView(SingleObjectMixin, LoginRequiredMixin, FormView):
-
-    model = WeeklyProgramUpdate
-    template_name = "ops/weekly_program_comments_edit.html"
-
-    def get(self, request, *args, **kwargs):
-        """Get object to be edited"""
-        self.object = self.get_object(queryset=WeeklyProgramUpdate.objects.all())
-        return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        """post the data"""
-        self.object = self.get_object(queryset=WeeklyProgramUpdate.objects.all())
-        return super().post(request, *args, **kwargs)
-
-    def get_form(self, form_class=None):
-        return WeeklyProgramUpdateCommentFormSet(**self.get_form_kwargs(), instance=self.object)
-
-    def form_valid(self, form):
-        for data in form.cleaned_data:
-            data["organisation"] = self.object.organisation
-        form.save()
-        messages.add_message(self.request, messages.SUCCESS, "Changes were saved.")
-
-        return HttpResponseRedirect(self.get_success_url())
-
-    def get_success_url(self):
-        return reverse("ops:weekly_program_updates_update", kwargs={"pk": self.object.pk})

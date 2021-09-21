@@ -589,16 +589,18 @@ class WeeklyProgramUpdate(AbstractBase):
         IN_PROGRESS = "in_progress", "In progress"
         COMPLETE = "complete", "Complete"
 
-    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT, null=True, blank=False)
 
     operation_area = models.CharField(
         max_length=20,
         choices=OperationGroup.choices,
+        default=OperationGroup.PROGRAM.value,
         help_text="Operation area",
     )
     status = models.CharField(
         max_length=20,
         choices=TaskStatus.choices,
+        default=TaskStatus.IN_PROGRESS.value,
         help_text="Status",
     )
 
@@ -635,10 +637,7 @@ class WeeklyProgramUpdateComment(AbstractBase):
     Daily activity comments goes here.
     """
 
-    weekly_update = models.ForeignKey(
-        WeeklyProgramUpdate,
-        on_delete=models.CASCADE,
-    )
+    weekly_update = models.ForeignKey(WeeklyProgramUpdate, on_delete=models.CASCADE)
     date_created = models.DateTimeField(default=timezone.now)
     comment = models.TextField(default="-")
 

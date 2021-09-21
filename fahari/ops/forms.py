@@ -308,7 +308,7 @@ class TimeSheetForm(BaseModelForm):
         }
 
 
-class WeeklyProgramUpdateForm(BaseModelForm):
+class WeeklyProgramUpdateForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "operation_area",
@@ -321,6 +321,7 @@ class WeeklyProgramUpdateForm(BaseModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "weekly_program_update_form"
+        self.fields["facility"].queryset = self.get_allotted_facilities()
         self.fields["date_created"].widget = HiddenInput()
 
     class Meta(BaseModelForm.Meta):
@@ -328,9 +329,6 @@ class WeeklyProgramUpdateForm(BaseModelForm):
         widgets = {
             "facility": SearchableComboBox(),
         }
-
-    class Media:
-        js = ("js/weekly_program_update_form.min.js",)
 
 
 class WeeklyProgramUpdateCommentForm(BaseModelForm):
