@@ -23,7 +23,7 @@ class SystemSerializer(BaseSerializer):
 
 class UserFacilityAllotmentSerializer(BaseSerializer):
 
-    user_name = serializers.ReadOnlyField(source="user.username")
+    user_name = serializers.ReadOnlyField(source="user.__str__")
     allotment_type_name = serializers.ReadOnlyField(source="get_allotment_type_display")
 
     class Meta(BaseSerializer.Meta):

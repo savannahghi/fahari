@@ -25,6 +25,7 @@ class FacilitySystemSerializer(BaseSerializer):
 
     facility_name = serializers.ReadOnlyField()
     system_name = serializers.ReadOnlyField()
+    county = serializers.ReadOnlyField(source="facility.county")
     updated = serializers.DateTimeField(format="%d/%m/%Y", required=False)
 
     class Meta(BaseSerializer.Meta):
