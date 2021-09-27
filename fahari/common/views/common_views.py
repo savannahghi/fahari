@@ -122,9 +122,7 @@ class SystemDeleteView(SystemContextMixin, DeleteView, BaseFormMixin):
 
 
 class SystemViewSet(BaseView):
-    queryset = System.objects.filter(
-        active=True,
-    )
+    queryset = System.objects.active()
     serializer_class = SystemSerializer
     filterset_class = SystemFilter
     ordering_fields = ("name",)
@@ -171,8 +169,10 @@ class UserFacilityAllotmentDeleteView(
 
 
 class UserFacilityViewSet(BaseView):
-    queryset = UserFacilityAllotment.objects.filter(active=True)
+    queryset = UserFacilityAllotment.objects.active().order_by(
+        "user__name", "user__username", "-updated", "-created"
+    )
     serializer_class = UserFacilityAllotmentSerializer
     filterset_class = UserFacilityAllotmentFilter
-    ordering_fields = ("user__name", "allotment_type")
-    search_fields = ("allotment_type", "user__name")
+    ordering_fields = ("user__name", "user__username", "allotment_type")
+    search_fields = ("allotment_type", "user__name", "user__username")
