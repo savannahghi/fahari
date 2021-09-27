@@ -5,14 +5,14 @@ steps:
       [
         "build",
         "-t",
-        "europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle_demo:$COMMIT_SHA",
+        "europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle-demo:$COMMIT_SHA",
         ".",
       ]
 
   # Push the container image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
     args:
-      ["push", "europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle_demo:$COMMIT_SHA"]
+      ["push", "europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle-demo:$COMMIT_SHA"]
 
   # Deploy an image from Container Registry to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -20,8 +20,8 @@ steps:
       'beta',
       'run',
       'deploy',
-      'mle_demo',
-      '--image', 'europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle_demo:$COMMIT_SHA',
+      'mle-demo',
+      '--image', 'europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle-demo:$COMMIT_SHA',
       '--region', 'europe-west1',
       '--platform', 'managed',
       '--allow-unauthenticated',
@@ -36,7 +36,7 @@ steps:
   ]
 
 images:
-  - "europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle_demo:$COMMIT_SHA"
+  - "europe-west1-docker.pkg.dev/$PROJECT_ID/sghi/mle-demo:$COMMIT_SHA"
 
 timeout: 1200s
 queueTtl: 3600s
