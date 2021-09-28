@@ -5,6 +5,7 @@ from django.contrib.gis.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models.deletion import PROTECT
 from django.db.utils import IntegrityError, InternalError, ProgrammingError
 from django.urls import reverse_lazy
 from django.urls.base import reverse
@@ -646,3 +647,167 @@ class WeeklyProgramUpdateComment(AbstractBase):
             "ops:weekly_program_update_comments_update", kwargs={"pk": self.pk}
         )
         return update_url
+
+
+"""
+Models for handling Site Mentorship Checklist.
+"""
+
+
+class Question(AbstractBase):
+    """Possible Questions."""
+
+    question = models.TextField(default="-", verbose_name="Question")
+    has_boolean_response = models.BooleanField(default=False, verbose_name="Has yes/no response")
+    question_number = models.CharField(max_length=7, verbose_name="Question numbering")
+    precedence = models.IntegerField()
+
+    def __str__(self) -> str:
+        return "Question: %s, Has yes/no response: %s" % (
+            self.question,
+            self.has_boolean_response,
+        )
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:question_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        unique_together = (
+            "question",
+            "precedence",
+        )
+
+
+class QuestionAnswer(AbstractBase):
+    """Questions Answers."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    response = models.CharField(max_length=255, default="-")
+    comments = models.TextField(default="-", verbose_name="Comments")
+    action_point = models.TextField(default="-", verbose_name="Action point")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.facility.name,
+            self.question.question,
+            self.response,
+        )
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:question_answer_update", kwargs={"pk": self.pk})
+        return update_url
+
+
+class Checklist(AbstractBase):
+    """Checklist."""
+
+    title = models.CharField(max_length=255, verbose_name="Checklist title")
+    questions = models.ManyToManyField(Question)
+    precedence = models.IntegerField()
+
+    def __str__(self) -> str:
+        return "Title: %s" % (self.title,)
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:checklist_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        unique_together = (
+            "title",
+            "precedence",
+        )
+
+
+class Questionnaire(AbstractBase):
+    """Questionnaire."""
+
+    title = models.CharField(max_length=255, verbose_name="Questionnaire title")
+    checklist = models.ManyToManyField(Checklist)
+    precedence = models.IntegerField()
+
+    def __str__(self) -> str:
+        return "Title: %s" % (self.title,)
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:questionnaire_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        unique_together = (
+            "title",
+            "precedence",
+        )
+
+
+class MentorshipChecklist(AbstractBase):
+    """Mentorship checklist."""
+
+    class ChooseProgramArea(models.TextChoices):
+        """The different areas of program operation."""
+
+        ADMIN = "admin", "Administration"
+        FINANCE = "finance", "Finance"
+        AWARD = "awarding", "Awarding"
+        SUBGRANTING = "subgranting", "Subgranting"
+        SII = "sii", "Strategic Information System"
+        PROGRAM = "program", "Program"
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    mentor = models.ForeignKey(User, on_delete=models.PROTECT)
+    questionnaire = models.ForeignKey(Questionnaire, on_delete=PROTECT)
+    operation_area = models.CharField(
+        max_length=20,
+        choices=ChooseProgramArea.choices,
+        default=ChooseProgramArea.PROGRAM.value,
+        help_text="Task Area of Operation",
+    )
+    attendees = ArrayField(
+        models.TextField(),
+        blank=True,
+        default=list,
+        help_text="Use commas to separate attendee names",
+    )
+    visit_date = models.DateField(default=timezone.datetime.today, help_text="Site visit date")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Mentor: %s" % (
+            self.facility.name,
+            self.mentor.username,
+        )
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:mentorship_checklist_update", kwargs={"pk": self.pk})
+        return update_url
+
+
+class ChecklistFillStatus(AbstractBase):
+    """Capture checklist filing status."""
+
+    class ChecklistStatus(models.TextChoices):
+        """The different topics under mentorship checklist"""
+
+        INTRODUCTION = "introduction", "Introduction"
+        PREVIEW = "preview", "Preview"
+        ANTENATAL_CARE = "antenatal_care", "Antenatal Care"
+        POSTNATAL_SERVICES = "postnatal_care", "Postnatal care"
+        GENERAL_MATERNITY_INPATIENT_SERVICES = "GMC", "General matanity care"
+        HIV_TESTING_SERVICES = "hiv_testing", "HIV Testing service"
+        CARE_AND_TREATMENT_ANALYSIS = "care_and_treatment", "Care and treatment analysis"
+        PEDIATRIC_FILE_ANALYSIS = "pediatric_file_analysis", "Pediatric file analysis"
+        GENDER = "gender", "Gender"
+        GBV_INTEGRATION = "gbv_integration", "Program"
+        ADOLESCENT_SERVICES = "adolescent_services", "Adolescent services"
+        CONTINUITY_ON_TREATMENT = "continuity_on_treatment", "Continuity on treatment"
+
+    mentor = models.ForeignKey(User, on_delete=models.PROTECT)
+    state = models.CharField(
+        max_length=50,
+        choices=ChecklistStatus.choices,
+        default=ChecklistStatus.INTRODUCTION.value,
+    )
+
+    def __str__(self) -> str:
+        return "Mentor: %s, State: %s" % (self.mentor.username, self.state)

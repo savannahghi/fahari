@@ -4,6 +4,7 @@ from fahari.common.serializers import BaseSerializer
 
 from .models import (
     ActivityLog,
+    Checklist,
     Commodity,
     DailyUpdate,
     FacilityDevice,
@@ -11,6 +12,10 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    MentorshipChecklist,
+    Question,
+    QuestionAnswer,
+    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -169,4 +174,45 @@ class SecurityIncidenceSerializer(BaseSerializer):
 
     class Meta(BaseSerializer.Meta):
         model = SecurityIncidence
+        fields = "__all__"
+
+
+class QuestionSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = Question
+        fields = "__all__"
+
+
+class QuestionAnswerSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+    question = serializers.ReadOnlyField(source="question.question")
+
+    class Meta(BaseSerializer.Meta):
+        model = QuestionAnswer
+        fields = "__all__"
+
+
+class ChecklistSerializer(BaseSerializer):
+    questions = QuestionSerializer(many=True)
+
+    class Meta(BaseSerializer.Meta):
+        model = Checklist
+        fields = "__all__"
+
+
+class QuestionnaireSerializer(BaseSerializer):
+    checklist = ChecklistSerializer(many=True)
+
+    class Meta(BaseSerializer.Meta):
+        model = Questionnaire
+        fields = "__all__"
+
+
+class MentorshipChecklistSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+    mentor = serializers.ReadOnlyField(source="mentor.email")
+    questionnaire = QuestionnaireSerializer()
+
+    class Meta(BaseSerializer.Meta):
+        model = MentorshipChecklist
         fields = "__all__"
