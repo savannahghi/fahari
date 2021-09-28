@@ -4,6 +4,7 @@ from fahari.common.filters import CommonFieldsFilterset
 
 from .models import (
     ActivityLog,
+    Checklist,
     Commodity,
     DailyUpdate,
     FacilityDevice,
@@ -11,6 +12,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    MentorshipChecklist,
+    Question,
+    QuestionAnswer,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -190,3 +194,43 @@ class SecurityIncidenceFilter(CommonFieldsFilterset):
 
         model = SecurityIncidence
         fields = "__all__"
+
+
+class QuestionFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = Question
+        fields = "__all__"
+
+
+class QuestionAnswerFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = QuestionAnswer
+        fields = "__all__"
+
+
+class ChecklistFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = Checklist
+        fields = "__all__"
+
+
+class MentorshipChecklistFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = MentorshipChecklist
+        exclude = ("attendees",)

@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter, SimpleRouter
 from fahari.common.views import FacilityViewSet, SystemViewSet, UserFacilityViewSet
 from fahari.ops.views import (
     ActivityLogViewSet,
+    ChecklistViewSet,
     CommodityViewSet,
     DailyUpdateViewSet,
     FacilityDeviceRequestViewSet,
@@ -11,6 +12,9 @@ from fahari.ops.views import (
     FacilityNetworkStatusViewSet,
     FacilitySystemTicketViewSet,
     FacilitySystemViewSet,
+    MentorshipChecklistViewSet,
+    QuestionAnswerViewSet,
+    QuestionViewSet,
     SecurityIncidenceViewSet,
     SiteMentorshipViewSet,
     StockReceiptVerificationViewSet,
@@ -47,6 +51,10 @@ router.register("network_status", FacilityNetworkStatusViewSet)
 router.register("facility_devices", FacilityDeviceViewSet)
 router.register("facility_device_requests", FacilityDeviceRequestViewSet)
 router.register("security_incidents", SecurityIncidenceViewSet)
+router.register("questions", QuestionViewSet)
+router.register("question_answers", QuestionAnswerViewSet)
+router.register("checklist", ChecklistViewSet)
+router.register("mentorship_checklist", MentorshipChecklistViewSet)
 
 app_name = "api"
 urlpatterns = router.urls

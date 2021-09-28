@@ -14,6 +14,7 @@ from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, FormCont
 
 from .filters import (
     ActivityLogFilter,
+    ChecklistFilter,
     CommodityFilter,
     DailyUpdateFilter,
     FacilityDeviceFilter,
@@ -21,6 +22,9 @@ from .filters import (
     FacilityNetworkStatusFilter,
     FacilitySystemFilter,
     FacilitySystemTicketFilter,
+    MentorshipChecklistFilter,
+    QuestionAnswerFilter,
+    QuestionFilter,
     SecurityIncidenceFilter,
     SiteMentorshipFilter,
     StockReceiptVerificationFilter,
@@ -32,6 +36,7 @@ from .filters import (
 )
 from .forms import (
     ActivityLogForm,
+    ChecklistForm,
     CommodityForm,
     DailyUpdateForm,
     FacilityDeviceForm,
@@ -40,6 +45,9 @@ from .forms import (
     FacilitySystemForm,
     FacilitySystemTicketForm,
     FacilitySystemTicketResolveForm,
+    MentorshipChecklistForm,
+    QuestionAnswerForm,
+    QuestionForm,
     SecurityIncidenceForm,
     SiteMentorshipForm,
     StockReceiptVerificationForm,
@@ -51,6 +59,7 @@ from .forms import (
 )
 from .models import (
     ActivityLog,
+    Checklist,
     Commodity,
     DailyUpdate,
     FacilityDevice,
@@ -58,6 +67,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    MentorshipChecklist,
+    Question,
+    QuestionAnswer,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -69,6 +81,7 @@ from .models import (
 )
 from .serializers import (
     ActivityLogSerializer,
+    ChecklistSerializer,
     CommoditySerializer,
     DailyUpdateSerializer,
     FacilityDeviceRequestSerializer,
@@ -76,6 +89,9 @@ from .serializers import (
     FacilityNetworkStatusSerializer,
     FacilitySystemSerializer,
     FacilitySystemTicketSerializer,
+    MentorshipChecklistSerializer,
+    QuestionAnswerSerializer,
+    QuestionSerializer,
     SecurityIncidenceSerializer,
     SiteMentorshipSerializer,
     StockReceiptVerificationSerializer,
@@ -999,3 +1015,198 @@ class SecurityIncidenceViewSet(BaseView):
         "reported_by",
     )
     facility_field_lookup = "facility"
+
+
+class QuestionContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "questions"  # id of selected page
+        return context
+
+
+class QuestionListView(QuestionContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/ops/questions.html"
+    permission_required = "ops.view_question"
+
+
+class QuestionCreateView(QuestionContextMixin, BaseFormMixin, FormContextMixin, CreateView):
+    form_class = QuestionForm
+    model = Question
+    success_url = reverse_lazy("ops:questions")
+
+
+class QuestionUpdateView(QuestionContextMixin, BaseFormMixin, FormContextMixin, UpdateView):
+    form_class = QuestionForm
+    model = Question
+    success_url = reverse_lazy("ops:questions")
+
+
+class QuestionDeleteView(QuestionContextMixin, BaseFormMixin, FormContextMixin, DeleteView):
+    form_class = QuestionForm
+    model = Question
+    success_url = reverse_lazy("ops:questions")
+
+
+class QuestionViewSet(BaseView):
+    queryset = Question.objects.active()
+    serializer_class = QuestionSerializer
+    filterset_class = QuestionFilter
+    ordering_fields = (
+        "-question_number",
+        "has_boolean_response",
+    )
+    search_fields = ("question",)
+
+
+class QuestionAnswerContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "question_answer"  # id of selected page
+        return context
+
+
+class QuestionAnswerListView(
+    QuestionAnswerContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/question_answers.html"
+    permission_required = "ops.view_question_answer"
+
+
+class QuestionAnswerCreateView(
+    QuestionAnswerContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
+    form_class = QuestionAnswerForm
+    model = QuestionAnswer
+    success_url = reverse_lazy("ops:question_answers")
+
+
+class QuestionAnswerUpdateView(
+    QuestionAnswerContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
+    form_class = QuestionAnswerForm
+    model = QuestionAnswer
+    success_url = reverse_lazy("ops:question_answers")
+
+
+class QuestionAnswerDeleteView(
+    QuestionAnswerContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
+    form_class = QuestionAnswerForm
+    model = QuestionAnswer
+    success_url = reverse_lazy("ops:question_answers")
+
+
+class QuestionAnswerViewSet(BaseView):
+    queryset = QuestionAnswer.objects.active()
+    serializer_class = QuestionAnswerSerializer
+    filterset_class = QuestionAnswerFilter
+    ordering_fields = (
+        "facility__name",
+        "question",
+        "response",
+        "comments",
+        "action_point",
+    )
+    search_fields = (
+        "question",
+        "response",
+        "comments",
+        "action_point",
+    )
+
+
+class ChecklistContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "checklist"  # id of selected page
+        return context
+
+
+class ChecklistListView(ChecklistContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/ops/checklist.html"
+    permission_required = "ops.view_checklist"
+
+
+class ChecklistCreateView(ChecklistContextMixin, BaseFormMixin, FormContextMixin, CreateView):
+    form_class = ChecklistForm
+    model = Checklist
+    success_url = reverse_lazy("ops:checklist")
+
+
+class ChecklistUpdateView(ChecklistContextMixin, BaseFormMixin, FormContextMixin, UpdateView):
+    form_class = ChecklistForm
+    model = Checklist
+    success_url = reverse_lazy("ops:checklist")
+
+
+class ChecklistDeleteView(ChecklistContextMixin, BaseFormMixin, FormContextMixin, DeleteView):
+    form_class = ChecklistForm
+    model = Checklist
+    success_url = reverse_lazy("ops:checklist")
+
+
+class ChecklistViewSet(BaseView):
+    queryset = Checklist.objects.active()
+    serializer_class = ChecklistSerializer
+    filterset_class = ChecklistFilter
+    ordering_fields = (
+        "-title",
+        "precedence",
+    )
+    search_fields = ("title",)
+
+
+class MentorshipChecklistContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "mentorship_checklist"  # id of selected page
+        return context
+
+
+class MentorshipChecklistListView(
+    MentorshipChecklistContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/mentorship_checklist.html"
+    permission_required = "ops.view_mentorship_checklist"
+
+
+class MentorshipChecklistCreateView(
+    MentorshipChecklistContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
+    form_class = MentorshipChecklistForm
+    model = MentorshipChecklist
+    success_url = reverse_lazy("ops:mentorship_checklist")
+
+
+class MentorshipChecklistUpdateView(
+    MentorshipChecklistContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
+    form_class = MentorshipChecklistForm
+    model = MentorshipChecklist
+    success_url = reverse_lazy("ops:mentorship_checklist")
+
+
+class MentorshipChecklistDeleteView(
+    MentorshipChecklistContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
+    form_class = MentorshipChecklistForm
+    model = MentorshipChecklist
+    success_url = reverse_lazy("ops:mentorship_checklist")
+
+
+class MentorshipChecklistViewSet(BaseView):
+    queryset = MentorshipChecklist.objects.active()
+    serializer_class = MentorshipChecklistSerializer
+    filterset_class = MentorshipChecklistFilter
+    ordering_fields = (
+        "-facility",
+        "mentor",
+        "checklist",
+        "operation_area",
+        "attendees",
+    )
+    search_fields = ("facility",)

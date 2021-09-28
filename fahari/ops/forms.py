@@ -8,6 +8,7 @@ from fahari.common.widgets import SearchableComboBox
 
 from .models import (
     ActivityLog,
+    Checklist,
     Commodity,
     DailyUpdate,
     FacilityDevice,
@@ -15,6 +16,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    MentorshipChecklist,
+    Question,
+    QuestionAnswer,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -483,3 +487,74 @@ class SecurityIncidenceForm(GetAllottedFacilitiesMixin, BaseModelForm):
             "facility": SearchableComboBox(),
             "reported_on": DateInput(attrs={"hidden": True}),
         }
+
+
+class QuestionForm(BaseModelForm):
+    field_order = (
+        "question",
+        "has_boolean_response",
+        "question_number",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "question_form"
+        # self.fields["precedence"].widget = HiddenInput()
+
+    class Meta(BaseModelForm.Meta):
+        model = Question
+
+
+class QuestionAnswerForm(GetAllottedFacilitiesMixin, BaseModelForm):
+    field_order = (
+        "facility",
+        "question",
+        "response",
+        "comments",
+        "action_point",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "question_answer_form"
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
+
+    class Meta(BaseModelForm.Meta):
+        model = QuestionAnswer
+        widgets = {
+            "facility": SearchableComboBox(),
+        }
+
+
+class ChecklistForm(BaseModelForm):
+    field_order = (
+        "title",
+        "questions",
+        "precedence",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "checklist_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = Checklist
+
+
+class MentorshipChecklistForm(GetAllottedFacilitiesMixin, BaseModelForm):
+    field_order = (
+        "facility",
+        "mentor",
+        "operation_area",
+        "attendees",
+        "checklist",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "mentorship_checklist_form"
+        self.fields["facility"].queryset = self.get_allotted_facilities().active()
+
+    class Meta(BaseModelForm.Meta):
+        model = MentorshipChecklist
+        widgets = {"checklist": forms.Select}

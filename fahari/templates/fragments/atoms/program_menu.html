@@ -14,9 +14,28 @@
                 </a>
             {% endif %}
 
-            {% if perms.ops.view_sitementorship %}
-                <a class="collapse-item {% if selected == "site-mentorship" %}active {% endif %}" id="site-mentorship" href="{% url 'ops:site_mentorships' %}">
-                    Site Mentorship
+            {% if perms.ops.view_question %}
+                <a class="collapse-item {% if selected == "questions" %}active {% endif %}" id="questions" href="{% url 'ops:questions' %}">
+                    Questions
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_question_answer %}
+                <a class="collapse-item {% if selected == "question-answer" %}active {% endif %}" id="question-answer" href="{% url 'ops:question_answers' %}">
+                    Question Answer
+                </a>
+            {% endif %}
+
+            {% if perms.ops.view_checklist %}
+                <a class="collapse-item {% if selected == "checklist" %}active {% endif %}" id="checklist" href="{% url 'ops:checklist' %}">
+                    Checklist
+                </a>
+            {% endif %}
+
+
+            {% if perms.ops.view_mentorship_checklist %}
+                <a class="collapse-item {% if selected == "mentorship_checklist" %}active {% endif %}" id="mentorship_checklist" href="{% url 'ops:mentorship_checklist' %}">
+                    Mentorship Checklist
                 </a>
             {% endif %}
 

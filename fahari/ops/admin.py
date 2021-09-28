@@ -3,13 +3,17 @@ from django.contrib import admin
 from fahari.common.admin import BaseAdmin
 
 from .models import (
+    Checklist,
     Commodity,
     FacilityDevice,
     FacilityDeviceRequest,
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    Question,
+    QuestionAnswer,
     SecurityIncidence,
+    SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
     UoM,
@@ -156,3 +160,23 @@ class WeeklyProgramUpdateCommentAdmin(BaseAdmin):
 
     list_display = ("weekly_update", "comment")
     list_filter = ("weekly_update",)
+
+
+@admin.register(Question)
+class QuestionAdmin(BaseAdmin):
+    pass
+
+
+@admin.register(QuestionAnswer)
+class QuestionAnswerAdmin(BaseAdmin):
+    pass
+
+
+@admin.register(Checklist)
+class ChecklistAdmin(BaseAdmin):
+    pass
+
+
+@admin.register(SiteMentorship)
+class SiteMentorshipAdmin(BaseAdmin):
+    pass
