@@ -7,6 +7,7 @@
 <div class="card shadow mb-1">
     <div class="card-header py-3">
         <div class="toolbar float-right">
+            {% include "fragments/export_data_button.html" %}
             {% if perms.ops.add_stockreceiptverification %}
                 <a href="{% url 'ops:stock_receipt_verification_create' %}" class="btn btn-primary btn-icon-split">
                     <span class="icon text-white-50">
@@ -47,6 +48,10 @@
         </div>
     </div>
 </div>
+
+<!-- Export Data Modal -->
+{% include "fragments/export_data_modal.html" %}
+
 {% endblock content %}
 {% block inline_javascript %}
 <script>
@@ -56,8 +61,8 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: 'facility_name', name: "facility__name"},
-                {data: "commodity_name", name: "commodity__name"},
+                {data: 'facility_data.name', name: "facility__name"},
+                {data: "commodity_data.name", name: "commodity__name"},
                 {data: "pack_size_name", name: "pack_size__name"},
                 {data: "delivery_note_number", name: "delivery_note_number"},
                 {data: "quantity_received", name: "quantity_received"},

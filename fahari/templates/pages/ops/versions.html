@@ -9,6 +9,7 @@
 <div class="card shadow mb-1">
     <div class="card-header py-3">
         <div class="toolbar float-right">
+            {% include "fragments/export_data_button.html" %}
             {% if perms.ops.add_facilitysystem %}
                 <a href="{% url 'ops:version_create' %}" class="btn btn-primary btn-icon-split">
                     <span class="icon text-white-50">
@@ -31,7 +32,8 @@
                 data-info="true"
                 data-page-length="100"
                 data-paging-type="full_numbers"
-                data-ajax="{% url "api:facilitysystem-list" %}?format=datatables">
+                data-ajax="{% url 'api:facilitysystem-list' %}?format=datatables"
+            >
                 <thead>
                     <tr>
                         <th>Facility</th>
@@ -46,6 +48,10 @@
         </div>
     </div>
 </div>
+
+<!-- Export Data Modal -->
+{% include "fragments/export_data_modal.html" %}
+
 {% endblock content %}
 {% block inline_javascript %}
 <script>
@@ -55,8 +61,8 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: "facility_name", name: "facility__name"},
-                {data: "system_name", name: "system__name"},
+                {data: "facility_data.name", name: "facility__name"},
+                {data: "system_data.name", name: "system__name"},
                 {data: "version", name: "version"},
                 {data: "county", name: "facility__county"},
                 {data: "updated", name: "updated"},

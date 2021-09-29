@@ -60,23 +60,13 @@ class AuditFieldsMixin(PartialResponseMixin, serializers.ModelSerializer):
     """Mixin for organisation, created, updated, created_by and updated_by."""
 
     def __init__(self, *args, **kwargs):
-        """Initialize the mixin by excluding the fields it manages."""
+        """Initialize the mixin by marking the fields it manages as read-only."""
+
         super().__init__(*args, **kwargs)
-        exclude_fields = [
-            "created",
-            "created_by",
-            "updated",
-            "updated_by",
-            "organisation",
-        ]
-        context = getattr(self, "context", {})
-        request = context.get("request", {})
-        request_method = getattr(request, "method", "").lower()
-        include_in_methods = ["get", "head", "options"]
-        if request_method not in include_in_methods:
-            for i in exclude_fields:
-                if i in self.fields:  # pragma: nobranch
-                    self.fields.pop(i)
+        audit_fields = "created", "created_by", "updated", "updated_by", "organisation"
+        for field_name in audit_fields:
+            if field_name in self.fields:  # pragma: nobranch
+                self.fields[field_name].read_only = True
 
     def populate_audit_fields(self, data, is_create):
         request = self.context["request"]

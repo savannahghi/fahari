@@ -12,6 +12,7 @@ from django.urls import reverse
 from faker import Faker
 from model_bakery import baker
 from model_bakery.recipe import Recipe
+from rest_framework import status
 from rest_framework.test import APITestCase
 
 from fahari.common.constants import WHITELIST_COUNTIES
@@ -108,6 +109,48 @@ class LoggedInMixin(APITestCase):
     def extra_headers(self):
         """Return an empty headers list."""
         return {}
+
+
+class DRFSerializerExcelIOMixinTest(LoggedInMixin, APITestCase):
+    """Test suite for excel io mixin API."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        from fahari.ops.models import FacilitySystem
+        from fahari.ops.serializers import FacilitySystemSerializer
+
+        versions = baker.make(FacilitySystem, 10, organisation=self.global_organisation)
+        self.data = FacilitySystemSerializer(versions, many=True).data
+
+    def test_dump_data(self) -> None:
+        """Test `dump_data` action."""
+
+        url = reverse("api:facilitysystem-dump-data")
+        data = {"dump_fields": ["facility_data::name", "system_data::name", "version"]}
+        response = self.client.get(url, data=data)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["content-disposition"] == "attachment; filename=facility systems.xlsx"
+        assert response["content-type"] == "application/xlsx; charset=utf-8"
+
+    def test_get_available_fields(self) -> None:
+        """Test the `get_available_fields` action."""
+
+        url = reverse("api:facilitysystem-get-available-fields")
+        response = self.client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK, response.json()
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == "*"
+
+    def test_get_filter_form(self) -> None:
+        """Test the `get_filter_form` action."""
+
+        url = reverse("api:facilitysystem-get-filter-form")
+        response = self.client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response["content-type"] == "text/html; charset=utf-8"
 
 
 class FacilityViewsetTest(LoggedInMixin, APITestCase):

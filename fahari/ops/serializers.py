@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from fahari.common.serializers import BaseSerializer
+from fahari.common.serializers import BaseSerializer, FacilitySerializer, SystemSerializer
 
 from .models import (
     ActivityLog,
@@ -22,10 +22,16 @@ from .models import (
 )
 
 
+class CommoditySerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = Commodity
+        fields = "__all__"
+
+
 class FacilitySystemSerializer(BaseSerializer):
 
-    facility_name = serializers.ReadOnlyField()
-    system_name = serializers.ReadOnlyField()
+    facility_data = FacilitySerializer(source="facility", read_only=True)
+    system_data = SystemSerializer(source="system", read_only=True)
     county = serializers.ReadOnlyField(source="facility.county")
     updated = serializers.DateTimeField(format="%d/%m/%Y", required=False)
 
@@ -36,6 +42,7 @@ class FacilitySystemSerializer(BaseSerializer):
 
 class FacilitySystemTicketSerializer(BaseSerializer):
 
+    facility_system_data = FacilitySystemSerializer(source="facility_system", read_only=True)
     facility_system_name = serializers.ReadOnlyField()
     is_open = serializers.ReadOnlyField()
     raised = serializers.DateTimeField(format="%d-%b-%Y", required=False)
@@ -47,8 +54,8 @@ class FacilitySystemTicketSerializer(BaseSerializer):
 
 class StockReceiptVerificationSerializer(BaseSerializer):
 
-    facility_name = serializers.ReadOnlyField(source="facility.name")
-    commodity_name = serializers.ReadOnlyField(source="commodity.name")
+    facility_data = FacilitySerializer(source="facility", read_only=True)
+    commodity_data = CommoditySerializer(source="commodity", read_only=True)
     pack_size_name = serializers.SerializerMethodField()
 
     def get_pack_size_name(self, obj: StockReceiptVerification) -> str:  # noqa
@@ -118,24 +125,17 @@ class WeeklyProgramUpdateCommentsReadSerializer(BaseSerializer):
         fields = "__all__"
 
 
-class CommoditySerializer(BaseSerializer):
+class UoMCategorySerializer(BaseSerializer):
     class Meta(BaseSerializer.Meta):
-        model = Commodity
+        model = UoMCategory
         fields = "__all__"
 
 
 class UoMSerializer(BaseSerializer):
-
-    category_name = serializers.ReadOnlyField(source="category.name")
+    category_data = UoMCategorySerializer(source="category", read_only=True)
 
     class Meta(BaseSerializer.Meta):
         model = UoM
-        fields = "__all__"
-
-
-class UoMCategorySerializer(BaseSerializer):
-    class Meta(BaseSerializer.Meta):
-        model = UoMCategory
         fields = "__all__"
 
 

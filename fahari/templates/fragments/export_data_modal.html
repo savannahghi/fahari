@@ -1,0 +1,90 @@
+{% load static i18n compress %}
+
+<div class="modal fade" id="export-data-modal" tabindex="-1" role="dialog" aria-labelledby="export-data-modal" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Data</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-1">
+                    <div class="card-header py-3">
+                        <nav>
+                            <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                                <a class="nav-link active" data-toggle="tab" href="#nav-columns" role="tab" aria-controls="nav-columns" aria-selected="true">Columns</a>
+                                <a class="nav-link" data-toggle="tab" href="#nav-filters" role="tab" aria-controls="nav-filters" aria-selected="false">Filters</a>
+                            </div>
+                        </nav>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="nav-tabContent">
+                            <div class="tab-pane fade show active" id="nav-columns" role="tabpanel" aria-labelledby="nav-home-tab">
+                                <h5 class="card-title">Select the columns to include in the exported file.</h5>
+                                <div class="" id="div_dump_fields_selection_tree"></div>
+                            </div>
+                            <div class="tab-pane fade" id="nav-filters" role="tabpanel" aria-labelledby="nav-profile-tab">
+                                <form id="fm_filter_form">
+                                    <div id="div_form_content"></div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button id="btn_dump_data" type="button" class="btn btn-primary">
+                    <span class="text">Export</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+  window.addEventListener("load", function() {
+    $(document).ready(function() {
+      // Start loading the filterset form as soon as possible
+      $("#div_form_content").load("{{ get_filter_form_url }}");
+
+      var $dump_fields_selection_tree = $("#div_dump_fields_selection_tree").jstree({
+        "core": {
+          "data": {
+            "url": "{{ available_fields_url }}",
+          },
+          "themes": {
+            "name": "default",
+            "responsive": true
+          },
+        },
+        "checkbox" : {
+          "keep_selected_style" : false
+        },
+        "plugins": ["checkbox"],
+      });
+      var $filterset_form = $("#fm_filter_form");
+      $("#btn_dump_data").click(function(event) {
+        var dump_fields_selection = $dump_fields_selection_tree.jstree("get_selected");
+        if (dump_fields_selection.length === 0) {
+            alert("You must select the fields to be exported.");
+            event.preventDefault();
+            return;
+        }
+
+        // Build the request by adding the selected dump fields to the filter fields
+        var filters = $filterset_form.serializeArray();
+        for (var index = 0; index < dump_fields_selection.length; ++index) {
+          filters.push({name: "dump_fields", value: dump_fields_selection[index]});
+        }
+        $.ajax({
+          contentType: "application/json; charset=UTF-8",
+          data: filters,
+          url: "{{ dump_data_url }}",
+        });
+      });
+    });
+  });
+</script>
