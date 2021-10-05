@@ -18,6 +18,7 @@ from .models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
 )
 
 
@@ -101,7 +102,17 @@ class WeeklyProgramUpdateFilter(CommonFieldsFilterset):
     class Meta:
 
         model = WeeklyProgramUpdate
-        fields = ("date",)
+        exclude = ("assigned_persons",)
+
+
+class WeeklyProgramUpdateCommentsFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = WeeklyProgramUpdateComment
+        fields = "__all__"
 
 
 class CommodityFilter(CommonFieldsFilterset):

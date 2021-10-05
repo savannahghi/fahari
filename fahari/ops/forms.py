@@ -1,7 +1,7 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django import forms
-from django.forms.widgets import DateInput, DateTimeInput, Select, Textarea, TextInput
+from django.forms.widgets import DateInput, DateTimeInput, HiddenInput, Select, Textarea, TextInput
 
 from fahari.common.forms import BaseModelForm, GetAllottedFacilitiesMixin
 from fahari.common.widgets import SearchableComboBox
@@ -22,6 +22,7 @@ from .models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
 )
 
 
@@ -307,22 +308,45 @@ class TimeSheetForm(BaseModelForm):
         }
 
 
-class WeeklyProgramUpdateForm(BaseModelForm):
+class WeeklyProgramUpdateForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
-        "date",
-        "attendees",
-        "title",
-        "description",
-        "attachment",
+        "facility",
+        "operation_area",
+        "date_created",
+        "status",
+        "assigned_persons",
         "active",
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "weekly_program_update_form"
+        self.fields["facility"].queryset = self.get_allotted_facilities()
+        self.fields["date_created"].widget = HiddenInput()
 
     class Meta(BaseModelForm.Meta):
         model = WeeklyProgramUpdate
+        widgets = {
+            "facility": SearchableComboBox(),
+        }
+
+
+class WeeklyProgramUpdateCommentForm(BaseModelForm):
+    field_order = (
+        "weekly_update",
+        "comment",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "weekly_program_update_comment_form"
+        self.fields["weekly_update"].widget = HiddenInput()
+        self.fields["date_created"].widget = HiddenInput()
+        self.fields["active"].widget = HiddenInput()
+
+    class Meta(BaseModelForm.Meta):
+        model = WeeklyProgramUpdateComment
 
 
 class CommodityForm(BaseModelForm):

@@ -18,6 +18,7 @@ from .models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
 )
 
 
@@ -92,9 +93,29 @@ class TimeSheetSerializer(BaseSerializer):
         fields = "__all__"
 
 
+class WeeklyProgramUpdateCommentSerializer(BaseSerializer):
+    date_created = serializers.DateTimeField(format="%d/%m/%Y", required=False)
+
+    class Meta(BaseSerializer.Meta):
+        model = WeeklyProgramUpdateComment
+        fields = "__all__"
+
+
 class WeeklyProgramUpdateSerializer(BaseSerializer):
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+    date_created = serializers.DateTimeField(format="%d/%m/%Y", required=False)
+
     class Meta(BaseSerializer.Meta):
         model = WeeklyProgramUpdate
+        fields = "__all__"
+
+
+class WeeklyProgramUpdateCommentsReadSerializer(BaseSerializer):
+    weekly_update = WeeklyProgramUpdateSerializer()
+    date_created = serializers.DateTimeField(format="%d/%m/%Y", required=False)
+
+    class Meta(BaseSerializer.Meta):
+        model = WeeklyProgramUpdateComment
         fields = "__all__"
 
 
