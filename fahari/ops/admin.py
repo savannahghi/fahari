@@ -138,6 +138,8 @@ class WeeklyProgramUpdateAdmin(BaseAdmin):
 
     list_display = (
         "facility",
+        "title",
+        "description",
         "operation_area",
         "assigned_persons",
         "status",

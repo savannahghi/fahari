@@ -102,7 +102,10 @@ class WeeklyProgramUpdateFilter(CommonFieldsFilterset):
     class Meta:
 
         model = WeeklyProgramUpdate
-        exclude = ("assigned_persons",)
+        exclude = (
+            "attachment",
+            "assigned_persons",
+        )
 
 
 class WeeklyProgramUpdateCommentsFilter(CommonFieldsFilterset):

@@ -1194,6 +1194,9 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
         data = {
             "organisation": self.global_organisation.pk,
             "facility": self.facility.pk,
+            "title": fake.text(max_nb_chars=50),
+            "description": fake.text(),
+            "attachment": fake.file_name(),
             "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
@@ -1215,6 +1218,9 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
         data = {
             "organisation": self.global_organisation.pk,
             "facility": self.facility.pk,
+            "title": fake.text(max_nb_chars=50),
+            "description": fake.text(),
+            "attachment": fake.file_name(),
             "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
