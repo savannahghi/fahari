@@ -590,18 +590,23 @@ class WeeklyProgramUpdate(AbstractBase):
         COMPLETE = "complete", "Complete"
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT, null=True, blank=False)
+    title = models.CharField(max_length=200, verbose_name="Task title", default="Program title")
+    description = models.TextField(default="-", verbose_name="Task description")
+    attachment = models.FileField(
+        upload_to=get_directory, verbose_name="Attach File or Photo", null=True, blank=True
+    )
 
     operation_area = models.CharField(
         max_length=20,
         choices=OperationGroup.choices,
         default=OperationGroup.PROGRAM.value,
-        help_text="Operation area",
+        help_text="Task Area of Operation",
     )
     status = models.CharField(
         max_length=20,
         choices=TaskStatus.choices,
         default=TaskStatus.IN_PROGRESS.value,
-        help_text="Status",
+        help_text="Task status",
     )
 
     assigned_persons = ArrayField(
@@ -613,7 +618,7 @@ class WeeklyProgramUpdate(AbstractBase):
     date_created = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
-        return f"Weekly update: {self.date_created}, assigned persons {self.assigned_persons}"
+        return f"Weekly update: {self.title}, assigned persons {self.assigned_persons}"
 
     def get_absolute_url(self):
         update_url = reverse_lazy("ops:weekly_program_updates_update", kwargs={"pk": self.pk})
@@ -624,11 +629,6 @@ class WeeklyProgramUpdate(AbstractBase):
             "facility__name",
             "operation_area",
             "status",
-        )
-        unique_together = (
-            "facility",
-            "operation_area",
-            "date_created",
         )
 
 

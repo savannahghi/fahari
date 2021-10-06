@@ -311,10 +311,13 @@ class TimeSheetForm(BaseModelForm):
 class WeeklyProgramUpdateForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
+        "title",
+        "description",
         "operation_area",
-        "date_created",
-        "status",
         "assigned_persons",
+        "attachment",
+        "status",
+        "date_created",
         "active",
     )
 
