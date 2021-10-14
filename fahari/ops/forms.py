@@ -122,11 +122,13 @@ class StockReceiptVerificationForm(GetAllottedFacilitiesMixin, BaseModelForm):
         "description",
         "pack_size",
         "delivery_note_number",
+        "delivery_note_quantity",
         "quantity_received",
         "batch_number",
         "delivery_date",
         "expiry_date",
         "delivery_note_image",
+        "source",
         "comments",
         "active",
     )
