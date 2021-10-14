@@ -353,8 +353,12 @@ class Commodity(AbstractBase):
 
 class StockReceiptVerification(AbstractBase):
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    commodity = models.ForeignKey(Commodity, on_delete=models.PROTECT, default=default_commodity)
-    description = models.TextField(default="-")
+    commodity = models.ForeignKey(
+        Commodity,
+        on_delete=models.PROTECT,
+        default=default_commodity,
+        verbose_name="Commodity description",
+    )
     pack_size = models.ForeignKey("UoM", on_delete=models.PROTECT, null=True, blank=True)
     delivery_note_number = models.CharField(max_length=64)
     quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
