@@ -1,4 +1,5 @@
 from datetime import time
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
@@ -352,6 +353,15 @@ class Commodity(AbstractBase):
 
 
 class StockReceiptVerification(AbstractBase):
+    """Model to record stock receipts in facilities."""
+
+    class StockReceiptSources(models.TextChoices):
+        """The different sources of a stock receipt."""
+
+        KEMSA = "KEMSA", "KEMSA"
+        MEDS = "MEDS", "MEDS"
+        OTHER = "Others", "Others"
+
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     commodity = models.ForeignKey(
         Commodity,
@@ -361,10 +371,16 @@ class StockReceiptVerification(AbstractBase):
     )
     pack_size = models.ForeignKey("UoM", on_delete=models.PROTECT, null=True, blank=True)
     delivery_note_number = models.CharField(max_length=64)
+    delivery_note_quantity = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0.0000")
+    )
     quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
     batch_number = models.CharField(max_length=64)
     delivery_date = models.DateField(default=timezone.datetime.today)
     expiry_date = models.DateField(default=timezone.datetime.today)
+    source = models.CharField(
+        max_length=10, choices=StockReceiptSources.choices, null=True, blank=True
+    )
     delivery_note_image = models.ImageField(
         upload_to=get_directory,
         null=True,
