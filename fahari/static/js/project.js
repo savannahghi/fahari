@@ -7,10 +7,7 @@
     }
     gtag("js", new Date());
     gtag("config", "G-WW2W29ZMTZ");
-})(jQuery);
 
-
-$(document).ready(function(){
     // auto-collapse open menus in responsive mode
     $(".navbar-collapse a").click(function() {
         $(".navbar-collapse").collapse("hide");
@@ -18,4 +15,6 @@ $(document).ready(function(){
 
     // Initialize the bootstrap select plugin
     $("select").selectpicker();
-});
+
+    $(".datepicker").datepicker();
+})(jQuery);

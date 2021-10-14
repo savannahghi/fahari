@@ -142,8 +142,22 @@ class StockReceiptVerificationForm(GetAllottedFacilitiesMixin, BaseModelForm):
         widgets = {
             "facility": SearchableComboBox(),
             "commodity": SearchableComboBox(),
-            "delivery_date": TextInput(attrs={"type": "date"}),
-            "expiry_date": TextInput(attrs={"type": "date"}),
+            "delivery_date": DateInput(
+                format="%Y-%m-%d",
+                attrs={
+                    "class": "datepicker",
+                    "data-date-format": "yyyy-mm-dd",
+                    "data-provide": "datepicker",
+                },
+            ),
+            "expiry_date": DateInput(
+                format="%Y-%m-%d",
+                attrs={
+                    "class": "datepicker",
+                    "data-date-format": "yyyy-mm-dd",
+                    "data-provide": "datepicker",
+                },
+            ),
         }
 
 
