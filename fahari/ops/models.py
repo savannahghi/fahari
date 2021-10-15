@@ -609,13 +609,11 @@ class WeeklyProgramUpdate(AbstractBase):
         IN_PROGRESS = "in_progress", "In progress"
         COMPLETE = "complete", "Complete"
 
-    facility = models.ForeignKey(Facility, on_delete=models.PROTECT, null=True, blank=False)
-    title = models.CharField(max_length=200, verbose_name="Task title", default="Program title")
+    title = models.CharField(max_length=255, verbose_name="Task title", default="-")
     description = models.TextField(default="-", verbose_name="Task description")
     attachment = models.FileField(
         upload_to=get_directory, verbose_name="Attach File or Photo", null=True, blank=True
     )
-
     operation_area = models.CharField(
         max_length=20,
         choices=OperationGroup.choices,
@@ -628,14 +626,13 @@ class WeeklyProgramUpdate(AbstractBase):
         default=TaskStatus.IN_PROGRESS.value,
         help_text="Task status",
     )
-
     assigned_persons = ArrayField(
         models.CharField(max_length=255),
         blank=True,
         null=True,
         help_text="Use commas to separate assigned persons names",
     )
-    date_created = models.DateTimeField(default=timezone.now)
+    date = models.DateField(default=timezone.datetime.today)
 
     def __str__(self) -> str:
         return f"Weekly update: {self.title}, assigned persons {self.assigned_persons}"
@@ -646,7 +643,7 @@ class WeeklyProgramUpdate(AbstractBase):
 
     class Meta:
         ordering = (
-            "facility__name",
+            "title",
             "operation_area",
             "status",
         )
@@ -658,7 +655,7 @@ class WeeklyProgramUpdateComment(AbstractBase):
     """
 
     weekly_update = models.ForeignKey(WeeklyProgramUpdate, on_delete=models.CASCADE)
-    date_created = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
     comment = models.TextField(default="-")
 
     def get_absolute_url(self):

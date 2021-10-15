@@ -49,8 +49,11 @@ Add/Edit Weekly Update {% endblock title %} {% block content %}
           <div class="p-lg-5 p-xs-1 p-sm-1">
             <div class="text-left">
               <h1 class="h4 text-gray-900 mb-4">
-                {% if object.pk %} Edit Program Update {% else %} Create Program
-                Update {% endif %}
+                {% if object.pk %}
+                  Edit Weekly Program Update
+                {% else %}
+                  Create Weekly Program Update
+                {% endif %}
               </h1>
             </div>
             {% crispy form %} {% if object.pk %}

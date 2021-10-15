@@ -14,7 +14,7 @@
                     <span class="icon text-white-50">
                         <i class="fas fa-plus"></i>
                     </span>
-                    <span class="text">Add Update</span>
+                    <span class="text">Add Weekly Update</span>
                 </a>
             {% endif %}
         </div>
@@ -34,11 +34,11 @@
                 data-ajax="{% url "api:weeklyprogramupdate-list" %}?format=datatables">
                 <thead>
                     <tr>
-                        <th>Created Date</th>
                         <th>Title</th>
-                        <th>Assigned persons</th>
+                        <th>Date</th>
+                        <th>Operation Area</th>
                         <th>Status</th>
-                        <th>Update</th>
+                        <th></th>
                     </tr>
                 </thead>
             </table>
@@ -54,10 +54,10 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: "date_created", name: "date_created"},
                 {data: "title", name: "title"},
-                {data: "assigned_persons", name: "assigned_persons"},
-                {data: "status", name: "status"},
+                {data: "date", name: "date"},
+                {data: "operation_area_display", name: "operation_area"},
+                {data: "status_display", name: "status"},
                 {
                     data: "url",
                     name: "id",

@@ -137,7 +137,6 @@ class SecurityIncidenceAdmin(BaseAdmin):
 class WeeklyProgramUpdateAdmin(BaseAdmin):
 
     list_display = (
-        "facility",
         "title",
         "description",
         "operation_area",
@@ -145,7 +144,6 @@ class WeeklyProgramUpdateAdmin(BaseAdmin):
         "status",
     )
     list_filter = (
-        "facility",
         "operation_area",
         "status",
     )
