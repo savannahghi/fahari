@@ -1,5 +1,4 @@
 import json
-import random
 import uuid
 
 import pytest
@@ -11,7 +10,6 @@ from faker.proxy import Faker
 from model_bakery import baker
 from rest_framework import status
 
-from fahari.common.constants import WHITELIST_COUNTIES
 from fahari.common.models.common_models import Facility, System
 from fahari.common.models.organisation_models import Organisation
 from fahari.common.tests.test_api import LoggedInMixin
@@ -117,21 +115,13 @@ def test_weekly_program_update_context_data():
 class WeeklyProgramUpdateUpdateTest(LoggedInMixin, TestCase):
     def setUp(self):
         self.factory = RequestFactory()
-        self.facility = baker.make(
-            Facility,
-            is_fahari_facility=True,
-            county=random.choice(WHITELIST_COUNTIES),
-            operation_status="Operational",
-            organisation=self.global_organisation,
-        )
         self.program_update = baker.make(
             WeeklyProgramUpdate,
             organisation=self.global_organisation,
-            facility=self.facility,
             operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
             status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
-            date_created=timezone.now().isoformat(),
+            date=timezone.now().date(),
         )
         super().setUp()
 

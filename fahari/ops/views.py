@@ -524,17 +524,13 @@ class WeeklyProgramUpdatesView(
     )
 
 
-class WeeklyProgramUpdatesCreateView(
-    WeeklyProgramUpdateContextMixin, FormContextMixin, BaseFormMixin, CreateView
-):
+class WeeklyProgramUpdatesCreateView(WeeklyProgramUpdateContextMixin, BaseFormMixin, CreateView):
     form_class = WeeklyProgramUpdateForm
     model = WeeklyProgramUpdate
     success_url = reverse_lazy("ops:weekly_program_updates")
 
 
-class WeeklyProgramUpdatesUpdateView(
-    WeeklyProgramUpdateContextMixin, FormContextMixin, UpdateView, BaseFormMixin
-):
+class WeeklyProgramUpdatesUpdateView(WeeklyProgramUpdateContextMixin, UpdateView, BaseFormMixin):
     form_class = WeeklyProgramUpdateForm
     model = WeeklyProgramUpdate
     success_url = reverse_lazy("ops:weekly_program_updates")
@@ -558,9 +554,7 @@ class WeeklyProgramUpdatesUpdateView(
         return context
 
 
-class WeeklyProgramUpdatesDeleteView(
-    WeeklyProgramUpdateContextMixin, FormContextMixin, DeleteView, BaseFormMixin
-):
+class WeeklyProgramUpdatesDeleteView(WeeklyProgramUpdateContextMixin, DeleteView, BaseFormMixin):
     form_class = WeeklyProgramUpdateForm
     model = WeeklyProgramUpdate
     success_url = reverse_lazy("ops:weekly_program_updates")
@@ -572,11 +566,10 @@ class WeeklyProgramUpdateViewSet(BaseView):
     serializer_class = WeeklyProgramUpdateSerializer
     ordering_fields = ("-date_created",)
     search_fields = (
-        "facility__name",
+        "title",
         "operation_area",
         "status",
     )
-    facility_field_lookup = "facility"
 
 
 class WeeklyProgramUpdateCommentsContextMixin:

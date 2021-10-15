@@ -13,13 +13,8 @@ from rest_framework.test import APITestCase
 
 from fahari.common.constants import WHITELIST_COUNTIES
 from fahari.common.models import Facility, System
-from fahari.common.models.common_models import UserFacilityAllotment
 from fahari.common.tests.test_api import LoggedInMixin
-from fahari.ops.forms import (
-    FacilitySystemTicketForm,
-    WeeklyProgramUpdateCommentForm,
-    WeeklyProgramUpdateForm,
-)
+from fahari.ops.forms import FacilitySystemTicketForm, WeeklyProgramUpdateCommentForm
 from fahari.ops.models import (
     ActivityLog,
     Commodity,
@@ -1092,17 +1087,15 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
     def setUp(self):
         self.url_list = reverse("api:weeklyprogramupdate-list")
         self.detail_url_name = "api:weeklyprogramupdate-detail"
-        self.facility = baker.make(Facility, organisation=self.global_organisation)
         super().setUp()
 
     def test_create(self):
         data = {
             "organisation": self.global_organisation.pk,
-            "facility": self.facility.pk,
             "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
-            "date_created": timezone.now().isoformat(),
+            "date": timezone.now().date().isoformat(),
         }
         response = self.client.post(self.url_list, data)
         assert response.status_code == 201, response.json()
@@ -1113,7 +1106,6 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
             WeeklyProgramUpdate,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
             organisation=self.global_organisation,
-            facility=self.facility,
         )
         response = self.client.get(self.url_list)
         assert response.status_code == 200, response.json()
@@ -1126,7 +1118,6 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
         instance = baker.make(
             WeeklyProgramUpdate,
             organisation=self.global_organisation,
-            facility=self.facility,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
         )
         edit = {"active": False}
@@ -1140,14 +1131,12 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
         instance = baker.make(
             WeeklyProgramUpdate,
             organisation=self.global_organisation,
-            facility=self.facility,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
         )
         data = {
             "date": date.today().isoformat(),
             "assigned_persons": f"{fake.name()},{fake.name()}",
             "organisation": self.global_organisation.pk,
-            "facility": self.facility.pk,
             "active": False,
         }
         url = reverse(self.detail_url_name, kwargs={"pk": instance.pk})
@@ -1158,51 +1147,16 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
 
 
 class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
-    def setUp(self):
-        user = baker.make(settings.AUTH_USER_MODEL, email=fake.email())
-        self.facility = baker.make(
-            Facility,
-            is_fahari_facility=True,
-            county=random.choice(WHITELIST_COUNTIES),
-            operation_status="Operational",
-            organisation=self.global_organisation,
-        )
-        self.user_facility_allotment = baker.make(
-            UserFacilityAllotment,
-            allotment_type=UserFacilityAllotment.AllotmentType.BY_REGION.value,
-            counties=WHITELIST_COUNTIES,
-            organisation=self.global_organisation,
-            region_type=UserFacilityAllotment.RegionType.COUNTY.value,
-            user=user,
-        )
-        super().setUp()
-
-    def test_weeklyprogramupdate_form_init(self):
-        baker.make(
-            WeeklyProgramUpdate,
-            organisation=self.global_organisation,
-            facility=self.facility,
-            operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
-            status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
-            assigned_persons=json.dumps([fake.name(), fake.name()]),
-            date_created=timezone.now().isoformat(),
-        )
-        form = WeeklyProgramUpdateForm()
-        queryset = form.fields["facility"].queryset
-        assert Facility.objects.count() > 0
-        assert queryset.count() == 0
-
     def test_create(self):
         data = {
             "organisation": self.global_organisation.pk,
-            "facility": self.facility.pk,
             "title": fake.text(max_nb_chars=50),
             "description": fake.text(),
             "attachment": fake.file_name(),
             "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
-            "date_created": timezone.now().isoformat(),
+            "date": timezone.now().date().isoformat(),
         }
         response = self.client.post(reverse("ops:weekly_program_updates_create"), data=data)
         self.assertEqual(
@@ -1215,18 +1169,16 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
             WeeklyProgramUpdate,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
             organisation=self.global_organisation,
-            facility=self.facility,
         )
         data = {
             "organisation": self.global_organisation.pk,
-            "facility": self.facility.pk,
             "title": fake.text(max_nb_chars=50),
             "description": fake.text(),
             "attachment": fake.file_name(),
             "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
-            "date_created": timezone.now().isoformat(),
+            "date": timezone.now().date().isoformat(),
         }
 
         response = self.client.post(
@@ -1242,7 +1194,6 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
             WeeklyProgramUpdate,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
             organisation=self.global_organisation,
-            facility=self.facility,
         )
         response = self.client.post(
             reverse("ops:weekly_program_updates_delete", kwargs={"pk": instance.pk}),
@@ -1255,21 +1206,13 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
 
 class WeeklyProgramUpdateCommentFormTest(LoggedInMixin, TestCase):
     def setUp(self):
-        self.facility = baker.make(
-            Facility,
-            is_fahari_facility=True,
-            county=random.choice(WHITELIST_COUNTIES),
-            operation_status="Operational",
-            organisation=self.global_organisation,
-        )
         self.weekly_update = baker.make(
             WeeklyProgramUpdate,
             organisation=self.global_organisation,
-            facility=self.facility,
             operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
             status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
-            date_created=timezone.now().isoformat(),
+            date=timezone.now().today(),
         )
         super().setUp()
 
@@ -1278,7 +1221,7 @@ class WeeklyProgramUpdateCommentFormTest(LoggedInMixin, TestCase):
             WeeklyProgramUpdateComment,
             organisation=self.global_organisation,
             weekly_update=self.weekly_update,
-            date_created=timezone.now().isoformat(),
+            date_added=timezone.now().isoformat(),
         )
         form = WeeklyProgramUpdateCommentForm()
         queryset = form.fields["weekly_update"].queryset
@@ -1287,10 +1230,9 @@ class WeeklyProgramUpdateCommentFormTest(LoggedInMixin, TestCase):
     def test_create(self):
         data = {
             "organisation": self.global_organisation.pk,
-            "facility": self.facility.pk,
             "weekly_update": self.weekly_update.pk,
             "comment": fake.text(),
-            "date_created": timezone.now().isoformat(),
+            "date_added": timezone.now().isoformat(),
         }
         response = self.client.post(
             reverse("ops:weekly_program_update_comments_create"), data=data
@@ -1308,7 +1250,7 @@ class WeeklyProgramUpdateCommentFormTest(LoggedInMixin, TestCase):
             "organisation": self.global_organisation.pk,
             "weekly_update": self.weekly_update.pk,
             "comment": fake.text(),
-            "date_created": timezone.now().isoformat(),
+            "date_added": timezone.now().isoformat(),
         }
         response = self.client.post(
             reverse("ops:weekly_program_update_comments_update", kwargs={"pk": instance.pk}),

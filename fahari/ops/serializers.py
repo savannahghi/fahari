@@ -94,8 +94,9 @@ class TimeSheetSerializer(BaseSerializer):
 
 
 class WeeklyProgramUpdateSerializer(BaseSerializer):
-    facility_name = serializers.ReadOnlyField(source="facility.name")
-    date_created = serializers.DateTimeField(format="%d/%m/%Y", required=False)
+    operation_area_display = serializers.ReadOnlyField(source="get_operation_area_display")
+    status_display = serializers.ReadOnlyField(source="get_status_display")
+    date = serializers.DateField(format="%d/%m/%Y", required=False)
 
     class Meta(BaseSerializer.Meta):
         model = WeeklyProgramUpdate
@@ -103,8 +104,6 @@ class WeeklyProgramUpdateSerializer(BaseSerializer):
 
 
 class WeeklyProgramUpdateCommentSerializer(BaseSerializer):
-    date_created = serializers.DateTimeField(format="%d/%m/%Y", required=False)
-
     class Meta(BaseSerializer.Meta):
         model = WeeklyProgramUpdateComment
         fields = "__all__"

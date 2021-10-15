@@ -238,15 +238,13 @@ def test_commodity_url():
 
 def test_weekly_program_update_comment_url():
     organisation = global_organisation()
-    facility = baker.make(Facility, organisation=organisation, name=fake.text(max_nb_chars=30))
     weekly_program_update = baker.make(
         WeeklyProgramUpdate,
         organisation=organisation,
-        facility=facility,
         operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
         status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
         assigned_persons=json.dumps([fake.name(), fake.name()]),
-        date_created=timezone.now().isoformat(),
+        date=timezone.now().date(),
     )
     weekly_comment: WeeklyProgramUpdateComment = baker.make(
         WeeklyProgramUpdateComment, weekly_update=weekly_program_update, comment=fake.text()
