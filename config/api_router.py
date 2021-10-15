@@ -17,6 +17,7 @@ from fahari.ops.views import (
     TimeSheetViewSet,
     UoMCategoryViewSet,
     UoMViewSet,
+    WeeklyProgramUpdateCommentsViewSet,
     WeeklyProgramUpdateViewSet,
 )
 from fahari.users.api.views import UserViewSet
@@ -37,6 +38,7 @@ router.register("site_mentorships", SiteMentorshipViewSet)
 router.register("daily_updates", DailyUpdateViewSet)
 router.register("timesheets", TimeSheetViewSet)
 router.register("weekly_updates", WeeklyProgramUpdateViewSet)
+router.register("weekly_update_comments", WeeklyProgramUpdateCommentsViewSet)
 router.register("commodities", CommodityViewSet)
 router.register("uoms", UoMViewSet)
 router.register("uom_categories", UoMCategoryViewSet)

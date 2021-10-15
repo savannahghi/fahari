@@ -2,14 +2,18 @@ import json
 import uuid
 
 import pytest
+from django.test import RequestFactory
+from django.test.testcases import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from faker.proxy import Faker
 from model_bakery import baker
 from rest_framework import status
 
 from fahari.common.models.common_models import Facility, System
 from fahari.common.models.organisation_models import Organisation
-from fahari.ops.models import FacilitySystem, FacilitySystemTicket, TimeSheet
+from fahari.common.tests.test_api import LoggedInMixin
+from fahari.ops.models import FacilitySystem, FacilitySystemTicket, TimeSheet, WeeklyProgramUpdate
 from fahari.ops.views import (
     CommoditiesListView,
     FacilityDeviceRequestsListView,
@@ -21,6 +25,9 @@ from fahari.ops.views import (
     TimeSheetApproveView,
     UoMCategoryListView,
     UoMListView,
+    WeeklyProgramUpdateCommentsView,
+    WeeklyProgramUpdatesUpdateView,
+    WeeklyProgramUpdatesView,
 )
 
 pytestmark = pytest.mark.django_db
@@ -96,6 +103,45 @@ def test_tickets_context_data():
     ctx = v.get_context_data()
     assert ctx["active"] == "facilities-nav"
     assert ctx["selected"] == "tickets"
+
+
+def test_weekly_program_update_context_data():
+    v = WeeklyProgramUpdatesView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "program-nav"
+    assert ctx["selected"] == "weekly-program-updates"
+
+
+class WeeklyProgramUpdateUpdateTest(LoggedInMixin, TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.program_update = baker.make(
+            WeeklyProgramUpdate,
+            organisation=self.global_organisation,
+            operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+            status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
+            assigned_persons=json.dumps([fake.name(), fake.name()]),
+            date=timezone.now().date(),
+        )
+        super().setUp()
+
+    def test_weekly_program_updates_update_context_data(self, **kwargs):
+        request = RequestFactory().get(
+            reverse("ops:weekly_program_updates_update", kwargs={"pk": self.program_update.pk}),
+        )
+        request.user = self.user
+        view = WeeklyProgramUpdatesUpdateView()
+        view.setup(request, pk=self.program_update.pk)
+        view.dispatch(request, pk=self.program_update.pk)
+        context = view.get_context_data()
+        self.assertIn("create_comments_form", context)
+
+
+def test_weekly_program_update_comment_context_data():
+    v = WeeklyProgramUpdateCommentsView()
+    ctx = v.get_context_data()
+    assert ctx["active"] == "program-nav"
+    assert ctx["selected"] == "weekly-program-update-comments"
 
 
 def test_timesheet_approve_view_happy_case(request_with_user):

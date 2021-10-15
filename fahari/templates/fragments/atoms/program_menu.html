@@ -32,11 +32,12 @@
                 </a>
             {% endif %}
 
-            {% if perms.ops.view_weeklyprogramupdate and perms.ops.view_activity and perms.ops.view_operationalarea %}
+            {% if perms.ops.view_weeklyprogramupdate and perms.ops.view_activity %}
                 <a class="collapse-item {% if selected == "weekly-program-updates" %}active {% endif %}" id="weekly-program-updates" href="{% url 'ops:weekly_program_updates' %}">
                     Weekly Program Updates
                 </a>
             {% endif %}
+
         </div>
     </div>
 </li>

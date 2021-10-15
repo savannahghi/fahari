@@ -14,6 +14,8 @@ from .models import (
     TimeSheet,
     UoM,
     UoMCategory,
+    WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
 )
 
 
@@ -129,3 +131,26 @@ class SecurityIncidenceAdmin(BaseAdmin):
         "reported_on",
         "reported_by",
     )
+
+
+@admin.register(WeeklyProgramUpdate)
+class WeeklyProgramUpdateAdmin(BaseAdmin):
+
+    list_display = (
+        "title",
+        "description",
+        "operation_area",
+        "assigned_persons",
+        "status",
+    )
+    list_filter = (
+        "operation_area",
+        "status",
+    )
+
+
+@admin.register(WeeklyProgramUpdateComment)
+class WeeklyProgramUpdateCommentAdmin(BaseAdmin):
+
+    list_display = ("weekly_update", "comment")
+    list_filter = ("weekly_update",)

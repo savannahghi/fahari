@@ -14,7 +14,7 @@
                     <span class="icon text-white-50">
                         <i class="fas fa-plus"></i>
                     </span>
-                    <span class="text">Add Update</span>
+                    <span class="text">Add Weekly Update</span>
                 </a>
             {% endif %}
         </div>
@@ -34,8 +34,10 @@
                 data-ajax="{% url "api:weeklyprogramupdate-list" %}?format=datatables">
                 <thead>
                     <tr>
+                        <th>Title</th>
                         <th>Date</th>
-                        <th>In Attendance</th>
+                        <th>Operation Area</th>
+                        <th>Status</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -52,8 +54,10 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
+                {data: "title", name: "title"},
                 {data: "date", name: "date"},
-                {data: "attendees", name: "attendees"},
+                {data: "operation_area_display", name: "operation_area"},
+                {data: "status_display", name: "status"},
                 {
                     data: "url",
                     name: "id",
@@ -62,8 +66,8 @@ window.addEventListener("load", function(){
                     render: function ( data, type, row ) {
                         return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
                     }
-                }
-            ]
+                },
+            ],
         } );
     });
 });

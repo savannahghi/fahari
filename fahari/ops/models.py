@@ -1,4 +1,5 @@
 from datetime import time
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models
@@ -352,15 +353,34 @@ class Commodity(AbstractBase):
 
 
 class StockReceiptVerification(AbstractBase):
+    """Model to record stock receipts in facilities."""
+
+    class StockReceiptSources(models.TextChoices):
+        """The different sources of a stock receipt."""
+
+        KEMSA = "KEMSA", "KEMSA"
+        MEDS = "MEDS", "MEDS"
+        OTHER = "Others", "Others"
+
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    commodity = models.ForeignKey(Commodity, on_delete=models.PROTECT, default=default_commodity)
-    description = models.TextField(default="-")
+    commodity = models.ForeignKey(
+        Commodity,
+        on_delete=models.PROTECT,
+        default=default_commodity,
+        verbose_name="Commodity description",
+    )
     pack_size = models.ForeignKey("UoM", on_delete=models.PROTECT, null=True, blank=True)
     delivery_note_number = models.CharField(max_length=64)
+    delivery_note_quantity = models.DecimalField(
+        max_digits=10, decimal_places=4, default=Decimal("0.0000")
+    )
     quantity_received = models.DecimalField(max_digits=10, decimal_places=4)
     batch_number = models.CharField(max_length=64)
     delivery_date = models.DateField(default=timezone.datetime.today)
     expiry_date = models.DateField(default=timezone.datetime.today)
+    source = models.CharField(
+        max_length=10, choices=StockReceiptSources.choices, null=True, blank=True
+    )
     delivery_note_image = models.ImageField(
         upload_to=get_directory,
         null=True,
@@ -410,36 +430,6 @@ class Activity(AbstractBase):
 
     def __str__(self):
         return self.name
-
-
-class WeeklyProgramUpdate(AbstractBase):
-    """
-    Record of updates made at the weekly "touch base" meetings.
-    """
-
-    title = models.CharField(max_length=255, default="-")
-    attendees = ArrayField(
-        models.TextField(),
-        help_text="Use commas to separate attendees names",
-    )
-
-    description = models.TextField(default="-")
-    attachment = models.FileField(upload_to=get_directory, null=True, blank=True)
-    date = models.DateField(default=timezone.datetime.today)
-
-    def __str__(self) -> str:
-        return f"Weekly update: {self.date}, attended by {self.attendees}"
-
-    def get_absolute_url(self):
-        update_url = reverse_lazy("ops:weekly_program_updates_update", kwargs={"pk": self.pk})
-        return update_url
-
-
-class WeeklyProgramUpdateDetail(AbstractBase):
-
-    parent = models.ForeignKey(WeeklyProgramUpdate, on_delete=models.PROTECT)
-    activity = models.ForeignKey(Activity, on_delete=models.PROTECT)
-    comments = models.TextField()
 
 
 class UoM(AbstractBase):
@@ -596,3 +586,80 @@ class SecurityIncidence(AbstractBase):
 
     class Meta:
         ordering = ("facility__name", "-updated")
+
+
+class WeeklyProgramUpdate(AbstractBase):
+    """
+    Record of updates made at the weekly "touch base" meetings.
+    """
+
+    class OperationGroup(models.TextChoices):
+        """The different areas of program operation."""
+
+        ADMIN = "admin", "Administration"
+        FINANCE = "finance", "Finance"
+        AWARD = "awarding", "Awarding"
+        SUBGRANTING = "subgranting", "Subgranting"
+        SII = "sii", "Strategic Information System"
+        PROGRAM = "program", "Program"
+
+    class TaskStatus(models.TextChoices):
+        """The status of weekly program."""
+
+        IN_PROGRESS = "in_progress", "In progress"
+        COMPLETE = "complete", "Complete"
+
+    title = models.CharField(max_length=255, verbose_name="Task title", default="-")
+    description = models.TextField(default="-", verbose_name="Task description")
+    attachment = models.FileField(
+        upload_to=get_directory, verbose_name="Attach File or Photo", null=True, blank=True
+    )
+    operation_area = models.CharField(
+        max_length=20,
+        choices=OperationGroup.choices,
+        default=OperationGroup.PROGRAM.value,
+        help_text="Task Area of Operation",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=TaskStatus.choices,
+        default=TaskStatus.IN_PROGRESS.value,
+        help_text="Task status",
+    )
+    assigned_persons = ArrayField(
+        models.CharField(max_length=255),
+        blank=True,
+        null=True,
+        help_text="Use commas to separate assigned persons names",
+    )
+    date = models.DateField(default=timezone.datetime.today)
+
+    def __str__(self) -> str:
+        return f"Weekly update: {self.title}, assigned persons {self.assigned_persons}"
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:weekly_program_updates_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        ordering = (
+            "title",
+            "operation_area",
+            "status",
+        )
+
+
+class WeeklyProgramUpdateComment(AbstractBase):
+    """
+    Daily activity comments goes here.
+    """
+
+    weekly_update = models.ForeignKey(WeeklyProgramUpdate, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(default=timezone.now)
+    comment = models.TextField(default="-")
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy(
+            "ops:weekly_program_update_comments_update", kwargs={"pk": self.pk}
+        )
+        return update_url

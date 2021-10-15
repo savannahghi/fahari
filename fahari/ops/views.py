@@ -27,6 +27,7 @@ from .filters import (
     TimeSheetFilter,
     UoMCategoryFilter,
     UoMFilter,
+    WeeklyProgramUpdateCommentsFilter,
     WeeklyProgramUpdateFilter,
 )
 from .forms import (
@@ -45,6 +46,7 @@ from .forms import (
     TimeSheetForm,
     UoMCategoryForm,
     UoMForm,
+    WeeklyProgramUpdateCommentForm,
     WeeklyProgramUpdateForm,
 )
 from .models import (
@@ -63,6 +65,7 @@ from .models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
 )
 from .serializers import (
     ActivityLogSerializer,
@@ -79,6 +82,7 @@ from .serializers import (
     TimeSheetSerializer,
     UoMCategorySerializer,
     UoMSerializer,
+    WeeklyProgramUpdateCommentsReadSerializer,
     WeeklyProgramUpdateSerializer,
 )
 
@@ -517,7 +521,6 @@ class WeeklyProgramUpdatesView(
     permission_required = (
         "ops.view_weeklyprogramupdate",
         "ops.view_activity",
-        "ops.view_operationalarea",
     )
 
 
@@ -532,6 +535,24 @@ class WeeklyProgramUpdatesUpdateView(WeeklyProgramUpdateContextMixin, UpdateView
     model = WeeklyProgramUpdate
     success_url = reverse_lazy("ops:weekly_program_updates")
 
+    def get_context_data(self, **kwargs):
+        program_update: WeeklyProgramUpdate = self.object  # type: ignore
+        context = super().get_context_data(**kwargs)
+        create_comments_form = WeeklyProgramUpdateCommentForm(
+            initial={
+                "organisation": program_update.organisation.pk,
+                "weekly_update": program_update.pk,
+            }
+        )
+        create_comments_form.fields["weekly_update"].queryset = WeeklyProgramUpdate.objects.filter(
+            pk=program_update.pk
+        )
+        create_comments_form.helper.form_action = reverse_lazy(
+            "ops:weekly_program_update_comments_create"
+        )
+        context["create_comments_form"] = create_comments_form
+        return context
+
 
 class WeeklyProgramUpdatesDeleteView(WeeklyProgramUpdateContextMixin, DeleteView, BaseFormMixin):
     form_class = WeeklyProgramUpdateForm
@@ -541,12 +562,84 @@ class WeeklyProgramUpdatesDeleteView(WeeklyProgramUpdateContextMixin, DeleteView
 
 class WeeklyProgramUpdateViewSet(BaseView):
     queryset = WeeklyProgramUpdate.objects.active()
-    serializer_class = WeeklyProgramUpdateSerializer
     filterset_class = WeeklyProgramUpdateFilter
-    ordering_fields = ("-date",)
+    serializer_class = WeeklyProgramUpdateSerializer
+    ordering_fields = ("-date_created",)
     search_fields = (
-        "activity__name",
-        "comments",
+        "title",
+        "operation_area",
+        "status",
+    )
+
+
+class WeeklyProgramUpdateCommentsContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "program-nav"  # id of active nav element
+        context["selected"] = "weekly-program-update-comments"  # id of selected page
+        return context
+
+
+class WeeklyProgramUpdateCommentsView(
+    WeeklyProgramUpdateCommentsContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/weekly_program_update_comments.html"
+    permission_required = (
+        "ops.view_activity",
+        "ops.view_WeeklyProgramUpdateComment",
+    )
+
+
+class WeeklyProgramUpdatesCommentCreateView(
+    WeeklyProgramUpdateCommentsContextMixin, CreateView, BaseFormMixin
+):
+    form_class = WeeklyProgramUpdateCommentForm
+    model = WeeklyProgramUpdateComment
+
+    def get_success_url(self):
+        weekly_comment: WeeklyProgramUpdateComment = self.object  # type:ignore
+        return reverse_lazy(
+            "ops:weekly_program_updates_update", kwargs={"pk": weekly_comment.weekly_update.pk}
+        )
+
+
+class WeeklyProgramUpdatesCommentUpdateView(
+    WeeklyProgramUpdateCommentsContextMixin, UpdateView, BaseFormMixin
+):
+    form_class = WeeklyProgramUpdateCommentForm
+    model = WeeklyProgramUpdateComment
+
+    def get_success_url(self):
+        weekly_comment: WeeklyProgramUpdateComment = self.object  # type:ignore
+        return reverse_lazy(
+            "ops:weekly_program_updates_update", kwargs={"pk": weekly_comment.weekly_update.pk}
+        )
+
+
+class WeeklyProgramUpdatesCommentDeleteView(
+    WeeklyProgramUpdateCommentsContextMixin, DeleteView, BaseFormMixin
+):
+
+    form_class = WeeklyProgramUpdateCommentForm
+    model = WeeklyProgramUpdateComment
+    success_url = reverse_lazy("ops:weekly_program_updates")
+
+    def get_success_url(self) -> str:
+        weekly_comment: WeeklyProgramUpdateComment = self.object  # type:ignore
+        return reverse_lazy(
+            "ops:weekly_program_updates_update", kwargs={"pk": weekly_comment.weekly_update.pk}
+        )
+
+
+class WeeklyProgramUpdateCommentsViewSet(BaseView):
+    queryset = WeeklyProgramUpdateComment.objects.filter(
+        active=True,
+    )
+    filterset_class = WeeklyProgramUpdateCommentsFilter
+    serializer_class = WeeklyProgramUpdateCommentsReadSerializer
+    search_fields = (
+        "weekly_update",
+        "comment",
     )
 
 

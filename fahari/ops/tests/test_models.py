@@ -30,6 +30,7 @@ from fahari.ops.models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
     default_commodity,
     default_end_time,
     default_start_time,
@@ -233,6 +234,24 @@ def test_commodity_url():
     )
     url = commodity.get_absolute_url()
     assert f"/ops/commodity_update/{commodity.pk}" in url
+
+
+def test_weekly_program_update_comment_url():
+    organisation = global_organisation()
+    weekly_program_update = baker.make(
+        WeeklyProgramUpdate,
+        organisation=organisation,
+        operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+        status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
+        assigned_persons=json.dumps([fake.name(), fake.name()]),
+        date=timezone.now().date(),
+    )
+    weekly_comment: WeeklyProgramUpdateComment = baker.make(
+        WeeklyProgramUpdateComment, weekly_update=weekly_program_update, comment=fake.text()
+    )
+
+    url = weekly_comment.get_absolute_url()
+    assert f"/ops/weekly_program_update_comments_update/{weekly_comment.pk}" in url
 
 
 def test_uom_str():

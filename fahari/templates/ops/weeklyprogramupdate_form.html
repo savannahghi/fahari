@@ -1,10 +1,5 @@
-
-{% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}
-    Add/Edit Weekly Update
-{% endblock title %}
-{% block content %}
+{% extends "base.html" %} {% load crispy_forms_tags %} {% block title %}
+Add/Edit Weekly Update {% endblock title %} {% block content %}
 <a href="{% url 'ops:weekly_program_updates' %}">&larr; Back</a>
 {% if perms.ops.change_weeklyprogramupdate %}
 <div class="row">
@@ -12,16 +7,39 @@
     <div class="row align-page-content">
       <div class="card-header">
         <div class="toolbar float-right">
-            {% if object.pk %}
-                    {% if perms.ops.delete_weeklyprogramupdate %}
-                        <a href="{% url 'ops:weekly_program_updates_delete' object.pk %}" class="btn btn-danger btn-icon-split">
-                            <span class="icon text-white-50">
-                                <i class="fas fa-trash"></i>
-                            </span>
-                            <span class="text">Delete Weekly Update</span>
-                        </a>
-                    {% endif %}
-                {% endif %}
+          {% if object.pk %} {% if perms.ops.add_weeklyupdatecomment %}
+          <button
+            data-toggle="modal"
+            data-target="#addCommentModal"
+            class="btn btn-primary btn-icon-split"
+          >
+            <span class="icon text-white-50">
+              <i class="fas fa-plus"></i>
+            </span>
+            <span class="text">Add Daily Comment</span>
+          </button>
+          {% endif %} {% if perms.ops.view_weeklyupdatecomment %}
+          <button
+            data-toggle="modal"
+            data-target="#viewCommentsModal"
+            class="btn btn-primary btn-icon-split"
+          >
+            <span class="icon text-white-50">
+              <i class="fas fa-eye"></i>
+            </span>
+            <span class="text">View/Edit Comments</span>
+          </button>
+          {% endif %} {% if perms.ops.delete_weeklyupdatecomment %}
+          <a
+            href="{% url 'ops:weekly_program_updates_delete' object.pk %}"
+            class="btn btn-danger btn-icon-split"
+          >
+            <span class="icon text-white-50">
+              <i class="fas fa-trash"></i>
+            </span>
+            <span class="text">Delete Program update</span>
+          </a>
+          {% endif %} {% endif %}
         </div>
       </div>
 
@@ -30,22 +48,100 @@
         <div class="col-lg-8 center-form">
           <div class="p-lg-5 p-xs-1 p-sm-1">
             <div class="text-left">
-                <h1 class="h4 text-gray-900 mb-4">
-                    {% if object.pk %}
-                        Edit Weekly Updates
-                    {% else %}
-                        Create Weekly Update
-                    {% endif %}
-                </h1>
+              <h1 class="h4 text-gray-900 mb-4">
+                {% if object.pk %}
+                  Edit Weekly Program Update
+                {% else %}
+                  Create Weekly Program Update
+                {% endif %}
+              </h1>
             </div>
-            {% crispy form %}
+            {% crispy form %} {% if object.pk %}
+
+            <div
+              class="modal fade"
+              id="addCommentModal"
+              tabindex="-1"
+              aria-labelledby="addCommentModalLabel"
+              aria-hidden="true"
+            >
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title font-weight-bold">
+                      Add today's activity comment
+                    </h5>
+                    <button
+                      type="button"
+                      class="close"
+                      data-dismiss="modal"
+                      aria-label="Close"
+                    >
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    {% crispy create_comments_form %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="modal fade"
+              id="viewCommentsModal"
+              tabindex="-1"
+              aria-labelledby="viewCommentsModalLabel"
+              aria-hidden="true"
+            >
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5
+                      class="modal-title font-weight-bold"
+                      id="viewCommentsModalLabel"
+                    >
+                      Daily Comments
+                    </h5>
+                    <button
+                      type="button"
+                      class="close"
+                      data-dismiss="modal"
+                      aria-label="Close"
+                    >
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    {% for obj in object.weeklyprogramupdatecomment_set.all %}
+                    <p>
+                      {{forloop.counter}}. {{obj.date_created |date:'Y-m-d'}}:
+                      {{ obj.comment }}
+
+                      <a href="{{ obj.get_absolute_url }}">
+                        <i class="fas fa-edit mr-2"></i>
+                      </a>
+                      <a
+                        href="{% url 'ops:weekly_program_update_comments_delete' obj.pk %}"
+                      >
+                        <i class="fas fa-trash text-danger"></i>
+                      </a>
+                    </p>
+                    <br />
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {% endif %}
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
 {% else %}
-    <p>You do not have permission to edit weekly program updates.</p>
-{% endif %}
-{% endblock content %}
+<p>You do not have permission to edit program updates.</p>
+{% endif %} {% endblock content %}

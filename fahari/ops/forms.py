@@ -1,7 +1,7 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django import forms
-from django.forms.widgets import DateInput, DateTimeInput, Select, Textarea, TextInput
+from django.forms.widgets import DateInput, DateTimeInput, HiddenInput, Select, Textarea, TextInput
 
 from fahari.common.forms import BaseModelForm, GetAllottedFacilitiesMixin
 from fahari.common.widgets import SearchableComboBox
@@ -22,6 +22,7 @@ from .models import (
     UoM,
     UoMCategory,
     WeeklyProgramUpdate,
+    WeeklyProgramUpdateComment,
 )
 
 
@@ -121,11 +122,13 @@ class StockReceiptVerificationForm(GetAllottedFacilitiesMixin, BaseModelForm):
         "description",
         "pack_size",
         "delivery_note_number",
+        "delivery_note_quantity",
         "quantity_received",
         "batch_number",
         "delivery_date",
         "expiry_date",
         "delivery_note_image",
+        "source",
         "comments",
         "active",
     )
@@ -141,8 +144,22 @@ class StockReceiptVerificationForm(GetAllottedFacilitiesMixin, BaseModelForm):
         widgets = {
             "facility": SearchableComboBox(),
             "commodity": SearchableComboBox(),
-            "delivery_date": TextInput(attrs={"type": "date"}),
-            "expiry_date": TextInput(attrs={"type": "date"}),
+            "delivery_date": DateInput(
+                format="%Y-%m-%d",
+                attrs={
+                    "class": "datepicker",
+                    "data-date-format": "yyyy-mm-dd",
+                    "data-provide": "datepicker",
+                },
+            ),
+            "expiry_date": DateInput(
+                format="%Y-%m-%d",
+                attrs={
+                    "class": "datepicker",
+                    "data-date-format": "yyyy-mm-dd",
+                    "data-provide": "datepicker",
+                },
+            ),
         }
 
 
@@ -309,11 +326,13 @@ class TimeSheetForm(BaseModelForm):
 
 class WeeklyProgramUpdateForm(BaseModelForm):
     field_order = (
-        "date",
-        "attendees",
         "title",
         "description",
+        "operation_area",
+        "assigned_persons",
         "attachment",
+        "status",
+        "date",
         "active",
     )
 
@@ -323,6 +342,27 @@ class WeeklyProgramUpdateForm(BaseModelForm):
 
     class Meta(BaseModelForm.Meta):
         model = WeeklyProgramUpdate
+        widgets = {
+            "date": TextInput(attrs={"type": "date"}),
+        }
+
+
+class WeeklyProgramUpdateCommentForm(BaseModelForm):
+    field_order = (
+        "weekly_update",
+        "comment",
+        "active",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "weekly_program_update_comment_form"
+        self.fields["weekly_update"].widget = HiddenInput()
+        self.fields["date_added"].widget = HiddenInput()
+        self.fields["active"].widget = HiddenInput()
+
+    class Meta(BaseModelForm.Meta):
+        model = WeeklyProgramUpdateComment
 
 
 class CommodityForm(BaseModelForm):

@@ -36,7 +36,8 @@ function pathsConfig(appName) {
             `${vendorsRoot}/jquery/dist/jquery.js`,
             `${vendorsRoot}/popper.js/dist/umd/popper.js`,
             `${vendorsRoot}/bootstrap/dist/js/bootstrap.js`,
-            `${vendorsRoot}/bootstrap-select/dist/js/bootstrap-select.js`,
+            `${vendorsRoot}/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js`,
+            `${vendorsRoot}/bootstrap-select/dist/js/bootstrap-select.min.js`,
             `${vendorsRoot}/chart.js/dist/*.js`,
             `${vendorsRoot}/jszip/dist/jszip.min.js`,
             `${vendorsRoot}/pdfmake/dist/*.min.js`,
@@ -80,10 +81,10 @@ function pathsConfig(appName) {
         fonts: `${this.app}/static/fonts`,
         images: `${this.app}/static/images`,
         js: `${this.app}/static/js`,
-//        js: [
-//            `${this.app}/static/js/project.js`,
-//            `${paths.js}/user_facility_allotment_form.js`,
-//        ],
+        //        js: [
+        //            `${this.app}/static/js/project.js`,
+        //            `${paths.js}/user_facility_allotment_form.js`,
+        //        ],
     };
 }
 
@@ -117,9 +118,9 @@ function styles() {
 // Javascript minification
 function scripts() {
     return src([
-            `${paths.js}/project.js`,
-            `${paths.js}/common/forms/user_facility_allotment_form.js`,
-        ])
+        `${paths.js}/project.js`,
+        `${paths.js}/common/forms/user_facility_allotment_form.js`,
+    ])
         .pipe(sourcemaps.init())
         .pipe(plumber()) // Checks for errors
         .pipe(uglify()) // Minifies the js
@@ -152,7 +153,7 @@ function asyncRunServer() {
     var cmd = spawn(
         "gunicorn", ["config.asgi", "-k", "uvicorn.workers.UvicornWorker", "--reload"], { stdio: "inherit" }
     );
-    cmd.on("close", function(code) {
+    cmd.on("close", function (code) {
         console.log("gunicorn exited with code " + code);
     });
 }
@@ -161,20 +162,20 @@ function asyncRunServer() {
 function initBrowserSync() {
     browserSync.init(
         [`${paths.css}/**/*.css`, `${paths.js}/**/*.js`, `${paths.templates}/**/*.html`], {
-            // https://www.browsersync.io/docs/options/#option-proxy
-            proxy: {
-                target: "django:8000",
-                proxyReq: [
-                    function(proxyReq, req) {
-                        // Assign proxy "host" header same as current request at Browsersync server
-                        proxyReq.setHeader("Host", req.headers.host);
-                    },
-                ],
-            },
-            // https://www.browsersync.io/docs/options/#option-open
-            // Disable as it doesn't work from inside a container
-            open: false,
-        }
+        // https://www.browsersync.io/docs/options/#option-proxy
+        proxy: {
+            target: "django:8000",
+            proxyReq: [
+                function (proxyReq, req) {
+                    // Assign proxy "host" header same as current request at Browsersync server
+                    proxyReq.setHeader("Host", req.headers.host);
+                },
+            ],
+        },
+        // https://www.browsersync.io/docs/options/#option-open
+        // Disable as it doesn't work from inside a container
+        open: false,
+    }
     );
 }
 
