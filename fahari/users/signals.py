@@ -8,6 +8,7 @@ from django.core.mail import EmailMessage
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.http import HttpRequest
 from django.template.loader import get_template
 
 LOGGER = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def email_confirmed_hander(request, email_address, **kwargs):
         if user.is_approved or user.approval_notified:
             return False  # do nothing
 
-        send_admin_awaiting_approval_email(user)
+        send_admin_awaiting_approval_email(user, request)
         send_user_awaiting_approval_email(user)
         return True
     except User.DoesNotExist as e:
@@ -105,14 +106,20 @@ def account_confirmed_handler(sender, instance, created, **kwargs):
     return True
 
 
-def send_admin_awaiting_approval_email(user):
-    context = {"user": user, "support_email": settings.SERVER_EMAIL}
+def send_admin_awaiting_approval_email(user, request: HttpRequest) -> None:
+    context = {
+        "user": user,
+        "support_email": settings.SERVER_EMAIL,
+        "user_approval_url": request.build_absolute_uri(
+            "/admin/users/user/%s/change/" % str(user.pk)
+        ),
+    }
     message = get_template("emails/account_pending_approval_admin.html").render(context)
     mail = EmailMessage(
         subject="New Fahari System Account Pending Approval",
         body=message,
         from_email=settings.SERVER_EMAIL,
-        to=[user.email],
+        to=[admin.email for admin in User.objects.filter(is_staff=True)],
         reply_to=[settings.SERVER_EMAIL],
     )
     mail.content_subtype = "html"

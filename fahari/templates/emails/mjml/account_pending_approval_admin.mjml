@@ -24,7 +24,7 @@
           It's currently awaiting review and approval.
         </mj-text>
         <mj-text color="#525252">
-          Please log in to the administration site and review the request.
+          Please log in to the administration site and review the request or alternatively use the following link: {{user_approval_url}}.
         </mj-text>
         <mj-text color="#525252">
           With kind regards,
