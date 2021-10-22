@@ -663,3 +663,107 @@ class WeeklyProgramUpdateComment(AbstractBase):
             "ops:weekly_program_update_comments_update", kwargs={"pk": self.pk}
         )
         return update_url
+
+
+"""
+Models for handling Site Mentorship Checklist.
+"""
+
+
+class Question(AbstractBase):
+    """Possible Questions."""
+
+    question = models.TextField(default="-", verbose_name="Question")
+    question_number = models.CharField(max_length=7, verbose_name="Question numbering")
+    precedence = models.IntegerField()
+
+    def __str__(self) -> str:
+        return "Question: %s" % (self.question,)
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:question_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        unique_together = (
+            "question",
+            "precedence",
+        )
+
+
+class QuestionAnswer(AbstractBase):
+    """Questions Answers."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    response = models.CharField(
+        max_length=255, default="-", help_text="Use yes/no OR true/false where applicable."
+    )
+    comments = models.TextField(default="-", verbose_name="Comments")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.facility.name,
+            self.question.question,
+            self.response,
+        )
+
+
+class Checklist(AbstractBase):
+    """Checklist."""
+
+    title = models.CharField(max_length=255, verbose_name="Checklist title")
+    questions = models.ManyToManyField(Question)
+    precedence = models.IntegerField()
+    entry_date = models.DateField(default=timezone.datetime.today, help_text="Filling visit date")
+
+    def __str__(self) -> str:
+        return "Title: %s" % (self.title,)
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:checklist_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        unique_together = (
+            "title",
+            "precedence",
+        )
+
+
+class Questionnaire(AbstractBase):
+    """Questionnaire."""
+
+    title = models.CharField(max_length=255, verbose_name="Questionnaire title")
+    checklist = models.ManyToManyField(Checklist)
+    precedence = models.IntegerField()
+
+    def __str__(self) -> str:
+        return "Title: %s" % (self.title,)
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:questionnaire_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        unique_together = (
+            "title",
+            "precedence",
+        )
+
+
+class MentorshipChecklist(AbstractBase):
+    """Mentorship checklist."""
+
+    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    questionnaire = models.ForeignKey(Questionnaire, on_delete=models.PROTECT)
+    mentorship_team = ArrayField(
+        models.TextField(),
+        blank=True,
+        default=list,
+        help_text="Use commas to separate team names",
+    )
+    visit_date = models.DateField(default=timezone.datetime.today, help_text="Site visit date")
+
+    def __str__(self) -> str:
+        return "Facility: %s" % (self.facility.name,)
