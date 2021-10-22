@@ -4,7 +4,6 @@ from fahari.common.serializers import BaseSerializer, FacilitySerializer, System
 
 from .models import (
     ActivityLog,
-    Checklist,
     Commodity,
     DailyUpdate,
     FacilityDevice,
@@ -12,9 +11,8 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
-    MentorshipChecklist,
     Question,
-    QuestionAnswer,
+    QuestionGroup,
     Questionnaire,
     SecurityIncidence,
     SiteMentorship,
@@ -182,35 +180,17 @@ class QuestionSerializer(BaseSerializer):
         fields = "__all__"
 
 
-class QuestionAnswerSerializer(BaseSerializer):
-    facility_name = serializers.ReadOnlyField(source="facility.name")
-    question = serializers.ReadOnlyField(source="question.question")
-
-    class Meta(BaseSerializer.Meta):
-        model = QuestionAnswer
-        fields = "__all__"
-
-
-class ChecklistSerializer(BaseSerializer):
+class QuestionGroupSerializer(BaseSerializer):
     questions = QuestionSerializer(many=True)
 
     class Meta(BaseSerializer.Meta):
-        model = Checklist
+        model = QuestionGroup
         fields = "__all__"
 
 
 class QuestionnaireSerializer(BaseSerializer):
-    checklist = ChecklistSerializer(many=True)
+    question_groups = QuestionGroupSerializer(many=True)
 
     class Meta(BaseSerializer.Meta):
         model = Questionnaire
-        fields = "__all__"
-
-
-class MentorshipChecklistSerializer(BaseSerializer):
-    facility_name = serializers.ReadOnlyField(source="facility.name")
-    questionnaire = QuestionnaireSerializer()
-
-    class Meta(BaseSerializer.Meta):
-        model = MentorshipChecklist
         fields = "__all__"

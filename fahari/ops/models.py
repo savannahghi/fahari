@@ -709,10 +709,10 @@ class QuestionAnswer(AbstractBase):
         )
 
 
-class Checklist(AbstractBase):
+class QuestionGroup(AbstractBase):
     """Checklist."""
 
-    title = models.CharField(max_length=255, verbose_name="Checklist title")
+    title = models.CharField(max_length=255, verbose_name="Group title")
     questions = models.ManyToManyField(Question)
     precedence = models.IntegerField()
     entry_date = models.DateField(default=timezone.datetime.today, help_text="Filling visit date")
@@ -721,7 +721,7 @@ class Checklist(AbstractBase):
         return "Title: %s" % (self.title,)
 
     def get_absolute_url(self):
-        update_url = reverse("ops:checklist_update", kwargs={"pk": self.pk})
+        update_url = reverse("ops:question_group_update", kwargs={"pk": self.pk})
         return update_url
 
     class Meta:
@@ -735,7 +735,7 @@ class Questionnaire(AbstractBase):
     """Questionnaire."""
 
     title = models.CharField(max_length=255, verbose_name="Questionnaire title")
-    checklist = models.ManyToManyField(Checklist)
+    question_groups = models.ManyToManyField(QuestionGroup)
     precedence = models.IntegerField()
 
     def __str__(self) -> str:
@@ -752,7 +752,7 @@ class Questionnaire(AbstractBase):
         )
 
 
-class MentorshipChecklist(AbstractBase):
+class MentorshipQuestionnaire(AbstractBase):
     """Mentorship checklist."""
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)

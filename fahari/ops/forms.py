@@ -15,6 +15,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    Question,
+    QuestionGroup,
+    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -496,3 +499,50 @@ class SecurityIncidenceForm(GetAllottedFacilitiesMixin, BaseModelForm):
             "facility": SearchableComboBox(),
             "reported_on": DateInput(attrs={"hidden": True}),
         }
+
+
+class QuestionForm(BaseModelForm):
+    field_order = (
+        "question",
+        "question_number",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "question_form"
+        # self.fields["precedence"].widget = HiddenInput()
+
+    class Meta(BaseModelForm.Meta):
+        model = Question
+
+
+class QuestionGroupForm(BaseModelForm):
+    field_order = (
+        "facility",
+        "title",
+        "questions",
+        "precedence",
+        "entry_date",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "question_group_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = QuestionGroup
+
+
+class QuestionnaireForm(BaseModelForm):
+    field_order = (
+        "title",
+        "question_groups",
+        "precedence",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "questionnaire_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = Questionnaire

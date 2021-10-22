@@ -11,6 +11,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    Question,
+    QuestionGroup,
+    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -189,4 +192,34 @@ class SecurityIncidenceFilter(CommonFieldsFilterset):
     class Meta:
 
         model = SecurityIncidence
+        fields = "__all__"
+
+
+class QuestionFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = Question
+        fields = "__all__"
+
+
+class QuestionGroupFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = QuestionGroup
+        fields = "__all__"
+
+
+class QuestionnaireFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = Questionnaire
         fields = "__all__"

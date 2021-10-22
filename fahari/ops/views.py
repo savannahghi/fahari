@@ -22,6 +22,9 @@ from .filters import (
     FacilityNetworkStatusFilter,
     FacilitySystemFilter,
     FacilitySystemTicketFilter,
+    QuestionFilter,
+    QuestionGroupFilter,
+    QuestionnaireFilter,
     SecurityIncidenceFilter,
     SiteMentorshipFilter,
     StockReceiptVerificationFilter,
@@ -41,6 +44,9 @@ from .forms import (
     FacilitySystemForm,
     FacilitySystemTicketForm,
     FacilitySystemTicketResolveForm,
+    QuestionForm,
+    QuestionGroupForm,
+    QuestionnaireForm,
     SecurityIncidenceForm,
     SiteMentorshipForm,
     StockReceiptVerificationForm,
@@ -59,6 +65,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    Question,
+    QuestionGroup,
+    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -77,6 +86,9 @@ from .serializers import (
     FacilityNetworkStatusSerializer,
     FacilitySystemSerializer,
     FacilitySystemTicketSerializer,
+    QuestionGroupSerializer,
+    QuestionnaireSerializer,
+    QuestionSerializer,
     SecurityIncidenceSerializer,
     SiteMentorshipSerializer,
     StockReceiptVerificationSerializer,
@@ -1015,3 +1027,155 @@ class SecurityIncidenceViewSet(BaseView):
         "reported_by",
     )
     facility_field_lookup = "facility"
+
+
+class QuestionContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "mentorship-nav"  # id of active nav element
+        context["selected"] = "questions"  # id of selected page
+        return context
+
+
+class QuestionListView(QuestionContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView):
+    template_name = "pages/ops/questions.html"
+    permission_required = "ops.view_question"
+
+
+class QuestionCreateView(QuestionContextMixin, BaseFormMixin, FormContextMixin, CreateView):
+    form_class = QuestionForm
+    model = Question
+    success_url = reverse_lazy("ops:questions")
+
+
+class QuestionUpdateView(QuestionContextMixin, BaseFormMixin, FormContextMixin, UpdateView):
+    form_class = QuestionForm
+    model = Question
+    success_url = reverse_lazy("ops:questions")
+
+
+class QuestionDeleteView(QuestionContextMixin, BaseFormMixin, FormContextMixin, DeleteView):
+    form_class = QuestionForm
+    model = Question
+    success_url = reverse_lazy("ops:questions")
+
+
+class QuestionViewSet(BaseView):
+    queryset = Question.objects.active()
+    serializer_class = QuestionSerializer
+    filterset_class = QuestionFilter
+    ordering_fields = (
+        "question",
+        "-question_number",
+        "-precedence",
+    )
+    search_fields = ("question",)
+
+
+class QuestionGroupContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "mentorship-nav"  # id of active nav element
+        context["selected"] = "question_group"  # id of selected page
+        return context
+
+
+class QuestionGroupListView(
+    QuestionGroupContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/question_groups.html"
+    permission_required = "ops.view_question_group"
+
+
+class QuestionGroupCreateView(
+    QuestionGroupContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
+    form_class = QuestionGroupForm
+    model = QuestionGroup
+    success_url = reverse_lazy("ops:question_groups")
+
+
+class QuestionGroupUpdateView(
+    QuestionGroupContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
+    form_class = QuestionGroupForm
+    model = QuestionGroup
+    success_url = reverse_lazy("ops:question_groups")
+
+
+class QuestionGroupDeleteView(
+    QuestionGroupContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
+    form_class = QuestionGroupForm
+    model = QuestionGroup
+    success_url = reverse_lazy("ops:question_groups")
+
+
+class QuestionGroupViewSet(BaseView):
+    queryset = QuestionGroup.objects.active()
+    serializer_class = QuestionGroupSerializer
+    filterset_class = QuestionGroupFilter
+    ordering_fields = (
+        "title",
+        "questions",
+        "precedence",
+    )
+    search_fields = (
+        "title",
+        "questions",
+        "precedence",
+    )
+
+
+class QuestionnaireContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "mentorship-nav"  # id of active nav element
+        context["selected"] = "questionnaire"  # id of selected page
+        return context
+
+
+class QuestionnaireListView(
+    QuestionnaireContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+    template_name = "pages/ops/questionnaire.html"
+    permission_required = "ops.view_questionnaire"
+
+
+class QuestionnaireCreateView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
+    form_class = QuestionnaireForm
+    model = Questionnaire
+    success_url = reverse_lazy("ops:questionnaire")
+
+
+class QuestionnaireUpdateView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
+    form_class = QuestionnaireForm
+    model = Questionnaire
+    success_url = reverse_lazy("ops:questionnaire")
+
+
+class QuestionnaireDeleteView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
+    form_class = QuestionnaireForm
+    model = Questionnaire
+    success_url = reverse_lazy("ops:questionnaire")
+
+
+class QuestionnaireViewSet(BaseView):
+    queryset = Questionnaire.objects.active()
+    serializer_class = QuestionnaireSerializer
+    filterset_class = QuestionnaireFilter
+    ordering_fields = (
+        "title",
+        "question_groups" "-precedence",
+    )
+    search_fields = ("title",)
+
+
+# Dynamic MentorshipQuestionnaireViewSet here;
+# Should also handle CRUD for QuestionAnswer model
