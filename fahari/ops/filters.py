@@ -11,9 +11,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    GroupSection,
     Question,
     QuestionGroup,
-    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -215,11 +215,11 @@ class QuestionGroupFilter(CommonFieldsFilterset):
         fields = "__all__"
 
 
-class QuestionnaireFilter(CommonFieldsFilterset):
+class GroupSectionFilter(CommonFieldsFilterset):
 
     search = filters.SearchFilter()
 
     class Meta:
 
-        model = Questionnaire
+        model = GroupSection
         fields = "__all__"

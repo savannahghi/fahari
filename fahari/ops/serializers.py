@@ -11,9 +11,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    GroupSection,
     Question,
     QuestionGroup,
-    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -188,9 +188,9 @@ class QuestionGroupSerializer(BaseSerializer):
         fields = "__all__"
 
 
-class QuestionnaireSerializer(BaseSerializer):
+class GroupSectionSerializer(BaseSerializer):
     question_groups = QuestionGroupSerializer(many=True)
 
     class Meta(BaseSerializer.Meta):
-        model = Questionnaire
+        model = GroupSection
         fields = "__all__"

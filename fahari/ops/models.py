@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import datetime, time
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -673,9 +673,32 @@ Models for handling Site Mentorship Checklist.
 class Question(AbstractBase):
     """Possible Questions."""
 
+    class AnswerType(models.TextChoices):
+        """The possible types of answer expected for a question."""
+
+        TRUE_FALSE = "true_false", "True/False"
+        YES_NO = "yes_no", "Yes/No"
+        NUMBER = "number", "Number"
+        SHORT_ANSWER = "short_answer", "Short answer"
+        PARAGRAPH = "paragraph", "Long answer"
+        RADIO_OPTION = "radio_option", "Pick an option"
+        SELECT_LIST = "select_list", "Check options"
+
     question = models.TextField(default="-", verbose_name="Question")
     question_number = models.CharField(max_length=7, verbose_name="Question numbering")
-    precedence = models.IntegerField()
+    answer_type = models.CharField(
+        max_length=15,
+        choices=AnswerType.choices,
+        default=AnswerType.SHORT_ANSWER.value,
+        help_text="Answer type",
+    )
+    parent = models.ForeignKey(
+        "self",
+        models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    metadata = models.JSONField(default=dict)
 
     def __str__(self) -> str:
         return "Question: %s" % (self.question,)
@@ -684,20 +707,96 @@ class Question(AbstractBase):
         update_url = reverse("ops:question_update", kwargs={"pk": self.pk})
         return update_url
 
-    class Meta:
-        unique_together = (
-            "question",
-            "precedence",
-        )
 
-
-class QuestionAnswer(AbstractBase):
-    """Questions Answers."""
+class AbstractQuestionAnswer(AbstractBase):
+    """Common Question Answers."""
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    response = models.CharField(
-        max_length=255, default="-", help_text="Use yes/no OR true/false where applicable."
+    answer_date = models.DateField(default=datetime.now())
+
+    class Meta:
+        abstract = True
+
+
+class BooleanAnswer(AbstractQuestionAnswer):
+    """True/False or Yes/No Answers."""
+
+    response = models.BooleanField()
+    comments = models.TextField(default="-", verbose_name="Comments")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.facility.name,
+            self.question.question,
+            self.response,
+        )
+
+
+class NumberAnswer(AbstractQuestionAnswer):
+    """Number Answer."""
+
+    response = models.DecimalField(default=0.0)
+    comments = models.TextField(default="-", verbose_name="Comments")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.facility.name,
+            self.question.question,
+            self.response,
+        )
+
+
+class ShortAnswer(AbstractQuestionAnswer):
+    """Brief Text Answers."""
+
+    response = models.CharField(max_length=255)
+    comments = models.TextField(default="-", verbose_name="Comments")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.facility.name,
+            self.question.question,
+            self.response,
+        )
+
+
+class ParagraphAnswer(AbstractQuestionAnswer):
+    """Lengthy Answers."""
+
+    response = models.TextField()
+    comments = models.TextField(default="-", verbose_name="Comments")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.facility.name,
+            self.question.question,
+            self.response,
+        )
+
+
+class RadioOptionAnswer(AbstractQuestionAnswer):
+    """One Option Answers."""
+
+    response = models.CharField(max_length=255)
+    comments = models.TextField(default="-", verbose_name="Comments")
+
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.facility.name,
+            self.question.question,
+            self.response,
+        )
+
+
+class SelectListAnswer(AbstractQuestionAnswer):
+    """List Option Answers."""
+
+    response = ArrayField(
+        models.CharField(max_length=255, null=True, blank=True),
+        help_text=("Select from the list"),
+        null=True,
+        blank=True,
     )
     comments = models.TextField(default="-", verbose_name="Comments")
 
@@ -710,12 +809,16 @@ class QuestionAnswer(AbstractBase):
 
 
 class QuestionGroup(AbstractBase):
-    """Checklist."""
+    """Question group."""
+
+    def check_precedence_unique_per_question(val):
+        if val in QuestionGroup.objects.all().values_list("precedence", flat=True):
+            raise ValidationError("Duplicate precedence value not allowed.")
 
     title = models.CharField(max_length=255, verbose_name="Group title")
     questions = models.ManyToManyField(Question)
-    precedence = models.IntegerField()
-    entry_date = models.DateField(default=timezone.datetime.today, help_text="Filling visit date")
+    precedence = models.IntegerField(validators=[check_precedence_unique_per_question])
+    entry_date = models.DateField(default=timezone.datetime.today)
 
     def __str__(self) -> str:
         return "Title: %s" % (self.title,)
@@ -724,25 +827,23 @@ class QuestionGroup(AbstractBase):
         update_url = reverse("ops:question_group_update", kwargs={"pk": self.pk})
         return update_url
 
-    class Meta:
-        unique_together = (
-            "title",
-            "precedence",
-        )
 
+class GroupSection(AbstractBase):
+    """Question group."""
 
-class Questionnaire(AbstractBase):
-    """Questionnaire."""
+    def check_precedence_unique_per_groupsection(val):
+        if val in GroupSection.objects.all().values_list("precedence", flat=True):
+            raise ValidationError("Duplicate precedence value not allowed.")
 
-    title = models.CharField(max_length=255, verbose_name="Questionnaire title")
+    title = models.CharField(max_length=255, verbose_name="Group title")
     question_groups = models.ManyToManyField(QuestionGroup)
-    precedence = models.IntegerField()
+    precedence = models.IntegerField(validators=check_precedence_unique_per_groupsection)
 
     def __str__(self) -> str:
         return "Title: %s" % (self.title,)
 
     def get_absolute_url(self):
-        update_url = reverse("ops:questionnaire_update", kwargs={"pk": self.pk})
+        update_url = reverse("ops:group_section_update", kwargs={"pk": self.pk})
         return update_url
 
     class Meta:
@@ -753,17 +854,17 @@ class Questionnaire(AbstractBase):
 
 
 class MentorshipQuestionnaire(AbstractBase):
-    """Mentorship checklist."""
+    """Mentorship questionnaire."""
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    questionnaire = models.ForeignKey(Questionnaire, on_delete=models.PROTECT)
+    group_section = models.ForeignKey(GroupSection, null=True, on_delete=models.PROTECT)
     mentorship_team = ArrayField(
         models.TextField(),
         blank=True,
         default=list,
         help_text="Use commas to separate team names",
     )
-    visit_date = models.DateField(default=timezone.datetime.today, help_text="Site visit date")
+    submit_date = models.DateField(default=timezone.datetime.today, help_text="Site visit date")
 
     def __str__(self) -> str:
         return "Facility: %s" % (self.facility.name,)

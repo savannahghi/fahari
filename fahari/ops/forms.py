@@ -15,9 +15,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
+    GroupSection,
     Question,
     QuestionGroup,
-    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -502,15 +502,11 @@ class SecurityIncidenceForm(GetAllottedFacilitiesMixin, BaseModelForm):
 
 
 class QuestionForm(BaseModelForm):
-    field_order = (
-        "question",
-        "question_number",
-    )
+    field_order = ("question", "question_number", "precedence", "active")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "question_form"
-        # self.fields["precedence"].widget = HiddenInput()
 
     class Meta(BaseModelForm.Meta):
         model = Question
@@ -533,7 +529,7 @@ class QuestionGroupForm(BaseModelForm):
         model = QuestionGroup
 
 
-class QuestionnaireForm(BaseModelForm):
+class GroupSectionForm(BaseModelForm):
     field_order = (
         "title",
         "question_groups",
@@ -542,7 +538,7 @@ class QuestionnaireForm(BaseModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper.form_id = "questionnaire_form"
+        self.helper.form_id = "group_section_form"
 
     class Meta(BaseModelForm.Meta):
-        model = Questionnaire
+        model = GroupSection
