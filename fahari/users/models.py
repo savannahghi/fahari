@@ -95,4 +95,6 @@ class User(AbstractUser):
         permissions = [
             ("can_view_dashboard", "Can View Dashboard"),
             ("can_view_about", "Can View About Page"),
+            ("can_export_data", "Can Export Data"),
+            ("can_import_data", "Can Import Data"),
         ]

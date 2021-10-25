@@ -9,6 +9,7 @@
 <div class="card shadow mb-1">
     <div class="card-header py-3">
         <div class="toolbar float-right">
+            {% include "fragments/export_data_button.html" %}
             {% if perms.common.add_system %}
                 <a href="{% url 'common:system_create' %}" class="btn btn-primary btn-icon-split">
                     <span class="icon text-white-50">
@@ -44,6 +45,10 @@
         </div>
     </div>
 </div>
+
+<!-- Export Data Modal -->
+{% include "fragments/export_data_modal.html" %}
+
 {% endblock content %}
 {% block inline_javascript %}
 <script>

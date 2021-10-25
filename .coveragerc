@@ -4,6 +4,17 @@ source=fahari
 omit=fahari/config/*,fahari/**/migrations/*,scripts/*,fahari/**/tests/*
 
 [report]
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: nocover
+    pragma: no cover
+
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain about abstract methods, they aren't run:
+    @(abc\.)?abstractmethod
 show_missing=True
 
 [html]

@@ -91,6 +91,9 @@ class FacilitySystemContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
         context["active"] = "facilities-nav"  # id of active nav element
+        context["available_fields_url"] = reverse_lazy("api:facilitysystem-get-available-fields")
+        context["dump_data_url"] = reverse_lazy("api:facilitysystem-dump-data")
+        context["get_filter_form_url"] = reverse_lazy("api:facilitysystem-get-filter-form")
         context["selected"] = "versions"  # id of selected page
         return context
 
@@ -148,6 +151,11 @@ class FacilitySystemTicketContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
         context["active"] = "facilities-nav"  # id of active nav element
+        context["available_fields_url"] = reverse_lazy(
+            "api:facilitysystemticket-get-available-fields"
+        )
+        context["dump_data_url"] = reverse_lazy("api:facilitysystemticket-dump-data")
+        context["get_filter_form_url"] = reverse_lazy("api:facilitysystemticket-get-filter-form")
         context["selected"] = "tickets"  # id of selected page
         return context
 
@@ -237,6 +245,13 @@ class StockReceiptVerificationContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
         context["active"] = "inventory-nav"  # id of active nav element
+        context["available_fields_url"] = reverse_lazy(
+            "api:stockreceiptverification-get-available-fields"
+        )
+        context["dump_data_url"] = reverse_lazy("api:stockreceiptverification-dump-data")
+        context["get_filter_form_url"] = reverse_lazy(
+            "api:stockreceiptverification-get-filter-form"
+        )
         context["selected"] = "stock-receipt-verifications"  # id of selected page
         return context
 
@@ -647,6 +662,9 @@ class CommodityContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
         context["active"] = "inventory-nav"  # id of active nav element
+        context["available_fields_url"] = reverse_lazy("api:commodity-get-available-fields")
+        context["dump_data_url"] = reverse_lazy("api:commodity-dump-data")
+        context["get_filter_form_url"] = reverse_lazy("api:commodity-get-filter-form")
         context["selected"] = "commodities"  # id of selected page
         return context
 
@@ -693,6 +711,9 @@ class UoMContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
         context["active"] = "inventory-nav"  # id of active nav element
+        context["available_fields_url"] = reverse_lazy("api:uom-get-available-fields")
+        context["dump_data_url"] = reverse_lazy("api:uom-dump-data")
+        context["get_filter_form_url"] = reverse_lazy("api:uom-get-filter-form")
         context["selected"] = "uoms"  # id of selected page
         return context
 

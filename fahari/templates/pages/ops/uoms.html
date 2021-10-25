@@ -9,6 +9,7 @@
 <div class="card shadow mb-1">
   <div class="card-header py-3">
     <div class="toolbar float-right">
+      {% include "fragments/export_data_button.html" %}
       {% if perms.ops.add_uom %}
       <a href="{% url 'ops:uom_create' %}" class="btn btn-primary btn-icon-split">
                     <span class="icon text-white-50">
@@ -43,6 +44,10 @@
     </div>
   </div>
 </div>
+
+<!-- Export Data Modal -->
+{% include "fragments/export_data_modal.html" %}
+
 {% endblock content %}
 {% block inline_javascript %}
 <script>
@@ -53,7 +58,7 @@ window.addEventListener("load", function(){
             responsive: true,
             columns: [
                 {data: "name", name: "name"},
-                {data: "category_name", name: "category"},
+                {data: "category_data.name", name: "category__name"},
                 {
                     data: "url",
                     name: "id",
