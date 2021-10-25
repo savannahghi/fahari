@@ -56,16 +56,18 @@ def test_send_user_awaiting_approval_email(mailoutbox):
     ]
 
 
-def test_send_admin_awaiting_approval_email(mailoutbox):
+def test_send_admin_awaiting_approval_email(mailoutbox, rf):
+    admins = baker.make(
+        User, 3, approval_notified=True, email=fake.email(), is_approved=True, is_staff=True
+    )
     user = baker.make(User, email=fake.email(), is_approved=True, approval_notified=False)
-    send_admin_awaiting_approval_email(user)  # no error
+    request = rf.get("/")
+    send_admin_awaiting_approval_email(user, request)  # no error
     assert len(mailoutbox) >= 1
     m = mailoutbox[len(mailoutbox) - 1]
     assert m.subject == "New Fahari System Account Pending Approval"
     assert m.from_email == settings.SERVER_EMAIL
-    assert list(m.to) == [
-        user.email,
-    ]
+    assert set(m.to) == set(admin.email for admin in admins)
 
 
 def test_account_confirmed_handler_newly_created():
