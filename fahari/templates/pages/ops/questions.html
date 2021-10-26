@@ -34,9 +34,9 @@
                 data-ajax="{% url "api:question-list" %}?format=datatables">
                 <thead>
                     <tr>
-                        <th>Question</th>
                         <th>Numbering</th>
-                        <th>Precedence</th>
+                        <th>Question</th>
+                        <th>Answer type</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -53,9 +53,9 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: 'question', name: 'question'},
                 {data: "question_number", name: "question_number"},
-                {data: "precedence", name: "precedence"},
+                {data: 'query', name: 'query'},
+                {data: "answer_type", name: "answer_type"},
                 {
                     data: "url",
                     name: "id",

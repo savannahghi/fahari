@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% block title %}
-Add/Edit Questionnaire
+Add/Edit Subgroup
 {% endblock title %}
 {% block content %}
-<a href="{% url 'ops:questionnaire' %}">&larr; Back</a>
-{% if perms.ops.change_questionnaire %}
+<a href="{% url 'ops:subgroup_sections' %}">&larr; Back</a>
+{% if perms.ops.change_subgroup_section %}
 
 <div class="row">
   <div class="col-xl-10 col-lg-10 col-md-10 col-sm-12">
     <div class="row align-page-content">
       <div class="card-header">
         <div class="toolbar float-right">
-          {% if object.pk %} {% if perms.ops.delete_questionnaire %}
+          {% if object.pk %} {% if perms.ops.delete_subgroup_section %}
           <a
-            href="{% url 'ops:questionnaire_delete' object.pk %}"
+            href="{% url 'ops:subgroup_section_delete' object.pk %}"
             class="btn btn-danger btn-icon-split"
           >
             <span class="icon text-white-50">
               <i class="fas fa-trash"></i>
             </span>
-            <span class="text">Delete Questionnaire</span>
+            <span class="text">Delete Subgroup</span>
           </a>
           {% endif %} {% endif %}
         </div>
@@ -32,7 +32,7 @@ Add/Edit Questionnaire
           <div class="p-lg-5 p-xs-1 p-sm-1">
             <div class="text-left">
               <h1 class="h4 text-gray-900 mb-4">
-                {% if object.pk %} Edit Questionnaire {% else %} Create Questionnaire
+                {% if object.pk %} Edit Subgroup {% else %} Create Subgroup
                 {%endif %}
               </h1>
             </div>
@@ -44,5 +44,5 @@ Add/Edit Questionnaire
   </div>
 </div>
 {% else %}
-<p>You do not have permission to edit questionnaire.</p>
+<p>You do not have permission to edit subgroup.</p>
 {% endif %} {% endblock content %}

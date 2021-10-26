@@ -12,7 +12,6 @@ from .models import (
     GroupSection,
     MentorshipQuestionnaire,
     Question,
-    QuestionAnswer,
     QuestionGroup,
     SecurityIncidence,
     StockReceiptVerification,
@@ -163,11 +162,6 @@ class WeeklyProgramUpdateCommentAdmin(BaseAdmin):
 
 @admin.register(Question)
 class QuestionAdmin(BaseAdmin):
-    pass
-
-
-@admin.register(QuestionAnswer)
-class QuestionAnswerAdmin(BaseAdmin):
     pass
 
 

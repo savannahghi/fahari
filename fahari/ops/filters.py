@@ -12,11 +12,14 @@ from .models import (
     FacilitySystem,
     FacilitySystemTicket,
     GroupSection,
+    MentorshipQuestionnaire,
+    MentorshipTeamMember,
     Question,
     QuestionGroup,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
+    SubgroupSection,
     TimeSheet,
     UoM,
     UoMCategory,
@@ -202,7 +205,7 @@ class QuestionFilter(CommonFieldsFilterset):
     class Meta:
 
         model = Question
-        fields = "__all__"
+        exclude = ("metadata",)
 
 
 class QuestionGroupFilter(CommonFieldsFilterset):
@@ -215,6 +218,16 @@ class QuestionGroupFilter(CommonFieldsFilterset):
         fields = "__all__"
 
 
+class SubgroupSectionFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = SubgroupSection
+        fields = "__all__"
+
+
 class GroupSectionFilter(CommonFieldsFilterset):
 
     search = filters.SearchFilter()
@@ -222,4 +235,24 @@ class GroupSectionFilter(CommonFieldsFilterset):
     class Meta:
 
         model = GroupSection
+        fields = "__all__"
+
+
+class QuestionnaireFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = MentorshipQuestionnaire
+        fields = "__all__"
+
+
+class MentorshipTeamMemberFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+
+        model = MentorshipTeamMember
         fields = "__all__"

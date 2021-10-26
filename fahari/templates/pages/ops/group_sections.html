@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 {% block title %}
-    Question groups
+    Group section
 {% endblock %}
 {% block content %}
 <h1 class="h3 mb-4 text-gray-800">
-    Question groups
+    Group section
 </h1>
 <div class="card shadow mb-1">
     <div class="card-header py-3">
         <div class="toolbar float-right">
-            {% if perms.ops.add_question_group %}
-                <a href="{% url 'ops:question_group_create' %}" class="btn btn-primary btn-icon-split">
+            {% if perms.ops.add_group_section %}
+                <a href="{% url 'ops:group_section_create' %}" class="btn btn-primary btn-icon-split">
                     <span class="icon text-white-50">
                         <i class="fas fa-plus"></i>
                     </span>
-                    <span class="text">Add Question Group</span>
+                    <span class="text">Add Section</span>
                 </a>
             {% endif %}
         </div>
@@ -22,7 +22,7 @@
     <div class="card-body">
         <div class="table-responsive">
             <table
-                id="question-group-list"
+                id="groupsection-list"
                 class="table table-striped table-sm"
                 style="width:100%"
                 data-server-side="true"
@@ -31,13 +31,12 @@
                 data-info="true"
                 data-page-length="100"
                 data-paging-type="full_numbers"
-                data-ajax="{% url "api:questiongroup-list" %}?format=datatables">
+                data-ajax="{% url "api:groupsection-list" %}?format=datatables">
                 <thead>
                     <tr>
-                        <th>Numbering</th>
                         <th>Title</th>
+                        <th>Sub sections</th>
                         <th>Precedence</th>
-                        <th>Questions</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -50,23 +49,22 @@
 <script>
 window.addEventListener("load", function(){
     $(document).ready(function() {
-        $('#question-group-list').DataTable( {
+        $('#groupsection-list').DataTable( {
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: 'group_number', name: 'group_number'},
                 {data: 'title', name: 'title'},
-                {data: "precedence", name: "precedence"},
                 {
-                    data: 'questions',
+                    data: 'sub_sections',
                     render: function (data, type, row) {
-                        let qns = []
+                        let subgroup_list = []
                         for(let i=0;i<data.length;i++){
-                            qns.push(data[i].query)
+                            subgroup_list.push(data[i].title)
                         };
-                        return qns
+                        return subgroup_list
                     }
                 },
+                {data: "precedence", name: "precedence"},
                 {
                     data: "url",
                     name: "id",

@@ -12,11 +12,14 @@ from .models import (
     FacilitySystem,
     FacilitySystemTicket,
     GroupSection,
+    MentorshipQuestionnaire,
+    MentorshipTeamMember,
     Question,
     QuestionGroup,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
+    SubgroupSection,
     TimeSheet,
     UoM,
     UoMCategory,
@@ -188,9 +191,29 @@ class QuestionGroupSerializer(BaseSerializer):
         fields = "__all__"
 
 
-class GroupSectionSerializer(BaseSerializer):
+class SubgroupSectionSerializer(BaseSerializer):
     question_groups = QuestionGroupSerializer(many=True)
 
     class Meta(BaseSerializer.Meta):
+        model = SubgroupSection
+        fields = "__all__"
+
+
+class GroupSectionSerializer(BaseSerializer):
+    sub_sections = SubgroupSectionSerializer(many=True)
+
+    class Meta(BaseSerializer.Meta):
         model = GroupSection
+        fields = "__all__"
+
+
+class QuestionnaireSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = MentorshipQuestionnaire
+        fields = "__all__"
+
+
+class MentorshipTeamMemberSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = MentorshipTeamMember
         fields = "__all__"

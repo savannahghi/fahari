@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import time
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -11,6 +11,7 @@ from django.urls import reverse_lazy
 from django.urls.base import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from phonenumber_field.modelfields import PhoneNumberField
 
 from fahari.common.models import AbstractBase, Facility, Organisation, System, get_directory
 
@@ -684,7 +685,7 @@ class Question(AbstractBase):
         RADIO_OPTION = "radio_option", "Pick an option"
         SELECT_LIST = "select_list", "Check options"
 
-    question = models.TextField(default="-", verbose_name="Question")
+    query = models.TextField(default="-", verbose_name="Question")
     question_number = models.CharField(max_length=7, verbose_name="Question numbering")
     answer_type = models.CharField(
         max_length=15,
@@ -698,10 +699,10 @@ class Question(AbstractBase):
         blank=True,
         null=True,
     )
-    metadata = models.JSONField(default=dict)
+    metadata = models.JSONField(default=dict, blank=True, null=True)
 
     def __str__(self) -> str:
-        return "Question: %s" % (self.question,)
+        return "Question: %s" % (self.query,)
 
     def get_absolute_url(self):
         update_url = reverse("ops:question_update", kwargs={"pk": self.pk})
@@ -713,7 +714,7 @@ class AbstractQuestionAnswer(AbstractBase):
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    answer_date = models.DateField(default=datetime.now())
+    answer_date = models.DateField(default=timezone.datetime.today)
 
     class Meta:
         abstract = True
@@ -728,7 +729,7 @@ class BooleanAnswer(AbstractQuestionAnswer):
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
             self.facility.name,
-            self.question.question,
+            self.question.query,
             self.response,
         )
 
@@ -736,13 +737,13 @@ class BooleanAnswer(AbstractQuestionAnswer):
 class NumberAnswer(AbstractQuestionAnswer):
     """Number Answer."""
 
-    response = models.DecimalField(default=0.0)
+    response = models.DecimalField(default=0.0, decimal_places=2, max_digits=7)
     comments = models.TextField(default="-", verbose_name="Comments")
 
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
             self.facility.name,
-            self.question.question,
+            self.question.query,
             self.response,
         )
 
@@ -756,7 +757,7 @@ class ShortAnswer(AbstractQuestionAnswer):
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
             self.facility.name,
-            self.question.question,
+            self.question.query,
             self.response,
         )
 
@@ -770,7 +771,7 @@ class ParagraphAnswer(AbstractQuestionAnswer):
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
             self.facility.name,
-            self.question.question,
+            self.question.query,
             self.response,
         )
 
@@ -784,7 +785,7 @@ class RadioOptionAnswer(AbstractQuestionAnswer):
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
             self.facility.name,
-            self.question.question,
+            self.question.query,
             self.response,
         )
 
@@ -811,13 +812,10 @@ class SelectListAnswer(AbstractQuestionAnswer):
 class QuestionGroup(AbstractBase):
     """Question group."""
 
-    def check_precedence_unique_per_question(val):
-        if val in QuestionGroup.objects.all().values_list("precedence", flat=True):
-            raise ValidationError("Duplicate precedence value not allowed.")
-
     title = models.CharField(max_length=255, verbose_name="Group title")
     questions = models.ManyToManyField(Question)
-    precedence = models.IntegerField(validators=[check_precedence_unique_per_question])
+    precedence = models.IntegerField()
+    group_number = models.CharField(max_length=5, verbose_name="Question group numbering")
     entry_date = models.DateField(default=timezone.datetime.today)
 
     def __str__(self) -> str:
@@ -827,17 +825,39 @@ class QuestionGroup(AbstractBase):
         update_url = reverse("ops:question_group_update", kwargs={"pk": self.pk})
         return update_url
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["precedence"], name="unique_questiongroup_precedence")
+        ]
+
+
+class SubgroupSection(AbstractBase):
+    """Subgroup Question group."""
+
+    title = models.CharField(max_length=255, verbose_name="Subgroup title")
+    question_groups = models.ManyToManyField(QuestionGroup)
+    subgroup_number = models.CharField(max_length=5, verbose_name="Subgroup numbering")
+    precedence = models.IntegerField()
+
+    def __str__(self) -> str:
+        return "Title: %s" % (self.title,)
+
+    def get_absolute_url(self):
+        update_url = reverse("ops:subgroup_section_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["precedence"], name="unique_subgroup_precedence")
+        ]
+
 
 class GroupSection(AbstractBase):
     """Question group."""
 
-    def check_precedence_unique_per_groupsection(val):
-        if val in GroupSection.objects.all().values_list("precedence", flat=True):
-            raise ValidationError("Duplicate precedence value not allowed.")
-
-    title = models.CharField(max_length=255, verbose_name="Group title")
-    question_groups = models.ManyToManyField(QuestionGroup)
-    precedence = models.IntegerField(validators=check_precedence_unique_per_groupsection)
+    title = models.CharField(max_length=255, verbose_name="Section title")
+    sub_sections = models.ManyToManyField(SubgroupSection)
+    precedence = models.IntegerField()
 
     def __str__(self) -> str:
         return "Title: %s" % (self.title,)
@@ -847,10 +867,23 @@ class GroupSection(AbstractBase):
         return update_url
 
     class Meta:
-        unique_together = (
-            "title",
-            "precedence",
-        )
+        constraints = [
+            models.UniqueConstraint(fields=["precedence"], name="unique_group_precedence")
+        ]
+
+
+class MentorshipTeamMember(AbstractBase):
+    """Mentorship team"""
+
+    name = models.CharField(max_length=255)
+    email = models.EmailField(max_length=255)
+    phone = PhoneNumberField(null=True, blank=True)
+    organisation = models.CharField(max_length=255)
+    role = models.CharField(max_length=255)
+
+    # def get_absolute_url(self):
+    #     update_url = reverse("ops:mentorship_team_member_update", kwargs={"pk": self.pk})
+    #     return update_url
 
 
 class MentorshipQuestionnaire(AbstractBase):
@@ -858,13 +891,8 @@ class MentorshipQuestionnaire(AbstractBase):
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     group_section = models.ForeignKey(GroupSection, null=True, on_delete=models.PROTECT)
-    mentorship_team = ArrayField(
-        models.TextField(),
-        blank=True,
-        default=list,
-        help_text="Use commas to separate team names",
-    )
-    submit_date = models.DateField(default=timezone.datetime.today, help_text="Site visit date")
+    mentorship_team = models.ManyToManyField(MentorshipTeamMember)
+    submit_date = models.DateField(default=timezone.datetime.today)
 
     def __str__(self) -> str:
         return "Facility: %s" % (self.facility.name,)

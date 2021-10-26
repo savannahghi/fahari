@@ -21,6 +21,7 @@ from .models import (
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
+    SubgroupSection,
     TimeSheet,
     UoM,
     UoMCategory,
@@ -502,7 +503,13 @@ class SecurityIncidenceForm(GetAllottedFacilitiesMixin, BaseModelForm):
 
 
 class QuestionForm(BaseModelForm):
-    field_order = ("question", "question_number", "precedence", "active")
+    field_order = (
+        "query",
+        "question_number",
+        "answer_type",
+        "parent",
+        "metadata",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -514,7 +521,7 @@ class QuestionForm(BaseModelForm):
 
 class QuestionGroupForm(BaseModelForm):
     field_order = (
-        "facility",
+        "group_number",
         "title",
         "questions",
         "precedence",
@@ -529,10 +536,26 @@ class QuestionGroupForm(BaseModelForm):
         model = QuestionGroup
 
 
+class SubgroupSectionForm(BaseModelForm):
+    field_order = (
+        "subgroup_number",
+        "title",
+        "question_groups",
+        "precedence",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.form_id = "subgroup_section_form"
+
+    class Meta(BaseModelForm.Meta):
+        model = SubgroupSection
+
+
 class GroupSectionForm(BaseModelForm):
     field_order = (
         "title",
-        "question_groups",
+        "sub_sections",
         "precedence",
     )
 

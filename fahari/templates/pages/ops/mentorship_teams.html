@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}
-    Questonnaires
+    Mentorship teams
 {% endblock %}
 {% block content %}
 <h1 class="h3 mb-4 text-gray-800">
-    Questonnaires
+    Mentorship teams
 </h1>
 <div class="card shadow mb-1">
     <div class="card-header py-3">
@@ -14,13 +14,36 @@
                     <span class="icon text-white-50">
                         <i class="fas fa-plus"></i>
                     </span>
-                    <span class="text">Add New</span>
+                    <span class="text">Add Team</span>
                 </a>
             {% endif %}
         </div>
     </div>
     <div class="card-body">
-
+           <div class="table-responsive">
+            <table
+                id="mentorshipteammember-list"
+                class="table table-striped table-sm"
+                style="width:100%"
+                data-server-side="true"
+                data-state-save="true"
+                data-defer-render="true"
+                data-info="true"
+                data-page-length="100"
+                data-paging-type="full_numbers"
+                data-ajax="{% url "api:mentorshipteammember-list" %}?format=datatables">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Oganisation</th>
+                        <th>Role</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock content %}
@@ -28,15 +51,15 @@
 <script>
 window.addEventListener("load", function(){
     $(document).ready(function() {
-        $('#versions-list').DataTable( {
+        $('#mentorshipteammember-list').DataTable( {
             iDisplayLength: 100,
             responsive: true,
             columns: [
                 {data: "name", name: "name"},
-                {data: "code", name: "code"},
-                {data: "description", name: "description"},
-                {data: "is_lab_commodity", name: "is_lab_commodity"},
-                {data: "is_pharmacy_commodity", name: "is_pharmacy_commodity"},
+                {data: "email", name: "email"},
+                {data: "phone", name: "phone"},
+                {data: "organisation", name: "organisation"},
+                {data: "role", name: "role"},
                 {
                     data: "url",
                     name: "id",
