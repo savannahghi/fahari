@@ -15,6 +15,7 @@ from fahari.utils.excel_utils import (
     DRFSerializerExcelIO,
     DRFSerializerExcelIOTemplate,
 )
+from fahari.utils.excel_utils.drf_serializer_excel_io import flatten_fields
 
 
 class AuditSerializerExcelIOTestCase(TestCase):
@@ -154,15 +155,15 @@ class DRFSerializerExcelIOTemplateTestCase(TestCase):
     def test_correct_object_creation(self) -> None:
         """Assert that object creation and initialization produces the expected object."""
 
+        delimiter = self.excel_io.get_nested_entries_delimiter()
         excel_io_template = DRFSerializerExcelIOTemplate(
-            fields=self.excel_io.get_fields(), serializer=self.excel_io.get_serializer()
+            fields=flatten_fields(self.excel_io.get_fields(), delimiter),
+            serializer=self.excel_io.get_serializer(),
         )
 
         assert excel_io_template.get_column_headers() is not None
         assert excel_io_template.get_fields() is not None
-        assert excel_io_template.get_fields().keys() == self.excel_io.get_fields().keys()
         assert excel_io_template.get_serializer() is not None
-        assert self.excel_io.get_fields().keys() <= set(excel_io_template.get_column_headers())
 
     def test_generate_input_template(self) -> None:
         """Assert that input template generation works as expected.
