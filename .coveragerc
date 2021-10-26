@@ -6,6 +6,7 @@ omit=fahari/config/*,fahari/**/migrations/*,scripts/*,fahari/**/tests/*
 [report]
 exclude_lines =
     # Have to re-enable the standard pragma
+    pragma: no branch
     pragma: nocover
     pragma: no cover
 

@@ -5,6 +5,7 @@ from django_filters.rest_framework.backends import DjangoFilterBackend
 from openpyxl import Workbook
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.relations import ManyRelatedField, PrimaryKeyRelatedField
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -172,6 +173,9 @@ class DRFSerializerExcelIOMixin(
         def visit(fields: Dict[str, Any], parent_key="") -> List[Dict[str, Union[str, Any]]]:
             results = []
             for key, val in fields.items():
+                if isinstance(val, (ManyRelatedField, PrimaryKeyRelatedField)):
+                    # Skip primary key fields and many to many fields
+                    continue
                 new_key = parent_key + nested_entries_delimiter + key if parent_key else key
                 new_value = {
                     "icon": "fas fa-folder",

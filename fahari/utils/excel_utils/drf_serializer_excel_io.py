@@ -21,6 +21,7 @@ from openpyxl.styles.named_styles import NamedStyle
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 from rest_framework.fields import Field
+from rest_framework.relations import ManyRelatedField, PrimaryKeyRelatedField
 from rest_framework.serializers import Serializer
 
 from fahari.common.serializers import AuditFieldsMixin
@@ -35,6 +36,27 @@ DT = List[Dict[str, Any]]
 _NFD = Dict[str, Union[Field, Dict[str, Any]]]  # Nested Fields Dict
 
 _EXCEL_TYPES = (bool, int, float, str)
+
+
+def flatten_fields(fields: _NFD, nested_entries_delimiter: str) -> Dict[str, Field]:
+    """Flatten the nested fields in the given dict using the given delimiter.
+
+    This is needed as `DRFSerializerExcelIOTemplate` doesn't works with nested data.
+    """
+
+    # Visit each of the dump_fields and extract the field names to be used as
+    # column headers. If there are nested fields, flatten them.
+    def visit(source_fields: _NFD, parent_key="") -> Dict[str, Field]:
+        results: List[Tuple[str, Field]] = []
+        for key, val in source_fields.items():
+            new_key = parent_key + nested_entries_delimiter + key if parent_key else key
+            if isinstance(val, dict):
+                results.extend(visit(val, new_key).items())  # noqa
+            else:
+                results.append((new_key, val))
+        return OrderedDict(results)
+
+    return visit(fields)
 
 
 class DRFSerializerExcelIO(Generic[S, T], ExcelIO[DT]):
@@ -67,9 +89,7 @@ class DRFSerializerExcelIO(Generic[S, T], ExcelIO[DT]):
     def dump_data(self, data: DT, progress_callback: ProgressCallback = None) -> Workbook:
         dump_fields = self._pick_dump_fields()
         nested_entries_delimiter = self.get_nested_entries_delimiter()
-        template = self.get_template(
-            fields=self._flatten_fields(dump_fields, nested_entries_delimiter)
-        )
+        template = self.get_template(fields=flatten_fields(dump_fields, nested_entries_delimiter))
         wb = Workbook()
         template.render(
             self._clean_dump_data(data, dump_fields),
@@ -141,8 +161,10 @@ class DRFSerializerExcelIO(Generic[S, T], ExcelIO[DT]):
 
         template_class = self.get_template_class()
         kwargs.setdefault("serializer", self.get_serializer())
-        if "fields" not in kwargs:
-            kwargs["fields"] = self.get_fields()  # This is expensive so only call it when needed
+        if "fields" not in kwargs:  # This is expensive so only call it when needed
+            kwargs["fields"] = flatten_fields(
+                self.get_fields(), self.get_nested_entries_delimiter()
+            )
 
         return template_class(*args, **kwargs)  # type: ignore
 
@@ -174,6 +196,11 @@ class DRFSerializerExcelIO(Generic[S, T], ExcelIO[DT]):
         return [visit(entry, dump_fields) for entry in data]
 
     def _pick_dump_fields(self) -> _NFD:
+        """Return a dict consisting of only the selected dump fields.
+
+        If no dump fields have been provided, then returns all the fields as is.
+        """
+
         all_fields = self.get_fields()
         if not self._dump_fields:
             return all_fields
@@ -204,23 +231,6 @@ class DRFSerializerExcelIO(Generic[S, T], ExcelIO[DT]):
             return results
 
         return visit_vertically(self._dump_fields, all_fields)
-
-    @staticmethod
-    def _flatten_fields(fields: _NFD, nested_entries_delimiter: str) -> Dict[str, Field]:
-
-        # Visit each of the dump_fields and extract the field names to be used as
-        # column headers. If there are nested fields, flatten them.
-        def visit(source_fields: _NFD, parent_key="") -> Dict[str, Field]:
-            results: List[Tuple[str, Field]] = []
-            for key, val in source_fields.items():
-                new_key = parent_key + nested_entries_delimiter + key if parent_key else key
-                if isinstance(val, dict):
-                    results.extend(visit(val, new_key).items())  # noqa
-                else:
-                    results.append((new_key, val))
-            return OrderedDict(results)
-
-        return visit(fields)
 
 
 class DRFSerializerExcelIOTemplate(Generic[S], ExcelIOTemplate[DT]):
@@ -263,10 +273,22 @@ class DRFSerializerExcelIOTemplate(Generic[S], ExcelIOTemplate[DT]):
     ) -> None:
         raise NotImplementedError("`generate_input_template` must be implemented.")
 
-    def get_column_headers(self) -> Sequence[str]:
+    def get_column_headers(self, for_input=False) -> Sequence[str]:
         """Return the headers for each of the columns in the final exported file."""
 
-        return tuple(self.get_fields().keys())
+        if for_input:  # pragma: no branch
+            return tuple(self.get_fields().keys())
+
+        # If this is a dump, ignore write only, primary related and
+        # many to many fields.
+        fields = self.get_fields()
+        return tuple(
+            field_name
+            for field_name, field in fields.items()
+            if not (
+                field.write_only or isinstance(field, (PrimaryKeyRelatedField, ManyRelatedField))
+            )
+        )
 
     def get_fields(self) -> Dict[str, Field]:
         return self._fields
@@ -289,10 +311,24 @@ class DRFSerializerExcelIOTemplate(Generic[S], ExcelIOTemplate[DT]):
     def render(
         self, data: DT, workbook: Workbook, progress_callback: Optional[ProgressCallback] = None
     ) -> None:
-        self._setup_workbook(workbook)
+        self._setup_workbook(workbook, False)
         self._setup_data_worksheet(workbook[self.DATA_WORKSHEET_NAME], False)
         self._dump_data(data, workbook[self.DATA_WORKSHEET_NAME])
         self._auto_size_columns(workbook[self.DATA_WORKSHEET_NAME])
+
+    def _dump_data(self, data: DT, worksheet: Worksheet) -> None:
+        fields = self.get_fields()
+        for entry in data:
+            worksheet.append(
+                self._coax_to_excel_value(value)
+                for value, field in zip(entry.values(), fields.values())
+                if not (
+                    # For a data dump, ignore write only, primary related
+                    # and many to many fields.
+                    field.write_only
+                    or isinstance(field, (PrimaryKeyRelatedField, ManyRelatedField))
+                )
+            )
 
     def _setup_data_worksheet(self, worksheet: Worksheet, for_input=False) -> None:
         header_row = self.get_column_headers()
@@ -303,12 +339,12 @@ class DRFSerializerExcelIOTemplate(Generic[S], ExcelIOTemplate[DT]):
         )
         self._freeze_column_headers(worksheet, len(header_row))
 
-    def _setup_workbook(self, workbook: Workbook) -> None:
+    def _setup_workbook(self, workbook: Workbook, for_input=False) -> None:
         work_sheets = workbook.sheetnames  # Remove existing worksheets
         for sheet_name in work_sheets:
             del workbook[sheet_name]
 
-        ws: Worksheet = workbook.create_sheet(title=self.DATA_WORKSHEET_NAME, index=0)
+        ws: Worksheet = workbook.create_sheet(title=self.DATA_WORKSHEET_NAME, index=0)  # noqa
         workbook.active = ws
         workbook.create_sheet(title=self.SCHEMA_WORKSHEET_NAME)
 
@@ -333,12 +369,6 @@ class DRFSerializerExcelIOTemplate(Generic[S], ExcelIOTemplate[DT]):
         if type(value) in _EXCEL_TYPES:
             return value
         return "" if value is None else str(value)
-
-    @staticmethod
-    def _dump_data(data: DT, worksheet: Worksheet) -> None:
-        template = DRFSerializerExcelIOTemplate
-        for entry in data:
-            worksheet.append(template._coax_to_excel_value(value) for value in entry.values())
 
     @staticmethod
     def _freeze_column_headers(
