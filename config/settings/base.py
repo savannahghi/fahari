@@ -52,6 +52,7 @@ DATABASES = {
 # URLS
 # ------------------------------------------------------------------------------
 ROOT_URLCONF = "config.urls"
+
 WSGI_APPLICATION = "config.wsgi.application"
 
 # APPS
@@ -69,6 +70,7 @@ DJANGO_APPS = [
     "django.contrib.postgres",
 ]
 THIRD_PARTY_APPS = [
+    # "channels",
     "crispy_forms",
     "allauth",
     "allauth.account",
@@ -88,6 +90,7 @@ LOCAL_APPS = [
     "fahari.common.apps.CommonConfig",
     "fahari.ops.apps.OpsConfig",
     "fahari.mle.apps.MLEConfig",
+    "fahari.misc.apps.MiscConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 

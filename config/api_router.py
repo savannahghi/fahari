@@ -2,6 +2,7 @@ from django.conf import settings
 from rest_framework.routers import DefaultRouter, SimpleRouter
 
 from fahari.common.views import FacilityViewSet, SystemViewSet, UserFacilityViewSet
+from fahari.misc.views import StockVerificationReceiptsAdapterView
 from fahari.ops.views import (
     ActivityLogViewSet,
     CommodityViewSet,
@@ -47,6 +48,7 @@ router.register("network_status", FacilityNetworkStatusViewSet)
 router.register("facility_devices", FacilityDeviceViewSet)
 router.register("facility_device_requests", FacilityDeviceRequestViewSet)
 router.register("security_incidents", SecurityIncidenceViewSet)
+router.register("stock_receipts_adapters", StockVerificationReceiptsAdapterView)
 
 app_name = "api"
 urlpatterns = router.urls

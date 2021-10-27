@@ -11,6 +11,7 @@ from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateR
 from django.views.generic.edit import FormMixin, ProcessFormView
 
 from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, FormContextMixin
+from fahari.misc.forms import ImportStockVerificationReceiptsForm
 
 from .filters import (
     ActivityLogFilter,
@@ -253,6 +254,7 @@ class StockReceiptVerificationContextMixin:
             "api:stockreceiptverification-get-filter-form"
         )
         context["selected"] = "stock-receipt-verifications"  # id of selected page
+        context["ingest_form"] = ImportStockVerificationReceiptsForm()
         return context
 
 

@@ -11,7 +11,12 @@ import os
 import sys
 from pathlib import Path
 
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.conf.urls import re_path  # type: ignore
 from django.core.asgi import get_asgi_application
+
+from fahari.misc.consumers import StockVerificationReceiptsAdapterConsumer
 
 # This allows easy placement of apps within the interior
 # fahari directory.
@@ -21,20 +26,22 @@ sys.path.append(str(ROOT_DIR / "fahari"))
 # If DJANGO_SETTINGS_MODULE is unset, default to the local settings
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 
-# This application object is used by any ASGI server configured to use this file.
-django_application = get_asgi_application()
-# Apply ASGI middleware here.
-# from helloworld.asgi import HelloWorldApplication
-# application = HelloWorldApplication(application)
+django_asgi_app = get_asgi_application()
 
-# Import websocket application here, so apps from django_application are loaded first
-from config.websocket import websocket_application  # noqa isort:skip
-
-
-async def application(scope, receive, send):
-    if scope["type"] == "http":
-        await django_application(scope, receive, send)
-    elif scope["type"] == "websocket":
-        await websocket_application(scope, receive, send)
-    else:
-        raise NotImplementedError(f"Unknown scope type {scope['type']}")
+application = ProtocolTypeRouter(
+    {
+        # Django's ASGI application to handle traditional HTTP requests
+        "http": django_asgi_app,
+        # WebSocket router
+        "websocket": AuthMiddlewareStack(
+            URLRouter(
+                [
+                    re_path(
+                        r"^ws/misc/stock_receipts_verification_ingest/$",
+                        StockVerificationReceiptsAdapterConsumer.as_asgi(),
+                    ),
+                ]
+            )
+        ),
+    }
+)

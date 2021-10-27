@@ -1,10 +1,12 @@
+from typing import Tuple
+
 from django.contrib import admin
 
 from .models import Facility, FacilityAttachment, Organisation, System
 
 
 class BaseAdmin(admin.ModelAdmin):
-    readonly_fields = (
+    readonly_fields: Tuple[str, ...] = (
         "created",
         "created_by",
         "updated",
