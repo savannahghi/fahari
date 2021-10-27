@@ -1,3 +1,4 @@
+import django_filters
 from rest_framework import filters
 
 from fahari.common.filters import CommonFieldsFilterset
@@ -19,7 +20,6 @@ from .models import (
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
-    SubgroupSection,
     TimeSheet,
     UoM,
     UoMCategory,
@@ -218,16 +218,6 @@ class QuestionGroupFilter(CommonFieldsFilterset):
         fields = "__all__"
 
 
-class SubgroupSectionFilter(CommonFieldsFilterset):
-
-    search = filters.SearchFilter()
-
-    class Meta:
-
-        model = SubgroupSection
-        fields = "__all__"
-
-
 class GroupSectionFilter(CommonFieldsFilterset):
 
     search = filters.SearchFilter()
@@ -238,16 +228,6 @@ class GroupSectionFilter(CommonFieldsFilterset):
         fields = "__all__"
 
 
-class QuestionnaireFilter(CommonFieldsFilterset):
-
-    search = filters.SearchFilter()
-
-    class Meta:
-
-        model = MentorshipQuestionnaire
-        fields = "__all__"
-
-
 class MentorshipTeamMemberFilter(CommonFieldsFilterset):
 
     search = filters.SearchFilter()
@@ -255,4 +235,23 @@ class MentorshipTeamMemberFilter(CommonFieldsFilterset):
     class Meta:
 
         model = MentorshipTeamMember
+        fields = "__all__"
+
+
+class QuestionnaireFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    def draft_queries(self, queryset, field, value):
+        return queryset.filter(active=value)
+
+    def submitted_queries(self, queryset, field, value):
+        return queryset.filter(active=value)
+
+    drafts = django_filters.CharFilter(method="draft_queries")
+    submitted = django_filters.CharFilter(method="submitted_queries")
+
+    class Meta:
+
+        model = MentorshipQuestionnaire
         fields = "__all__"

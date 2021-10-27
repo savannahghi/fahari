@@ -30,7 +30,6 @@ from .filters import (
     SecurityIncidenceFilter,
     SiteMentorshipFilter,
     StockReceiptVerificationFilter,
-    SubgroupSectionFilter,
     TimeSheetFilter,
     UoMCategoryFilter,
     UoMFilter,
@@ -53,7 +52,6 @@ from .forms import (
     SecurityIncidenceForm,
     SiteMentorshipForm,
     StockReceiptVerificationForm,
-    SubgroupSectionForm,
     TimeSheetForm,
     UoMCategoryForm,
     UoMForm,
@@ -77,7 +75,6 @@ from .models import (
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
-    SubgroupSection,
     TimeSheet,
     UoM,
     UoMCategory,
@@ -94,14 +91,13 @@ from .serializers import (
     FacilitySystemSerializer,
     FacilitySystemTicketSerializer,
     GroupSectionSerializer,
+    MentorshipQuestionnaireSerializer,
     MentorshipTeamMemberSerializer,
     QuestionGroupSerializer,
-    QuestionnaireSerializer,
     QuestionSerializer,
     SecurityIncidenceSerializer,
     SiteMentorshipSerializer,
     StockReceiptVerificationSerializer,
-    SubgroupSectionSerializer,
     TimeSheetSerializer,
     UoMCategorySerializer,
     UoMSerializer,
@@ -1136,56 +1132,6 @@ class QuestionGroupViewSet(BaseView):
     )
 
 
-class SubgroupSectionContextMixin:
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)  # type: ignore
-        context["active"] = "mentorship-nav"  # id of active nav element
-        context["selected"] = "subgroup_section"  # id of selected page
-        return context
-
-
-class SubgroupSectionListView(
-    SubgroupSectionContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
-):
-    template_name = "pages/ops/subgroup_sections.html"
-    permission_required = "ops.view_subgroup_section"
-
-
-class SubgroupSectionCreateView(
-    SubgroupSectionContextMixin, BaseFormMixin, FormContextMixin, CreateView
-):
-    form_class = SubgroupSectionForm
-    model = SubgroupSection
-    success_url = reverse_lazy("ops:subgroup_sections")
-
-
-class SubgroupSectionUpdateView(
-    SubgroupSectionContextMixin, BaseFormMixin, FormContextMixin, UpdateView
-):
-    form_class = SubgroupSectionForm
-    model = SubgroupSection
-    success_url = reverse_lazy("ops:subgroup_sections")
-
-
-class SubgroupSectionDeleteView(
-    SubgroupSectionContextMixin, BaseFormMixin, FormContextMixin, DeleteView
-):
-    form_class = SubgroupSectionForm
-    model = SubgroupSection
-    success_url = reverse_lazy("ops:subgroup_sections")
-
-
-class SubgroupSectionViewSet(BaseView):
-    queryset = SubgroupSection.objects.active()
-    serializer_class = SubgroupSectionSerializer
-    filterset_class = SubgroupSectionFilter
-    ordering_fields = (
-        "title",
-        "question_groups" "-precedence",
-    )
-    search_fields = ("title",)
-
-
 class GroupSectionContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
@@ -1240,21 +1186,20 @@ class QuestionnaireContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
         context["active"] = "mentorship-nav"  # id of active nav element
-        context["selected"] = "questionnaire_section"  # id of selected page
+        context["selected"] = "mentorship_questionnaires"  # id of selected page
         return context
 
 
 class QuestionnaireListView(
-    QuestionnaireContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+    GroupSectionContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
 ):
-
     template_name = "pages/ops/questionnaires.html"
     permission_required = "ops.view_mentorship_questionnaire"
 
 
 class QuestionnaireViewSet(BaseView):
     queryset = MentorshipQuestionnaire.objects.active()
-    serializer_class = QuestionnaireSerializer
+    serializer_class = MentorshipQuestionnaireSerializer
     filterset_class = QuestionnaireFilter
     ordering_fields = (
         "title",
@@ -1272,13 +1217,13 @@ class MentorshipTeamListView(
 
 
 class MentorshipTeamViewSet(BaseView):
-    queryset = MentorshipTeamMember.objects.active()
+    queryset = MentorshipTeamMember.objects.all()
     serializer_class = MentorshipTeamMemberSerializer
     filterset_class = MentorshipTeamMemberFilter
-    ordering_fields = ("name", "email", "phone", "organisation", "role")
+    ordering_fields = ("name", "email", "phone", "member_org", "role")
     search_fields = (
         "name",
         "email",
         "phone",
-        "organisation",
+        "member_org",
     )

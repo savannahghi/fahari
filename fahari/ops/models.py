@@ -684,9 +684,10 @@ class Question(AbstractBase):
         PARAGRAPH = "paragraph", "Long answer"
         RADIO_OPTION = "radio_option", "Pick an option"
         SELECT_LIST = "select_list", "Check options"
+        NONE = "none", "Not Applicable"
 
-    query = models.TextField(default="-", verbose_name="Question")
-    question_number = models.CharField(max_length=7, verbose_name="Question numbering")
+    query = models.TextField(verbose_name="Question")
+    question_number = models.CharField(max_length=7, blank=True, verbose_name="Question numbering")
     answer_type = models.CharField(
         max_length=15,
         choices=AnswerType.choices,
@@ -701,6 +702,9 @@ class Question(AbstractBase):
     )
     metadata = models.JSONField(default=dict, blank=True, null=True)
 
+    def is_answered_for_questionaire(questionaire: "MentorshipQuestionnaire") -> bool:
+        return False
+
     def __str__(self) -> str:
         return "Question: %s" % (self.query,)
 
@@ -712,11 +716,11 @@ class Question(AbstractBase):
 class AbstractQuestionAnswer(AbstractBase):
     """Common Question Answers."""
 
-    facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
+    questionnaire = models.ForeignKey("MentorshipQuestionnaire", on_delete=models.PROTECT)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    answer_date = models.DateField(default=timezone.datetime.today)
+    answered_on = models.DateTimeField(default=timezone.datetime.today)
 
-    class Meta:
+    class Meta(AbstractBase.Meta):
         abstract = True
 
 
@@ -732,6 +736,16 @@ class BooleanAnswer(AbstractQuestionAnswer):
             self.question.query,
             self.response,
         )
+
+    class Meta(AbstractQuestionAnswer.Meta):
+        ...
+
+
+class NotApplicableAnswer(AbstractQuestionAnswer):
+    """Not Applicable."""
+
+    class Meta(AbstractQuestionAnswer.Meta):
+        ...
 
 
 class NumberAnswer(AbstractQuestionAnswer):
@@ -813,10 +827,15 @@ class QuestionGroup(AbstractBase):
     """Question group."""
 
     title = models.CharField(max_length=255, verbose_name="Group title")
-    questions = models.ManyToManyField(Question)
+    questions = models.ManyToManyField(Question, blank=True)
+    question_groups = models.ManyToManyField(
+        "self",
+        models.SET_NULL,
+        blank=True,
+    )
     precedence = models.IntegerField()
     group_number = models.CharField(max_length=5, verbose_name="Question group numbering")
-    entry_date = models.DateField(default=timezone.datetime.today)
+    entry_date = models.DateTimeField(default=timezone.datetime.today)
 
     def __str__(self) -> str:
         return "Title: %s" % (self.title,)
@@ -831,32 +850,18 @@ class QuestionGroup(AbstractBase):
         ]
 
 
-class SubgroupSection(AbstractBase):
-    """Subgroup Question group."""
-
-    title = models.CharField(max_length=255, verbose_name="Subgroup title")
-    question_groups = models.ManyToManyField(QuestionGroup)
-    subgroup_number = models.CharField(max_length=5, verbose_name="Subgroup numbering")
-    precedence = models.IntegerField()
-
-    def __str__(self) -> str:
-        return "Title: %s" % (self.title,)
-
-    def get_absolute_url(self):
-        update_url = reverse("ops:subgroup_section_update", kwargs={"pk": self.pk})
-        return update_url
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["precedence"], name="unique_subgroup_precedence")
-        ]
-
-
 class GroupSection(AbstractBase):
-    """Question group."""
+    """
+    Question group:
+    - Service Delivery
+    - Human Resources
+    - Medicine and Technology
+    - Financing
+    - Information
+    """
 
     title = models.CharField(max_length=255, verbose_name="Section title")
-    sub_sections = models.ManyToManyField(SubgroupSection)
+    question_groups = models.ManyToManyField(QuestionGroup)
     precedence = models.IntegerField()
 
     def __str__(self) -> str:
@@ -878,21 +883,17 @@ class MentorshipTeamMember(AbstractBase):
     name = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
     phone = PhoneNumberField(null=True, blank=True)
-    organisation = models.CharField(max_length=255)
+    member_org = models.CharField(max_length=255, verbose_name="member organisation")
     role = models.CharField(max_length=255)
-
-    # def get_absolute_url(self):
-    #     update_url = reverse("ops:mentorship_team_member_update", kwargs={"pk": self.pk})
-    #     return update_url
 
 
 class MentorshipQuestionnaire(AbstractBase):
     """Mentorship questionnaire."""
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    group_section = models.ForeignKey(GroupSection, null=True, on_delete=models.PROTECT)
+    group_section = models.ForeignKey(GroupSection, null=True, on_delete=models.CASCADE)
     mentorship_team = models.ManyToManyField(MentorshipTeamMember)
-    submit_date = models.DateField(default=timezone.datetime.today)
+    submit_date = models.DateTimeField(default=timezone.datetime.today)
 
     def __str__(self) -> str:
-        return "Facility: %s" % (self.facility.name,)
+        return "Facility: %s" % self.facility.name

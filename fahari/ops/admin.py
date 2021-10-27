@@ -11,6 +11,7 @@ from .models import (
     FacilitySystemTicket,
     GroupSection,
     MentorshipQuestionnaire,
+    MentorshipTeamMember,
     Question,
     QuestionGroup,
     SecurityIncidence,
@@ -172,6 +173,11 @@ class QuestionGroupAdmin(BaseAdmin):
 
 @admin.register(GroupSection)
 class GroupSectionAdmin(BaseAdmin):
+    pass
+
+
+@admin.register(MentorshipTeamMember)
+class MentorshipTeamMemberAdmin(BaseAdmin):
     pass
 
 

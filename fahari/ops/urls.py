@@ -60,10 +60,6 @@ from .views import (
     StockReceiptVerificationDeleteView,
     StockReceiptVerificationUpdateView,
     StockReceiptVerificationView,
-    SubgroupSectionCreateView,
-    SubgroupSectionDeleteView,
-    SubgroupSectionListView,
-    SubgroupSectionUpdateView,
     TimeSheetApproveView,
     TimeSheetCreateView,
     TimeSheetDeleteView,
@@ -410,26 +406,6 @@ urlpatterns = [
         "question_group_delete/<pk>",
         view=QuestionGroupDeleteView.as_view(),
         name="question_group_delete",
-    ),
-    path(
-        "subgroup_sections",
-        view=SubgroupSectionListView.as_view(),
-        name="subgroup_sections",
-    ),
-    path(
-        "subgroup_section_create",
-        view=SubgroupSectionCreateView.as_view(),
-        name="subgroup_section_create",
-    ),
-    path(
-        "subgroup_section_update/<pk>",
-        view=SubgroupSectionUpdateView.as_view(),
-        name="subgroup_section_update",
-    ),
-    path(
-        "subgroup_section_delete/<pk>",
-        view=SubgroupSectionDeleteView.as_view(),
-        name="subgroup_section_delete",
     ),
     path(
         "group_sections",

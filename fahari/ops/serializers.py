@@ -19,7 +19,6 @@ from .models import (
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
-    SubgroupSection,
     TimeSheet,
     UoM,
     UoMCategory,
@@ -191,29 +190,27 @@ class QuestionGroupSerializer(BaseSerializer):
         fields = "__all__"
 
 
-class SubgroupSectionSerializer(BaseSerializer):
-    question_groups = QuestionGroupSerializer(many=True)
-
-    class Meta(BaseSerializer.Meta):
-        model = SubgroupSection
-        fields = "__all__"
-
-
 class GroupSectionSerializer(BaseSerializer):
-    sub_sections = SubgroupSectionSerializer(many=True)
+    question_groups = QuestionGroupSerializer(many=True)
 
     class Meta(BaseSerializer.Meta):
         model = GroupSection
         fields = "__all__"
 
 
-class QuestionnaireSerializer(BaseSerializer):
-    class Meta(BaseSerializer.Meta):
-        model = MentorshipQuestionnaire
+class MentorshipTeamMemberSerializer(BaseSerializer):
+    class Meta:
+        model = MentorshipTeamMember
         fields = "__all__"
 
 
-class MentorshipTeamMemberSerializer(BaseSerializer):
+class MentorshipQuestionnaireSerializer(BaseSerializer):
+    mentorship_team = MentorshipTeamMemberSerializer(many=True)
+    facility_name = serializers.ReadOnlyField(source="facility.name")
+    submit_date = serializers.DateTimeField(format="%d/%m/%Y", required=False)
+    is_complete = serializers.ReadOnlyField()
+    sections_count = serializers.ReadOnlyField()
+
     class Meta(BaseSerializer.Meta):
-        model = MentorshipTeamMember
+        model = MentorshipQuestionnaire
         fields = "__all__"

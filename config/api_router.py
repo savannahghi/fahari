@@ -20,7 +20,6 @@ from fahari.ops.views import (
     SecurityIncidenceViewSet,
     SiteMentorshipViewSet,
     StockReceiptVerificationViewSet,
-    SubgroupSectionViewSet,
     TimeSheetViewSet,
     UoMCategoryViewSet,
     UoMViewSet,
@@ -57,11 +56,8 @@ router.register("security_incidents", SecurityIncidenceViewSet)
 router.register("stock_receipts_adapters", StockVerificationReceiptsAdapterView)
 router.register("questions", QuestionViewSet)
 router.register("question_group", QuestionGroupViewSet)
-router.register("subgroup_sections", SubgroupSectionViewSet)
 router.register("group_sections", GroupSectionViewSet)
-router.register(
-    "mentorship_questionnaires", QuestionnaireViewSet, basename="mentorship_questionnaires"
-)
+router.register("mentorship_questionnaires", QuestionnaireViewSet)
 router.register("mentorship_teams", MentorshipTeamViewSet)
 app_name = "api"
 urlpatterns = router.urls

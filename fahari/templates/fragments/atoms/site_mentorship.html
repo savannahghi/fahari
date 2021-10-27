@@ -19,11 +19,6 @@
                 </a>
             {% endif %}
 
-            {% if perms.ops.view_subgroup_section %}
-                <a class="collapse-item {% if selected == "subgroup_sections" %}active {% endif %}" id="subgroup_sections" href="{% url 'ops:subgroup_sections' %}">
-                   Subgroup section
-                </a>
-            {% endif %}
 
             {% if perms.ops.view_group_section %}
                 <a class="collapse-item {% if selected == "group_sections" %}active {% endif %}" id="group_sections" href="{% url 'ops:group_sections' %}">

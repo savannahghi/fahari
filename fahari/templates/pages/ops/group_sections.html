@@ -35,7 +35,7 @@
                 <thead>
                     <tr>
                         <th>Title</th>
-                        <th>Sub sections</th>
+                        <th>Question groups</th>
                         <th>Precedence</th>
                         <th></th>
                     </tr>
@@ -55,13 +55,13 @@ window.addEventListener("load", function(){
             columns: [
                 {data: 'title', name: 'title'},
                 {
-                    data: 'sub_sections',
+                    data: 'question_groups',
                     render: function (data, type, row) {
-                        let subgroup_list = []
+                        let q_groups = []
                         for(let i=0;i<data.length;i++){
-                            subgroup_list.push(data[i].title)
+                            q_groups.push(data[i].title)
                         };
-                        return subgroup_list
+                        return q_groups
                     }
                 },
                 {data: "precedence", name: "precedence"},
