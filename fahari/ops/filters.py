@@ -248,6 +248,9 @@ class QuestionnaireFilter(CommonFieldsFilterset):
     def submitted_queries(self, queryset, field, value):
         return queryset.filter(active=value)
 
+    def is_complete(self, queryset, field, value):
+        ...
+
     drafts = django_filters.CharFilter(method="draft_queries")
     submitted = django_filters.CharFilter(method="submitted_queries")
 

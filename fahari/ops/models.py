@@ -702,7 +702,25 @@ class Question(AbstractBase):
     )
     metadata = models.JSONField(default=dict, blank=True, null=True)
 
-    def is_answered_for_questionaire(questionaire: "MentorshipQuestionnaire") -> bool:
+    def is_answered_for_questionnaire(self, questionnaire: "MentorshipQuestionnaire") -> bool:
+        child_questions = getattr(self, "question_set", None)
+        if child_questions is not None:
+            child_question: Question
+            for child_question in child_questions:
+                if not child_question.is_answered_for_questionnaire(questionnaire):
+                    return False
+            return True
+
+        if self._is_answered_for_questionnaire(self.notapplicableanswer_set, questionnaire):
+            return True
+
+        if self.answer_type in (self.AnswerType.YES_NO.value, self.AnswerType.TRUE_FALSE.value):
+            return self._is_answered_for_questionnaire(self.booleananswer_set, questionnaire)
+        elif self.answer_type == self.AnswerType.NUMBER.value:
+            return self._is_answered_for_questionnaire(self.numberanswer_set, questionnaire)
+        elif self.answer_type == self.AnswerType.SHORT_ANSWER.value:
+            return self._is_answered_for_questionnaire(self.shortanswer_set, questionnaire)
+
         return False
 
     def __str__(self) -> str:
@@ -712,6 +730,11 @@ class Question(AbstractBase):
         update_url = reverse("ops:question_update", kwargs={"pk": self.pk})
         return update_url
 
+    def _is_answered_for_questionnaire(
+        self, queryset: models.QuerySet, questionnaire: "MentorshipQuestionnaire"
+    ) -> bool:
+        return queryset.filter(question=self, questionnaire=questionnaire).exists()
+
 
 class AbstractQuestionAnswer(AbstractBase):
     """Common Question Answers."""
@@ -720,8 +743,16 @@ class AbstractQuestionAnswer(AbstractBase):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answered_on = models.DateTimeField(default=timezone.datetime.today)
 
+    def __str__(self) -> str:
+        return "Facility: %s, Question: %s, Response: %s" % (
+            self.questionnaire.facility.name,
+            self.question.query,
+            getattr(self, "response", "-"),
+        )
+
     class Meta(AbstractBase.Meta):
         abstract = True
+        unique_together = ("questionnaire", "question")
 
 
 class BooleanAnswer(AbstractQuestionAnswer):
@@ -730,19 +761,18 @@ class BooleanAnswer(AbstractQuestionAnswer):
     response = models.BooleanField()
     comments = models.TextField(default="-", verbose_name="Comments")
 
-    def __str__(self) -> str:
-        return "Facility: %s, Question: %s, Response: %s" % (
-            self.facility.name,
-            self.question.query,
-            self.response,
-        )
-
     class Meta(AbstractQuestionAnswer.Meta):
         ...
 
 
 class NotApplicableAnswer(AbstractQuestionAnswer):
     """Not Applicable."""
+
+    def __str__(self):
+        return "Facility: %s, Question: %s, Response: N/A" % (
+            self.questionnaire.facility.name,
+            self.question.query,
+        )
 
     class Meta(AbstractQuestionAnswer.Meta):
         ...
@@ -754,26 +784,12 @@ class NumberAnswer(AbstractQuestionAnswer):
     response = models.DecimalField(default=0.0, decimal_places=2, max_digits=7)
     comments = models.TextField(default="-", verbose_name="Comments")
 
-    def __str__(self) -> str:
-        return "Facility: %s, Question: %s, Response: %s" % (
-            self.facility.name,
-            self.question.query,
-            self.response,
-        )
-
 
 class ShortAnswer(AbstractQuestionAnswer):
     """Brief Text Answers."""
 
     response = models.CharField(max_length=255)
     comments = models.TextField(default="-", verbose_name="Comments")
-
-    def __str__(self) -> str:
-        return "Facility: %s, Question: %s, Response: %s" % (
-            self.facility.name,
-            self.question.query,
-            self.response,
-        )
 
 
 class ParagraphAnswer(AbstractQuestionAnswer):
@@ -782,13 +798,6 @@ class ParagraphAnswer(AbstractQuestionAnswer):
     response = models.TextField()
     comments = models.TextField(default="-", verbose_name="Comments")
 
-    def __str__(self) -> str:
-        return "Facility: %s, Question: %s, Response: %s" % (
-            self.facility.name,
-            self.question.query,
-            self.response,
-        )
-
 
 class RadioOptionAnswer(AbstractQuestionAnswer):
     """One Option Answers."""
@@ -796,31 +805,17 @@ class RadioOptionAnswer(AbstractQuestionAnswer):
     response = models.CharField(max_length=255)
     comments = models.TextField(default="-", verbose_name="Comments")
 
-    def __str__(self) -> str:
-        return "Facility: %s, Question: %s, Response: %s" % (
-            self.facility.name,
-            self.question.query,
-            self.response,
-        )
-
 
 class SelectListAnswer(AbstractQuestionAnswer):
     """List Option Answers."""
 
     response = ArrayField(
         models.CharField(max_length=255, null=True, blank=True),
-        help_text=("Select from the list"),
+        help_text="Select from the list",
         null=True,
         blank=True,
     )
     comments = models.TextField(default="-", verbose_name="Comments")
-
-    def __str__(self) -> str:
-        return "Facility: %s, Question: %s, Response: %s" % (
-            self.facility.name,
-            self.question.question,
-            self.response,
-        )
 
 
 class QuestionGroup(AbstractBase):
@@ -830,12 +825,24 @@ class QuestionGroup(AbstractBase):
     questions = models.ManyToManyField(Question, blank=True)
     question_groups = models.ManyToManyField(
         "self",
-        models.SET_NULL,
         blank=True,
     )
-    precedence = models.IntegerField()
+    precedence = models.SmallIntegerField()
     group_number = models.CharField(max_length=5, verbose_name="Question group numbering")
     entry_date = models.DateTimeField(default=timezone.datetime.today)
+
+    def is_complete_for_questionnaire(self, questionnaire: "MentorshipQuestionnaire") -> bool:
+        question: Question
+        for question in self.questions.all():
+            if not question.is_answered_for_questionnaire(questionnaire):
+                return False
+
+        child_group: QuestionGroup
+        for child_group in self.question_groups.all():
+            if not child_group.is_complete_for_questionnaire(questionnaire):
+                return False
+
+        return True
 
     def __str__(self) -> str:
         return "Title: %s" % (self.title,)
@@ -857,12 +864,19 @@ class GroupSection(AbstractBase):
     - Human Resources
     - Medicine and Technology
     - Financing
-    - Information
+    - Informatiogroup_sectionn
     """
 
     title = models.CharField(max_length=255, verbose_name="Section title")
     question_groups = models.ManyToManyField(QuestionGroup)
-    precedence = models.IntegerField()
+    precedence = models.SmallIntegerField()
+
+    def is_complete_for_questionnaire(self, questionnaire: "MentorshipQuestionnaire") -> bool:
+        for question_group in self.question_groups.all():
+            if not question_group.is_complete_for_questionnaire(questionnaire):
+                return False
+
+        return True
 
     def __str__(self) -> str:
         return "Title: %s" % (self.title,)
@@ -893,7 +907,16 @@ class MentorshipQuestionnaire(AbstractBase):
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
     group_section = models.ForeignKey(GroupSection, null=True, on_delete=models.CASCADE)
     mentorship_team = models.ManyToManyField(MentorshipTeamMember)
-    submit_date = models.DateTimeField(default=timezone.datetime.today)
+    start_date = models.DateTimeField(default=timezone.now(), editable=False)
+    submit_date = models.DateTimeField(editable=False, null=True, blank=True)
+
+    @property
+    def is_complete(self) -> bool:
+        for group_section in self.group_section.all():
+            if not group_section.is_complete_for_questionnaire(self):
+                return False
+
+        return True
 
     def __str__(self) -> str:
         return "Facility: %s" % self.facility.name
