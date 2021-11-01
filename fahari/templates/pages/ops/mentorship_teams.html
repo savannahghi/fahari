@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 {% block title %}
     Mentorship teams
 {% endblock %}
@@ -10,7 +11,15 @@
     <div class="card-header py-3">
         <div class="toolbar float-right">
             {% if perms.ops.add_mentorship_questionnaire %}
-                <a href="{% url 'ops:mentorship_teams' %}" class="btn btn-primary btn-icon-split">
+
+                <a href="{% url 'ops:add_questionnaire' %}" class="btn btn-secondary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Questionnaire</span>
+                </a>
+
+                <a href="{% url 'ops:mentorship_team' %}" class="btn btn-primary btn-icon-split">
                     <span class="icon text-white-50">
                         <i class="fas fa-plus"></i>
                     </span>
@@ -18,32 +27,32 @@
                 </a>
             {% endif %}
         </div>
+<form>
+
+  <div class="form-group">
+        <div class="dropdown">
+        <button class="btn dropdown-toggle" data-toggle="dropdown">Choose facility
+        <span class="caret"></span></button>
+            <ul class="dropdown-menu">
+                <input class="form-control" id="myInput" type="text" placeholder="Search..">
+                <li class="list-group-item" id="facility_id"></li>
+            </ul>
+        </div>
+  </div>
+
+  <div class="form-group">
+    <label for="exampleInputPassword1">Questionnaire</label>
+    <input type="password" class="form-control" id="exampleInputPassword1">
+  </div>
+  <div class="form-group form-check">
+    <input type="checkbox" class="form-check-input" id="exampleCheck1">
+    <label class="form-check-label" for="exampleCheck1">Check me out</label>
+  </div>
+  <button type="submit" class="btn btn-primary">Submit</button>
+</form>
     </div>
     <div class="card-body">
-           <div class="table-responsive">
-            <table
-                id="mentorshipteammember-list"
-                class="table table-striped table-sm"
-                style="width:100%"
-                data-server-side="true"
-                data-state-save="true"
-                data-defer-render="true"
-                data-info="true"
-                data-page-length="100"
-                data-paging-type="full_numbers"
-                data-ajax="{% url "api:mentorshipteammember-list" %}?format=datatables">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Oganisation</th>
-                        <th>Role</th>
-                        <th></th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
+
     </div>
 </div>
 {% endblock content %}
@@ -51,26 +60,35 @@
 <script>
 window.addEventListener("load", function(){
     $(document).ready(function() {
-        $('#mentorshipteammember-list').DataTable( {
-            iDisplayLength: 100,
-            responsive: true,
-            columns: [
-                {data: "name", name: "name"},
-                {data: "email", name: "email"},
-                {data: "phone", name: "phone"},
-                {data: "organisation", name: "organisation"},
-                {data: "role", name: "role"},
-                {
-                    data: "url",
-                    name: "id",
-                    orderable: false,
-                    searchable: false,
-                    render: function ( data, type, row ) {
-                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
-                    }
+          $.get("{{ get_facilities_url }}", function (data) {
+              var facilities = data.results;
+              var ele = document.getElementById('facility_id');
+                for (var i = 0; i < facilities.length; i++) {
+                    ele.innerHTML = ele.innerHTML +
+                        '<li value="' + facilities[i].id + '">' + facilities[i].name + '</li>';
                 }
-            ]
-        } );
+
+            $("#myInput").on("keyup", function() {
+                var value = $(this).val().toLowerCase();
+                $(".dropdown-menu li").filter(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+
+            const facility_list = document.querySelectorAll("#facility_id")
+            for (const button of facility_list) {
+            button.addEventListener('click', function(event) {
+                console.log("cliked item ",event.target)
+            })
+            }
+
+
+          });
+
+          $.get("{{ get_questionnaires_url }}", function (data) {
+              console.log("questionnaires  ",data.results)
+          })
+
     });
 });
 </script>

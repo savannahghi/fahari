@@ -1,38 +1,28 @@
 {% extends "base.html" %}
 {% block title %}
-    Questonnaires
+    Questionnaire
 {% endblock %}
 {% block content %}
-
+<h1 class="h3 mb-4 text-gray-800">
+    Questionnaire
+</h1>
 <div class="card shadow mb-1">
-<div class="m-3 text-gray-800">
-    {% if perms.ops.add_mentorship_questionnaire %}
-        <a href="{% url 'ops:mentorship_teams' %}" class="float-right btn btn-primary btn-icon-split">
-            <span class="icon text-white-50">
-                <i class="fas fa-plus"></i>
-            </span>
-            <span class="text">Add New</span>
-        </a>
-    {% endif %}
-</div>
     <div class="card-header py-3">
-        <div class="toolbar">
-            <ul class="nav nav-tabs" id="myTab" role="tablist">
-              <li class="nav-item" role="presentation">
-                <a class="nav-link active" id="draft" data-toggle="tab" href="#draft_list" role="tab" aria-controls="draft" aria-selected="true">Draft</a>
-              </li>
-              <li class="nav-item" role="presentation">
-                <a class="nav-link" id="submitted" data-toggle="tab" href="#submitted_list" role="tab" aria-controls="submitted" aria-selected="false">Submitted</a>
-              </li>
-            </ul>
+        <div class="toolbar float-right">
+            {% if perms.ops.add_questionnaire %}
+                <a href="{% url 'ops:questionnaire_create' %}" class="btn btn-primary btn-icon-split">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span class="text">Add Section</span>
+                </a>
+            {% endif %}
         </div>
     </div>
-
     <div class="card-body">
-        <div class="tab-content" id="myTabContent">
-      <div class="tab-pane fade show active" id="draft_list" role="tabpanel">
-        <table class="table draft_qn_table"
-                id="draft-list"
+        <div class="table-responsive">
+            <table
+                id="questionnaire-list"
                 class="table table-striped table-sm"
                 style="width:100%"
                 data-server-side="true"
@@ -41,43 +31,16 @@
                 data-info="true"
                 data-page-length="100"
                 data-paging-type="full_numbers"
-                data-ajax="{% url "api:mentorshipquestionnaire-list" %}?format=datatables&is_complete=false"
-        >
-          <thead class="thead-light">
-            <tr>
-              <th scope="col">Facility</th>
-              <th scope="col">Mentorship team</th>
-              <th scope="col">Date</th>
-              <th scope="col">Progress</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-        </table>
-
-          </div>
-        <div class="tab-pane fade" id="submitted_list" role="tabpanel">
-        <table class="table completed_qn_table"
-                id="submitted-list"
-                class="table table-striped table-sm"
-                style="width:100%"
-                data-server-side="true"
-                data-state-save="true"
-                data-defer-render="true"
-                data-info="true"
-                data-page-length="100"
-                data-paging-type="full_numbers"
-                data-ajax="{% url "api:mentorshipquestionnaire-list" %}?format=datatables&is_complete=true"
-        >
-          <thead class="thead-light">
-            <tr>
-              <th scope="col">Facility</th>
-              <th scope="col">Mentorship team</th>
-              <th scope="col">Date</th>
-              <th scope="col">Progress</th>
-            </tr>
-          </thead>
-        </table>
-          </div>
+                data-ajax="{% url "api:questionnaire-list" %}?format=datatables">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Section</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
         </div>
     </div>
 </div>
@@ -86,23 +49,22 @@
 <script>
 window.addEventListener("load", function(){
     $(document).ready(function() {
-            $('.draft_qn_table').DataTable({
-              iDisplayLength: 100,
-              responsive: true,
-              columns: [
-                {data: "facility_name", name: "facility__name"},
+        $('#questionnaire-list').DataTable( {
+            iDisplayLength: 100,
+            responsive: true,
+            columns: [
+                {data: 'name', name: 'name'},
                 {
-                    data: 'mentorship_team',
+                    data: 'section',
                     render: function (data, type, row) {
-                        let teams = []
+                        let q_groups = []
                         for(let i=0;i<data.length;i++){
-                            teams.push(data[i].name)
+                            q_groups.push(data[i].title)
                         };
-                        return teams
+                        return q_groups
                     }
                 },
-                {data: 'submit_date', name: 'submit_date'},
-                {data: 'is_complete', name: 'is_complete',orderable:false,searchable:false},
+                {data: "status", name: "status"},
                 {
                     data: "url",
                     name: "id",
@@ -113,31 +75,7 @@ window.addEventListener("load", function(){
                     }
                 }
             ]
-        });
-
-
-      $('.completed_qn_table').DataTable({
-              iDisplayLength: 100,
-              responsive: true,
-              columns: [
-                {data: "facility_name", name: "facility__name"},
-                {
-                    data: 'mentorship_team',
-                    render: function (data, type, row) {
-                        let teams = []
-                        for(let i=0;i<data.length;i++){
-                            teams.push(data[i].name)
-                        };
-                        return teams
-                    }
-                },
-                {data: 'submit_date', name: 'submit_date'},
-                {data: 'submit_date', name: 'submit_date'},
-            ]
-        });
-
-
-
+        } );
     });
 });
 </script>

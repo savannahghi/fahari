@@ -15,9 +15,9 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
-    GroupSection,
     Question,
     QuestionGroup,
+    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -505,7 +505,6 @@ class QuestionForm(BaseModelForm):
     field_order = (
         "parent",
         "query",
-        "question_number",
         "answer_type",
         "metadata",
     )
@@ -521,10 +520,8 @@ class QuestionForm(BaseModelForm):
 class QuestionGroupForm(BaseModelForm):
     field_order = (
         "question_groups",
-        "group_number",
         "title",
         "questions",
-        "precedence",
         "entry_date",
     )
 
@@ -536,16 +533,12 @@ class QuestionGroupForm(BaseModelForm):
         model = QuestionGroup
 
 
-class GroupSectionForm(BaseModelForm):
-    field_order = (
-        "title",
-        "question_groups",
-        "precedence",
-    )
+class QuestionnaireForm(BaseModelForm):
+    field_order = ("name", "section", "numbering", "status")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper.form_id = "group_section_form"
+        self.helper.form_id = "questionnaire_form"
 
     class Meta(BaseModelForm.Meta):
-        model = GroupSection
+        model = Questionnaire

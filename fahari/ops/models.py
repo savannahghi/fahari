@@ -687,7 +687,6 @@ class Question(AbstractBase):
         NONE = "none", "Not Applicable"
 
     query = models.TextField(verbose_name="Question")
-    question_number = models.CharField(max_length=7, blank=True, verbose_name="Question numbering")
     answer_type = models.CharField(
         max_length=15,
         choices=AnswerType.choices,
@@ -700,13 +699,14 @@ class Question(AbstractBase):
         blank=True,
         null=True,
     )
+    numbering = models.CharField(max_length=5, default="(i)")
     metadata = models.JSONField(default=dict, blank=True, null=True)
 
     def is_answered_for_questionnaire(self, questionnaire: "MentorshipQuestionnaire") -> bool:
         child_questions = getattr(self, "question_set", None)
-        if child_questions is not None:
+        if child_questions is not None and child_questions.exists():
             child_question: Question
-            for child_question in child_questions:
+            for child_question in child_questions.all():
                 if not child_question.is_answered_for_questionnaire(questionnaire):
                     return False
             return True
@@ -784,12 +784,18 @@ class NumberAnswer(AbstractQuestionAnswer):
     response = models.DecimalField(default=0.0, decimal_places=2, max_digits=7)
     comments = models.TextField(default="-", verbose_name="Comments")
 
+    class Meta(AbstractQuestionAnswer.Meta):
+        ...
+
 
 class ShortAnswer(AbstractQuestionAnswer):
     """Brief Text Answers."""
 
     response = models.CharField(max_length=255)
     comments = models.TextField(default="-", verbose_name="Comments")
+
+    class Meta(AbstractQuestionAnswer.Meta):
+        ...
 
 
 class ParagraphAnswer(AbstractQuestionAnswer):
@@ -798,12 +804,18 @@ class ParagraphAnswer(AbstractQuestionAnswer):
     response = models.TextField()
     comments = models.TextField(default="-", verbose_name="Comments")
 
+    class Meta(AbstractQuestionAnswer.Meta):
+        ...
+
 
 class RadioOptionAnswer(AbstractQuestionAnswer):
     """One Option Answers."""
 
     response = models.CharField(max_length=255)
     comments = models.TextField(default="-", verbose_name="Comments")
+
+    class Meta(AbstractQuestionAnswer.Meta):
+        ...
 
 
 class SelectListAnswer(AbstractQuestionAnswer):
@@ -817,6 +829,9 @@ class SelectListAnswer(AbstractQuestionAnswer):
     )
     comments = models.TextField(default="-", verbose_name="Comments")
 
+    class Meta(AbstractQuestionAnswer.Meta):
+        ...
+
 
 class QuestionGroup(AbstractBase):
     """Question group."""
@@ -827,9 +842,8 @@ class QuestionGroup(AbstractBase):
         "self",
         blank=True,
     )
-    precedence = models.SmallIntegerField()
-    group_number = models.CharField(max_length=5, verbose_name="Question group numbering")
     entry_date = models.DateTimeField(default=timezone.datetime.today)
+    numbering = models.CharField(max_length=5, default="(a)")
 
     def is_complete_for_questionnaire(self, questionnaire: "MentorshipQuestionnaire") -> bool:
         question: Question
@@ -852,43 +866,40 @@ class QuestionGroup(AbstractBase):
         return update_url
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["precedence"], name="unique_questiongroup_precedence")
-        ]
+        ordering = ("title",)
 
 
-class GroupSection(AbstractBase):
+class Questionnaire(AbstractBase):
     """
-    Question group:
+    List of Questionnaires:
     - Service Delivery
     - Human Resources
     - Medicine and Technology
     - Financing
-    - Informatiogroup_sectionn
+    - Informatiogroup_section
     """
 
-    title = models.CharField(max_length=255, verbose_name="Section title")
-    question_groups = models.ManyToManyField(QuestionGroup)
-    precedence = models.SmallIntegerField()
+    name = models.CharField(max_length=255)
+    section = models.ManyToManyField(QuestionGroup)
+    status = models.BooleanField(default=True)
+    numbering = models.CharField(max_length=5, default="A.")
 
     def is_complete_for_questionnaire(self, questionnaire: "MentorshipQuestionnaire") -> bool:
-        for question_group in self.question_groups.all():
+        for question_group in self.section.all():
             if not question_group.is_complete_for_questionnaire(questionnaire):
                 return False
 
         return True
 
     def __str__(self) -> str:
-        return "Title: %s" % (self.title,)
+        return "Name: %s" % (self.name,)
 
     def get_absolute_url(self):
-        update_url = reverse("ops:group_section_update", kwargs={"pk": self.pk})
+        update_url = reverse("ops:questionnaire_update", kwargs={"pk": self.pk})
         return update_url
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["precedence"], name="unique_group_precedence")
-        ]
+        ordering = ("name",)
 
 
 class MentorshipTeamMember(AbstractBase):
@@ -905,17 +916,16 @@ class MentorshipQuestionnaire(AbstractBase):
     """Mentorship questionnaire."""
 
     facility = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    group_section = models.ForeignKey(GroupSection, null=True, on_delete=models.CASCADE)
+    questionnaire = models.ForeignKey(Questionnaire, null=True, on_delete=models.PROTECT)
     mentorship_team = models.ManyToManyField(MentorshipTeamMember)
     start_date = models.DateTimeField(default=timezone.now(), editable=False)
     submit_date = models.DateTimeField(editable=False, null=True, blank=True)
 
     @property
     def is_complete(self) -> bool:
-        for group_section in self.group_section.all():
-            if not group_section.is_complete_for_questionnaire(self):
+        for section in self.questionnaire.section.all():
+            if not section.is_complete_for_questionnaire(self):
                 return False
-
         return True
 
     def __str__(self) -> str:

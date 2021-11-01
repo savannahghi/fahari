@@ -15,20 +15,20 @@
 
             {% if perms.ops.view_question_group %}
                 <a class="collapse-item {% if selected == "question_groups" %}active {% endif %}" id="question_groups" href="{% url 'ops:question_groups' %}">
-                   Question group
+                   Groups
                 </a>
             {% endif %}
 
 
-            {% if perms.ops.view_group_section %}
-                <a class="collapse-item {% if selected == "group_sections" %}active {% endif %}" id="group_sections" href="{% url 'ops:group_sections' %}">
-                   Group section
+            {% if perms.ops.view_questionnaire %}
+                <a class="collapse-item {% if selected == "questionnaires" %}active {% endif %}" id="questionnaires" href="{% url 'ops:questionnaires' %}">
+                   Questionnaires
                 </a>
             {% endif %}
 
             {% if perms.ops.view_mentorship_questionnaire %}
                 <a class="collapse-item {% if selected == "mentorship_questionnaires" %}active {% endif %}" id="mentorship_questionnaires" href="{% url 'ops:mentorship_questionnaires' %}">
-                   Questonnaire
+                   Mentorship Checklist
                 </a>
             {% endif %}
 

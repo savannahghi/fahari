@@ -9,11 +9,11 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
-    GroupSection,
     MentorshipQuestionnaire,
     MentorshipTeamMember,
     Question,
     QuestionGroup,
+    Questionnaire,
     SecurityIncidence,
     StockReceiptVerification,
     TimeSheet,
@@ -171,8 +171,8 @@ class QuestionGroupAdmin(BaseAdmin):
     pass
 
 
-@admin.register(GroupSection)
-class GroupSectionAdmin(BaseAdmin):
+@admin.register(Questionnaire)
+class QuestionnaireAdmin(BaseAdmin):
     pass
 
 

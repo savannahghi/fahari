@@ -11,11 +11,11 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
-    GroupSection,
     MentorshipQuestionnaire,
     MentorshipTeamMember,
     Question,
     QuestionGroup,
+    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -182,19 +182,28 @@ class QuestionSerializer(BaseSerializer):
         fields = "__all__"
 
 
+class qgSerializer(BaseSerializer):
+    questions = QuestionSerializer(many=True)
+
+    class Meta(BaseSerializer.Meta):
+        model = QuestionGroup
+        fields = ["title", "questions"]
+
+
 class QuestionGroupSerializer(BaseSerializer):
     questions = QuestionSerializer(many=True)
+    question_groups = qgSerializer(many=True)
 
     class Meta(BaseSerializer.Meta):
         model = QuestionGroup
         fields = "__all__"
 
 
-class GroupSectionSerializer(BaseSerializer):
-    question_groups = QuestionGroupSerializer(many=True)
+class QuestionnaireSerializer(BaseSerializer):
+    section = QuestionGroupSerializer(many=True)
 
     class Meta(BaseSerializer.Meta):
-        model = GroupSection
+        model = Questionnaire
         fields = "__all__"
 
 
@@ -205,11 +214,11 @@ class MentorshipTeamMemberSerializer(BaseSerializer):
 
 
 class MentorshipQuestionnaireSerializer(BaseSerializer):
-    mentorship_team = MentorshipTeamMemberSerializer(many=True)
     facility_name = serializers.ReadOnlyField(source="facility.name")
+    questionnaire = QuestionnaireSerializer()
+    mentorship_team = MentorshipTeamMemberSerializer(many=True)
+    start_date = serializers.DateTimeField(format="%d/%m/%Y", required=False)
     submit_date = serializers.DateTimeField(format="%d/%m/%Y", required=False)
-    is_complete = serializers.ReadOnlyField()
-    sections_count = serializers.ReadOnlyField()
 
     class Meta(BaseSerializer.Meta):
         model = MentorshipQuestionnaire

@@ -12,11 +12,11 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
-    GroupSection,
     MentorshipQuestionnaire,
     MentorshipTeamMember,
     Question,
     QuestionGroup,
+    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -218,13 +218,13 @@ class QuestionGroupFilter(CommonFieldsFilterset):
         fields = "__all__"
 
 
-class GroupSectionFilter(CommonFieldsFilterset):
+class QuestionnaireFilter(CommonFieldsFilterset):
 
     search = filters.SearchFilter()
 
     class Meta:
 
-        model = GroupSection
+        model = Questionnaire
         fields = "__all__"
 
 
@@ -238,21 +238,18 @@ class MentorshipTeamMemberFilter(CommonFieldsFilterset):
         fields = "__all__"
 
 
-class QuestionnaireFilter(CommonFieldsFilterset):
+class MentorshipQuestionnaireFilter(CommonFieldsFilterset):
 
     search = filters.SearchFilter()
 
-    def draft_queries(self, queryset, field, value):
-        return queryset.filter(active=value)
+    def get_by_complete_status(self, queryset, field, value):  # noqa
+        questionnaires = map(
+            lambda q: q.pk,
+            filter(lambda q: q.is_complete if value else not q.is_complete, queryset),
+        )
+        return queryset.filter(pk__in=questionnaires)
 
-    def submitted_queries(self, queryset, field, value):
-        return queryset.filter(active=value)
-
-    def is_complete(self, queryset, field, value):
-        ...
-
-    drafts = django_filters.CharFilter(method="draft_queries")
-    submitted = django_filters.CharFilter(method="submitted_queries")
+    is_complete = django_filters.BooleanFilter(method="get_by_complete_status")
 
     class Meta:
 

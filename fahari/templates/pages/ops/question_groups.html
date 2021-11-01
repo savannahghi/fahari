@@ -34,9 +34,7 @@
                 data-ajax="{% url "api:questiongroup-list" %}?format=datatables">
                 <thead>
                     <tr>
-                        <th>Numbering</th>
                         <th>Title</th>
-                        <th>Precedence</th>
                         <th>Questions</th>
                         <th></th>
                     </tr>
@@ -54,9 +52,7 @@ window.addEventListener("load", function(){
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: 'group_number', name: 'group_number'},
                 {data: 'title', name: 'title'},
-                {data: "precedence", name: "precedence"},
                 {
                     data: 'questions',
                     render: function (data, type, row) {
