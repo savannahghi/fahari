@@ -889,10 +889,22 @@ class FacilityDeviceViewSet(BaseView):
     )
     search_fields = (
         "facility__name",
-        "number_of_devices",
-        "number_of_ups",
+        "system_name",
     )
     facility_field_lookup = "facility"
+
+    ordering_fields = (
+        "name",
+        "code",
+    )
+    search_fields = (
+        "name",
+        "code",
+        "description",
+    )
+
+
+
 
 
 class FacilityDeviceRequestsMixin:
