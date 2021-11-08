@@ -42,11 +42,7 @@ class FacilitySystemTicketFilter(CommonFieldsFilterset):
     class Meta:
 
         model = FacilitySystemTicket
-        fields = (
-            "system",
-            "facility",
-        )
-
+        fields = ['facility_system_facilityName', 'facility_system_systemName']
 
 class StockReceiptVerificationFilter(CommonFieldsFilterset):
 
