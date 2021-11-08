@@ -232,6 +232,16 @@ class MentorshipTeamMemberFilter(CommonFieldsFilterset):
 
     search = filters.SearchFilter()
 
+    def get_team_by_qnaire_id(self, queryset, field, value):  # noqa
+        print("seee ", value)
+        team_ids = MentorshipQuestionnaire.objects.filter(pk=value).values_list(
+            "mentorship_team", flat=True
+        )
+
+        return queryset.filter(pk__in=team_ids)
+
+    is_qn_team = django_filters.CharFilter(method="get_team_by_qnaire_id")
+
     class Meta:
 
         model = MentorshipTeamMember

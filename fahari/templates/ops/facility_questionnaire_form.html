@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+Mentorship teams
+{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">
+    Questionnaire
+</h1>
+<div class="card shadow mb-1">
+    <div class="card-body">
+    <div class="card-header py-3">
+        <form method="post" action="{{ mentorship_questionnaire_url }}" id="header_form">
+            {% csrf_token %}
+            <div class="form-group col-md-6 mb-0 mt-3">
+                {{ mentorship_questionnaire_form.facility|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ mentorship_questionnaire_form.questionnaire|as_crispy_field }}
+            </div>
+            <button id="btnHeaderForm" type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+</div>
+{% endblock content %}
+{% block inline_javascript %}
+<script>
+    window.addEventListener("load", function () {
+        $(document).ready(function () {
+
+            function setData(name, data) {
+                localStorage.setItem(name, JSON.stringify(data));
+            }
+
+            function getData(name) {
+                let data = localStorage.getItem(name);
+                return JSON.parse(data);
+            }
+
+            $('#header_form').on('keyup change', 'select', function (event) {
+                if (event.target.id == "id_facility") {
+                    setData("facility", event.target.value)
+                } else if (event.target.id == "id_questionnaire") {
+                    setData("questionnaire", event.target.value)
+                }
+            });
+        });
+    });
+</script>
+{% endblock inline_javascript %}

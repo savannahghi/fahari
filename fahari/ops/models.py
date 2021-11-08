@@ -865,7 +865,7 @@ class QuestionGroup(AbstractBase):
         update_url = reverse("ops:question_group_update", kwargs={"pk": self.pk})
         return update_url
 
-    class Meta:
+    class Meta(AbstractBase.Meta):
         ordering = ("title",)
 
 
@@ -898,7 +898,7 @@ class Questionnaire(AbstractBase):
         update_url = reverse("ops:questionnaire_update", kwargs={"pk": self.pk})
         return update_url
 
-    class Meta:
+    class Meta(AbstractBase.Meta):
         ordering = ("name",)
 
 
@@ -911,6 +911,13 @@ class MentorshipTeamMember(AbstractBase):
     member_org = models.CharField(max_length=255, verbose_name="member organisation")
     role = models.CharField(max_length=255)
 
+    def get_absolute_url(self):
+        update_url = reverse_lazy("ops:mentorship_team_update", kwargs={"pk": self.pk})
+        return update_url
+
+    class Meta(AbstractBase.Meta):
+        ordering = ("-updated", "-created")
+
 
 class MentorshipQuestionnaire(AbstractBase):
     """Mentorship questionnaire."""
@@ -919,7 +926,11 @@ class MentorshipQuestionnaire(AbstractBase):
     questionnaire = models.ForeignKey(Questionnaire, null=True, on_delete=models.PROTECT)
     mentorship_team = models.ManyToManyField(MentorshipTeamMember)
     start_date = models.DateTimeField(default=timezone.now(), editable=False)
-    submit_date = models.DateTimeField(editable=False, null=True, blank=True)
+    submit_date = models.DateTimeField(null=True, blank=True)
+
+    # def get_absolute_url(self):
+    #     update_url = reverse_lazy("ops:mentorship_questionnaire_update", kwargs={"pk": self.pk})
+    #     return update_url
 
     @property
     def is_complete(self) -> bool:

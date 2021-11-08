@@ -46,6 +46,9 @@ from .forms import (
     FacilitySystemForm,
     FacilitySystemTicketForm,
     FacilitySystemTicketResolveForm,
+    MentorshipQuestionnaireForm,
+    MentorshipQuestionnaireUpdateForm,
+    MentorshipTeamForm,
     QuestionForm,
     QuestionGroupForm,
     QuestionnaireForm,
@@ -1136,7 +1139,9 @@ class QuestionnaireContextMixin:
         context["active"] = "mentorship-nav"  # id of active nav element
         context["selected"] = "questionnaire"  # id of selected page
         context["get_facilities_url"] = reverse_lazy("api:facility-list")
-        context["get_questionnaires_url"] = reverse_lazy("api:questionnaire-list")
+        context["questionnaires_url"] = reverse_lazy("api:questionnaire-list")
+        context["mentorship_questionnaire_form"] = MentorshipQuestionnaireForm()
+        context["mentorship_questionnaire_update_form"] = MentorshipTeamForm()
         return context
 
 
@@ -1185,6 +1190,109 @@ class QuestionnaireViewSet(BaseView):
     )
 
 
+class FacilityQuestionnaireCreateView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
+    form_class = MentorshipQuestionnaireForm
+    model = MentorshipQuestionnaire
+    template_name = "ops/facility_questionnaire_form.html"
+
+    def get_success_url(self):
+        mentorship_questionnaire: MentorshipQuestionnaire = self.object  # type:ignore
+        return reverse_lazy(
+            "ops:facility_questionnaire_update", kwargs={"pk": mentorship_questionnaire.pk}
+        )
+
+
+class FacilityQuestionnaireUpdateView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
+    form_class = MentorshipQuestionnaireUpdateForm
+    model = MentorshipQuestionnaire
+    template_name = "ops/mentorship_questionnaire_update_form.html"
+
+    def get_success_url(self):
+        mentorship_questionnaire: MentorshipQuestionnaire = self.object  # type:ignore
+        return reverse_lazy(
+            "ops:facility_questionnaire_update", kwargs={"pk": mentorship_questionnaire.pk}
+        )
+
+
+class FacilityQuestionnaireDeleteView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
+    model = MentorshipQuestionnaire
+
+    def get_success_url(self):
+        mentorship_questionnaire: MentorshipQuestionnaire = self.object  # type:ignore
+        return reverse_lazy(
+            "ops:facility_questionnaire_update", kwargs={"pk": mentorship_questionnaire.pk}
+        )
+
+
+# class MentorshipTeamListView(
+#     QuestionnaireContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+# ):
+
+#     template_name = "pages/ops/mentorship_teams.html"
+#     permission_required = "ops.view_mentorship_team_member"
+
+
+class MentorshipTeamCreateView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, CreateView
+):
+    form_class = MentorshipTeamForm
+    model = MentorshipTeamMember
+    success_url = reverse_lazy("ops:ops:mentorship_team_create")
+    template_name = "ops/mentorship_team_form.html"
+
+
+class MentorshipTeamUpdateView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+):
+    form_class = MentorshipTeamForm
+    model = MentorshipTeamMember
+    success_url = reverse_lazy("ops:ops:mentorship_team_update")
+    template_name = "ops/mentorship_team_form.html"
+
+
+class MentorshipTeamDeleteView(
+    QuestionnaireContextMixin, BaseFormMixin, FormContextMixin, DeleteView
+):
+    model = MentorshipTeamMember
+    success_url = reverse_lazy("ops:ops:mentorship_questionnaires")
+
+
+class MentorshipTeamViewSet(BaseView):
+    queryset = MentorshipTeamMember.objects.all()
+    serializer_class = MentorshipTeamMemberSerializer
+    filterset_class = MentorshipTeamMemberFilter
+    ordering_fields = ("name", "email", "phone", "member_org", "role")
+    search_fields = (
+        "name",
+        "email",
+        "phone",
+        "member_org",
+    )
+
+
+class AddQuestionnaireContextMixin:
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore
+        context["active"] = "mentorship-nav"  # id of active nav element
+        context["selected"] = "questionnaire"  # id of selected page
+        context["questionnaires_url"] = reverse_lazy("api:questionnaire-list")
+        return context
+
+
+class QuestionnaireSectionView(
+    AddQuestionnaireContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
+):
+
+    template_name = "ops/questionnaire.html"
+    permission_required = "ops.view_questionnaire"
+
+
 class MentorshipQuestionnaireContextMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore
@@ -1206,41 +1314,3 @@ class MentorshipQuestionnaireViewSet(BaseView):
     serializer_class = MentorshipQuestionnaireSerializer
     filterset_class = MentorshipQuestionnaireFilter
     ordering_fields = ("facility__name", "questionnaire__name")
-
-
-class MentorshipTeamListView(
-    QuestionnaireContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
-):
-
-    template_name = "pages/ops/mentorship_teams.html"
-    permission_required = "ops.view_mentorship_team_member"
-
-
-class MentorshipTeamViewSet(BaseView):
-    queryset = MentorshipTeamMember.objects.all()
-    serializer_class = MentorshipTeamMemberSerializer
-    filterset_class = MentorshipTeamMemberFilter
-    ordering_fields = ("name", "email", "phone", "member_org", "role")
-    search_fields = (
-        "name",
-        "email",
-        "phone",
-        "member_org",
-    )
-
-
-class AddQuestionnaireContextMixin:
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)  # type: ignore
-        context["active"] = "mentorship-nav"  # id of active nav element
-        context["selected"] = "questionnaire"  # id of selected page
-        context["get_questionnaires_url"] = reverse_lazy("api:questionnaire-list")
-        return context
-
-
-class QuestionnaireSectionView(
-    AddQuestionnaireContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
-):
-
-    template_name = "ops/questionnaire.html"
-    permission_required = "ops.view_questionnaire"

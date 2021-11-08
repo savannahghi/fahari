@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.utils import timezone
 
-from fahari.ops.models import DailyUpdate
+from fahari.ops.models import DailyUpdate, Questionnaire
 
 from .models import Facility
 
@@ -15,6 +15,10 @@ def get_fahari_facilities_queryset():
         "county",
         "mfl_code",
     )
+
+
+def get_mentorship_questionnaires_queryset():
+    return Questionnaire.objects.all()
 
 
 def get_active_facility_count(user):

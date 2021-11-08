@@ -25,13 +25,13 @@ Add/Edit Questionnare Section
                             </h1>
                         </div>
 
-                        <div class="accordion" id="accordionExample">
+                        <div class="accordion" id="accordionQuestionnaire">
                             <div class="card" id="service_qns">
                                 <div class="card-header" data-toggle="collapse" data-target="#collapseOne"
                                     aria-expanded="true">
                                     <span class="title" id="service_qn_title"></span>
                                 </div>
-                                <div id="collapseOne" class="collapse show" data-parent="#accordionExample">
+                                <div id="collapseOne" class="collapse show" data-parent="#accordionQuestionnaire">
                                     <div class="card-body">
                                         <form id="service_qns_form">
                                             <div>
@@ -57,7 +57,7 @@ Add/Edit Questionnare Section
 
     window.addEventListener("load", function () {
         $(document).ready(function () {
-            $.get("{{ get_questionnaires_url }}", function (data) {
+            $.get("{{ questionnaires_url }}", function (data) {
                 for (var qn of data.results) {
                     if (qn.name == "Service Delivery") {
                         var question_groups = qn.section;
