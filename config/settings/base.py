@@ -52,7 +52,7 @@ DATABASES = {
 # URLS
 # ------------------------------------------------------------------------------
 ROOT_URLCONF = "config.urls"
-
+ASGI_APPLICATION = "config.asgi.application"
 WSGI_APPLICATION = "config.wsgi.application"
 
 # APPS
@@ -70,7 +70,7 @@ DJANGO_APPS = [
     "django.contrib.postgres",
 ]
 THIRD_PARTY_APPS = [
-    # "channels",
+    "channels",
     "crispy_forms",
     "allauth",
     "allauth.account",

@@ -55,7 +55,7 @@ baker.generators.add("phonenumber_field.modelfields.PhoneNumberField", gen_func)
 # STORAGES
 # ------------------------------------------------------------------------------
 # https://django-storages.readthedocs.io/en/latest/#installation
-INSTALLED_APPS += ["storages", "channels"]  # noqa F405
+INSTALLED_APPS += ["storages"]  # noqa F405
 GS_BUCKET_NAME = env("DJANGO_GCP_STORAGE_BUCKET_NAME", default="fahari-ya-jamii-test")
 GS_DEFAULT_ACL = "project-private"
 # STATIC
