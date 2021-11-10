@@ -27,6 +27,7 @@
                             </div>
                             <div class="tab-pane fade" id="nav-filters" role="tabpanel" aria-labelledby="nav-profile-tab">
                                 <form id="fm_filter_form">
+                                    <div id="div_loading_indicator"></div>
                                     <div id="div_form_content"></div>
                                 </form>
                             </div>
@@ -45,46 +46,8 @@
 </div>
 
 <script>
-  window.addEventListener("load", function() {
-    $(document).ready(function() {
-      // Start loading the filterset form as soon as possible
-      $("#div_form_content").load("{{ get_filter_form_url }}");
-
-      var $dump_fields_selection_tree = $("#div_dump_fields_selection_tree").jstree({
-        "core": {
-          "data": {
-            "url": "{{ available_fields_url }}",
-          },
-          "themes": {
-            "name": "default",
-            "responsive": true
-          },
-        },
-        "checkbox" : {
-          "keep_selected_style" : false
-        },
-        "plugins": ["checkbox"],
-      });
-      var $filterset_form = $("#fm_filter_form");
-      $("#btn_dump_data").click(function(event) {
-        var dump_fields_selection = $dump_fields_selection_tree.jstree("get_selected");
-        if (dump_fields_selection.length === 0) {
-            alert("You must select the fields to be exported.");
-            event.preventDefault();
-            return;
-        }
-
-        // Build the request by adding the selected dump fields to the filter fields
-        var filters = $filterset_form.serializeArray();
-        for (var index = 0; index < dump_fields_selection.length; ++index) {
-          filters.push({name: "dump_fields", value: dump_fields_selection[index]});
-        }
-        $.ajax({
-          contentType: "application/json; charset=UTF-8",
-          data: filters,
-          url: "{{ dump_data_url }}",
-        });
-      });
-    });
-  });
+    window.available_fields_url = "{{ available_fields_url }}";
+    window.get_filter_form_url = "{{ get_filter_form_url }}";
+    window.dump_data_url = "{{ dump_data_url }}";
 </script>
+<script defer src="{% static 'js/export_data_modal.min.js' %}"></script>

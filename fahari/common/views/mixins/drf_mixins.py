@@ -5,6 +5,7 @@ from django_filters.rest_framework.backends import DjangoFilterBackend
 from openpyxl import Workbook
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import DjangoModelPermissions
 from rest_framework.relations import ManyRelatedField, PrimaryKeyRelatedField
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.request import Request
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.viewsets import GenericViewSet
 
+from fahari.common.permissions import CanExportData
 from fahari.common.renderers import ExcelIORenderer
 from fahari.utils.excel_utils import (
     AuditSerializerExcelIO,
@@ -32,8 +34,13 @@ class ExcelIOMixin(Generic[EIO, EIO_T], GenericViewSet):
     excel_io_template_class: Optional[Type[EIO_T]] = None
     filename: Optional[str] = None
 
-    @action(detail=False, methods=["GET"], renderer_classes=(ExcelIORenderer,))
-    def dump_data(self, request: Request, pk=None):
+    @action(
+        detail=False,
+        methods=["GET"],
+        permission_classes=(DjangoModelPermissions, CanExportData),
+        renderer_classes=(ExcelIORenderer,),
+    )
+    def dump_data(self, request: Request, pk=None) -> Response:
         """Export data in excel format."""
 
         workbook = self.perform_dump_data(request)

@@ -71,7 +71,9 @@ function pathsConfig(appName) {
             `${vendorsRoot}/datatables.net-searchpanes-bs4/js/*.js`,
             `${vendorsRoot}/datatables.net-select/js/*.js`,
             `${vendorsRoot}/datatables.net-select-bs4/js/*.js`,
+            `${vendorsRoot}/js-cookie/dist/js.cookie.min.js`,
             `${vendorsRoot}/jquery.easing/*.js`,
+            `${vendorsRoot}/jquery-validation/dist/jquery.validate.min.js`,
             `${vendorsRoot}/jstree/dist/*.js`,
         ],
         app: this.app,
@@ -117,6 +119,10 @@ function scripts() {
     return src([
             `${paths.js}/project.js`,
             `${paths.js}/common/forms/user_facility_allotment_form.js`,
+            `${paths.js}/misc/forms/import_stock_verification_receipts_form.js`,
+            `${paths.js}/other/templates/fragments/export_data_modal.js`,
+            `${paths.js}/other/templates/fragments/import_data_modal_svr.js`,
+            `${paths.js}/other/templates/fragments/import_data_modal_svr_async.js`,
         ])
         .pipe(sourcemaps.init())
         .pipe(plumber()) // Checks for errors
