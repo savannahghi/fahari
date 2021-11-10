@@ -1,5 +1,6 @@
+from typing import cast
+
 from django.db import models
-from django.urls import reverse
 from django.utils import timezone
 
 from fahari.common.models import AbstractBase, AbstractBaseManager, AbstractBaseQuerySet, Facility
@@ -17,7 +18,12 @@ class QuestionQuerySet(AbstractBaseQuerySet):
     ) -> "QuestionQuerySet":
         """Return a queryset containing answered questions for the given questionnaire."""
 
-        return self
+        qs = self.alias(  # noqa
+            answered_questions_for_questionnaire=QuestionAnswer.objects.filter(
+                questionnaire_response=responses
+            ).values_list("question", flat=True)
+        ).filter(pk__in=models.F("answered_questions_for_questionnaire"))
+        return cast(QuestionQuerySet, qs)
 
 
 class QuestionGroupQuerySet(AbstractBaseQuerySet):
@@ -82,7 +88,7 @@ class Question(AbstractBase):
         PARAGRAPH = "paragraph", "Long Answer"
         RADIO_OPTION = "radio_option", "Select One"
         SELECT_LIST = "select_list", "Select Multiple"
-        DEPENDENT = "dependent", "Depends on Another Answer"
+        DEPENDENT = "dependent", "Dependent on Another Answer"
         NONE = "none", "Not Applicable"
 
     query = models.TextField(verbose_name="Question")
@@ -105,17 +111,25 @@ class Question(AbstractBase):
 
     objects = QuestionManager()
 
+    @property
+    def is_parent(self) -> bool:
+        """Return true if this question has associated sub questions."""
+
+        return getattr(self, "sub_questions", None) is not None
+
     def is_answered_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
         """Return true if this question has been answered for the given questionnaire."""
+
+        if self.is_parent:
+            sub_questions: QuestionQuerySet = self.sub_questions  # noqa
+            return not sub_questions.difference(
+                self.objects.answered_for_questionnaire(responses)
+            ).exists()
 
         return self.objects.answered_for_questionnaire(responses).filter(pk=self.pk).exists()
 
     def __str__(self) -> str:
         return self.query
-
-    def get_absolute_url(self):
-        update_url = reverse("ops:question_update", kwargs={"pk": self.pk})
-        return update_url
 
 
 class QuestionAnswer(AbstractBase):
@@ -163,14 +177,12 @@ class QuestionGroup(AbstractBase):
     objects = QuestionGroupManager()
 
     def is_complete_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
+        """Return true if this question group has been answered for the given questionnaire."""
+
         return self.objects.answered_for_questionnaire(responses).filter(pk=self.pk).exists()
 
     def __str__(self) -> str:
         return self.title
-
-    def get_absolute_url(self):
-        update_url = reverse("ops:question_group_update", kwargs={"pk": self.pk})
-        return update_url
 
     class Meta(AbstractBase.Meta):
         ordering = ("title",)
@@ -179,15 +191,23 @@ class QuestionGroup(AbstractBase):
 class Questionnaire(AbstractBase):
     """A collection of question groups."""
 
+    class QuestionnaireTypes(models.TextChoices):
+        """The different types of questionnaires."""
+
+        MENTORSHIP = "mentorship", "Mentorship Questionnaire"
+        SIMS = "sims", "SIMS Questionnaire"
+        OTHER = "other", "Generic Questionnaire"
+
     name = models.CharField(max_length=255)
     question_groups = models.ManyToManyField(QuestionGroup, related_name="questionnaires")
+    questionnaire_type = models.CharField(
+        max_length=15,
+        choices=QuestionnaireTypes.choices,
+        default=QuestionnaireTypes.MENTORSHIP.value,
+    )
 
     def __str__(self) -> str:
         return self.name
-
-    def get_absolute_url(self):
-        update_url = reverse("ops:questionnaire_update", kwargs={"pk": self.pk})
-        return update_url
 
     class Meta(AbstractBase.Meta):
         ordering = ("name",)
