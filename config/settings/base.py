@@ -91,6 +91,7 @@ LOCAL_APPS = [
     "fahari.ops.apps.OpsConfig",
     "fahari.mle.apps.MLEConfig",
     "fahari.misc.apps.MiscConfig",
+    "fahari.sims.apps.SimsConfig",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
