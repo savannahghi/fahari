@@ -16,8 +16,6 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from django.conf.urls import re_path  # type: ignore
 from django.core.asgi import get_asgi_application
 
-from fahari.misc.consumers import StockVerificationReceiptsAdapterConsumer
-
 # This allows easy placement of apps within the interior
 # fahari directory.
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -27,6 +25,8 @@ sys.path.append(str(ROOT_DIR / "fahari"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 
 django_asgi_app = get_asgi_application()
+
+from fahari.misc.consumers import StockVerificationReceiptsAdapterConsumer  # noqa
 
 application = ProtocolTypeRouter(
     {
