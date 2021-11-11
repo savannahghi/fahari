@@ -60,15 +60,33 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         This includes all the questions in the nested questions and question groups.
         """
 
-        def visit(question_group: "QuestionGroup") -> "QuestionQuerySet":
-            return self
+        def visit(
+            _question_group: "QuestionGroup", _questions: "QuestionQuerySet"
+        ) -> "QuestionQuerySet":
+            _questions = _questions.union(_question_group.questions)  # noqa
+            for question in _question_group.questions:  # noqa
+                _questions = _questions.for_question(question)
 
-        return question_group.questions.all()
+            if _question_group.is_parent:
+                for qg in _question_group.children:
+                    _questions = _questions.union(visit(qg, _questions))
+
+            return _questions
+
+        return visit(question_group, self)
 
     def for_questionnaire(self, questionnaire: "Questionnaire") -> "QuestionQuerySet":
         """Return all the questions belonging to the given questionnaire."""
 
-        return self
+        def visit(
+            _questionnaire: "Questionnaire", _questions: "QuestionQuerySet"
+        ) -> "QuestionQuerySet":
+            for question_group in _questionnaire.question_groups:  # noqa
+                _questions = _questions.union(_questions.for_question_group(question_group))
+
+            return _questions
+
+        return visit(questionnaire, self)
 
 
 class QuestionGroupQuerySet(AbstractBaseQuerySet, ChildrenMixinQuerySet):
