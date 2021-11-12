@@ -26,5 +26,5 @@ class QuestionGroupAdmin(BaseAdmin):
 
 
 @admin.register(QuestionnaireResponses)
-class QuestionnaireResponses(BaseAdmin):
+class QuestionnaireResponsesAdmin(BaseAdmin):
     ...

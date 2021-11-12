@@ -48,7 +48,7 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         def visit(questions: "QuestionQuerySet") -> "QuestionQuerySet":
             for _question in questions:
                 if _question.is_parent:
-                    questions = questions.union(visit(_question.sub_questions))  # noqa
+                    questions = questions.union(visit(_question.sub_questions.all()))  # noqa
 
             return questions
 
@@ -63,33 +63,31 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         def visit(
             _question_group: "QuestionGroup", _questions: "QuestionQuerySet"
         ) -> "QuestionQuerySet":
-            _questions = _questions.union(_question_group.questions)  # noqa
-            for question in _question_group.questions:  # noqa
-                _questions = _questions.for_question(question)
+            question: Question
+            for question in _question_group.questions.all():  # noqa
+                if question.is_parent:
+                    _questions = _questions.union(self.for_question(question))
 
             if _question_group.is_parent:
                 for qg in _question_group.children:
-                    _questions = _questions.union(visit(qg, _questions))
+                    _questions = _questions.union(visit(qg, self.filter(question_group=qg)))
 
             return _questions
 
-        return visit(question_group, self)
+        return visit(question_group, self.filter(question_group=question_group))
 
     def for_questionnaire(self, questionnaire: "Questionnaire") -> "QuestionQuerySet":
         """Return all the questions belonging to the given questionnaire."""
 
-        def visit(
-            _questionnaire: "Questionnaire", _questions: "QuestionQuerySet"
-        ) -> "QuestionQuerySet":
-            for question_group in _questionnaire.question_groups:  # noqa
-                _questions = _questions.union(_questions.for_question_group(question_group))
+        questions = self.none()
+        question_groups = QuestionGroup.objects.for_questionnaire(questionnaire)
+        for question_group in question_groups:
+            questions = questions.union(self.for_question_group(question_group))
 
-            return _questions
-
-        return visit(questionnaire, self)
+        return questions
 
 
-class QuestionGroupQuerySet(AbstractBaseQuerySet, ChildrenMixinQuerySet):
+class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixinQuerySet):  # noqa
     """Queryset for the QuestionGroup model."""
 
     def answered_for_questionnaire(
@@ -98,6 +96,21 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet, ChildrenMixinQuerySet):
         """Return a queryset containing answered question groups for the given questionnaire."""
 
         return self
+
+    def for_questionnaire(self, questionnaire: "Questionnaire") -> "QuestionGroupQuerySet":
+        """Return a queryset containing all the question groups in the given questionnaire."""
+
+        def visit(question_groups: "QuestionGroupQuerySet") -> "QuestionGroupQuerySet":
+            question_group: QuestionGroup
+            for question_group in question_groups.all():
+                if question_group.is_parent:
+                    question_groups = question_groups.union(
+                        visit(self.filter(parent=question_group))
+                    )
+
+            return question_groups
+
+        return visit(self.filter(questionnaire=questionnaire))
 
 
 # =============================================================================
@@ -108,12 +121,35 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet, ChildrenMixinQuerySet):
 class QuestionManager(AbstractBaseManager):
     """Manager for the Question model."""
 
+    def answerable(self) -> "QuestionQuerySet":
+        """Return a queryset containing questions that accept none "none" answers."""
+
+        return self.get_queryset().answerable()
+
     def answered_for_questionnaire(
         self, responses: "QuestionnaireResponses"
     ) -> "QuestionQuerySet":
         """Return a queryset containing answered questions for the given questionnaire."""
 
         return self.get_queryset().answered_for_questionnaire(responses)
+
+    def for_question(self, question: "Question") -> "QuestionQuerySet":
+        """Return all the sub-questions and nested sub-questions belonging to a given question."""
+
+        return self.get_queryset().for_question(question)
+
+    def for_question_group(self, question_group: "QuestionGroup") -> "QuestionQuerySet":
+        """Return all the questions belonging to the given question groups.
+
+        This includes all the questions in the nested questions and question groups.
+        """
+
+        return self.get_queryset().for_question_group(question_group)
+
+    def for_questionnaire(self, questionnaire: "Questionnaire") -> "QuestionQuerySet":
+        """Return all the questions belonging to the given questionnaire."""
+
+        return self.get_queryset().for_questionnaire(questionnaire)
 
     def get_queryset(self) -> QuestionQuerySet:
         return QuestionQuerySet(self.model, using=self.db)
@@ -128,6 +164,11 @@ class QuestionGroupManager(AbstractBaseManager):
         """Return a queryset containing answered question groups for the given questionnaire."""
 
         return self.get_queryset().answered_for_questionnaire(responses)
+
+    def for_questionnaire(self, questionnaire: "Questionnaire") -> QuestionGroupQuerySet:
+        """Return a queryset containing all the question groups in the given questionnaire."""
+
+        return self.get_queryset().for_questionnaire(questionnaire)
 
     def get_queryset(self) -> QuestionGroupQuerySet:
         return QuestionGroupQuerySet(self.model, using=self.db)
@@ -310,7 +351,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
     questionnaire = models.ForeignKey(
         "Questionnaire",
         on_delete=models.PROTECT,
-        related_name="group_questions",
+        related_name="question_groups",
         blank=True,
         null=True,
         help_text=(
