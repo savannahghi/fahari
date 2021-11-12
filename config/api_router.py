@@ -26,6 +26,7 @@ from fahari.ops.views import (
     WeeklyProgramUpdateCommentsViewSet,
     WeeklyProgramUpdateViewSet,
 )
+from fahari.sims.views import QuestionnaireResponseViewSet
 from fahari.users.api.views import UserViewSet
 
 if settings.DEBUG:
@@ -59,6 +60,7 @@ router.register("question_group", QuestionGroupViewSet)
 router.register("mentorship_team", MentorshipTeamViewSet)
 router.register("questionnaires", QuestionnaireViewSet)
 router.register("mentorship_questionnaires", MentorshipQuestionnaireViewSet)
+router.register("questionnaire_responses", QuestionnaireResponseViewSet)
 
 app_name = "api"
 urlpatterns = router.urls

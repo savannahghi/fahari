@@ -26,6 +26,7 @@ urlpatterns = [
     # Our apps
     path("common/", include("fahari.common.urls", namespace="common")),
     path("ops/", include("fahari.ops.urls", namespace="ops")),
+    path("sims/", include("fahari.sims.urls", namespace="sims")),
     # favicon
     re_path(
         r"^favicon\.ico$",

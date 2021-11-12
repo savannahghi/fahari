@@ -462,7 +462,7 @@ class QuestionnaireResponses(AbstractBase):
     def progress(self) -> float:
         """Return the completion status of the given questionnaire as a percentage."""
 
-        return 0.0
+        return 60.0
 
     def __str__(self) -> str:
         return "Facility: %s, Questionnaire: %s, Status: %s" % (

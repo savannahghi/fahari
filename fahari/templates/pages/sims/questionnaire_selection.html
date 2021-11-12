@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}
+    Select Questionnaire
+{% endblock %}
+{% block content %}
+<div class="container d-flex h-100 justify-content-center align-items-center">
+    <div class="row">
+        <p class="font-weight-bolder">Select a questionnaire to continue</p>
+        {% for questionnaire in questionnaires %}
+            <button type="button" class="btn btn-secondary btn-lg btn-block text-left">
+                <span class="icon text-white-50 float-right">
+                    <i class="fas fa-chevron-right" style="vertical-align: middle;"></i>
+                </span>
+                <span class="text">{{ questionnaire }}</span>
+            </button>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
