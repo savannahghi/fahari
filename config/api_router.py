@@ -12,11 +12,6 @@ from fahari.ops.views import (
     FacilityNetworkStatusViewSet,
     FacilitySystemTicketViewSet,
     FacilitySystemViewSet,
-    MentorshipQuestionnaireViewSet,
-    MentorshipTeamViewSet,
-    QuestionGroupViewSet,
-    QuestionnaireViewSet,
-    QuestionViewSet,
     SecurityIncidenceViewSet,
     SiteMentorshipViewSet,
     StockReceiptVerificationViewSet,
@@ -55,11 +50,6 @@ router.register("facility_devices", FacilityDeviceViewSet)
 router.register("facility_device_requests", FacilityDeviceRequestViewSet)
 router.register("security_incidents", SecurityIncidenceViewSet)
 router.register("stock_receipts_adapters", StockVerificationReceiptsAdapterView)
-router.register("questions", QuestionViewSet)
-router.register("question_group", QuestionGroupViewSet)
-router.register("mentorship_team", MentorshipTeamViewSet)
-router.register("questionnaires", QuestionnaireViewSet)
-router.register("mentorship_questionnaires", MentorshipQuestionnaireViewSet)
 router.register("questionnaire_responses", QuestionnaireResponseViewSet)
 
 app_name = "api"

@@ -9,11 +9,6 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
-    MentorshipQuestionnaire,
-    MentorshipTeamMember,
-    Question,
-    QuestionGroup,
-    Questionnaire,
     SecurityIncidence,
     StockReceiptVerification,
     TimeSheet,
@@ -159,28 +154,3 @@ class WeeklyProgramUpdateCommentAdmin(BaseAdmin):
 
     list_display = ("weekly_update", "comment")
     list_filter = ("weekly_update",)
-
-
-@admin.register(Question)
-class QuestionAdmin(BaseAdmin):
-    pass
-
-
-@admin.register(QuestionGroup)
-class QuestionGroupAdmin(BaseAdmin):
-    pass
-
-
-@admin.register(Questionnaire)
-class QuestionnaireAdmin(BaseAdmin):
-    pass
-
-
-@admin.register(MentorshipTeamMember)
-class MentorshipTeamMemberAdmin(BaseAdmin):
-    pass
-
-
-@admin.register(MentorshipQuestionnaire)
-class MentorshipQuestionnaireAdmin(BaseAdmin):
-    pass

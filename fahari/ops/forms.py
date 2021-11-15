@@ -2,12 +2,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 from django import forms
 from django.forms.widgets import DateInput, DateTimeInput, HiddenInput, Select, Textarea, TextInput
-from django.urls.base import reverse_lazy
 
-from fahari.common.dashboard import (
-    get_fahari_facilities_queryset,
-    get_mentorship_questionnaires_queryset,
-)
 from fahari.common.forms import BaseModelForm, GetAllottedFacilitiesMixin
 from fahari.common.widgets import SearchableComboBox
 
@@ -20,11 +15,6 @@ from .models import (
     FacilityNetworkStatus,
     FacilitySystem,
     FacilitySystemTicket,
-    MentorshipQuestionnaire,
-    MentorshipTeamMember,
-    Question,
-    QuestionGroup,
-    Questionnaire,
     SecurityIncidence,
     SiteMentorship,
     StockReceiptVerification,
@@ -506,85 +496,3 @@ class SecurityIncidenceForm(GetAllottedFacilitiesMixin, BaseModelForm):
             "facility": SearchableComboBox(),
             "reported_on": DateInput(attrs={"hidden": True}),
         }
-
-
-class QuestionForm(BaseModelForm):
-    field_order = (
-        "parent",
-        "query",
-        "answer_type",
-        "metadata",
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.form_id = "question_form"
-
-    class Meta(BaseModelForm.Meta):
-        model = Question
-
-
-class QuestionGroupForm(BaseModelForm):
-    field_order = (
-        "question_groups",
-        "title",
-        "questions",
-        "entry_date",
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.form_id = "question_group_form"
-
-    class Meta(BaseModelForm.Meta):
-        model = QuestionGroup
-
-
-class QuestionnaireForm(BaseModelForm):
-    field_order = ("name", "section", "numbering", "status")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.form_id = "questionnaire_form"
-
-    class Meta(BaseModelForm.Meta):
-        model = Questionnaire
-
-
-class MentorshipTeamForm(BaseModelForm):
-    field_order = ("name", "email", "phone", "member_org", "role")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.form_id = "mentorship_team_form"
-
-    class Meta(BaseModelForm.Meta):
-        model = MentorshipTeamMember
-
-
-class MentorshipQuestionnaireForm(BaseModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["facility"].queryset = get_fahari_facilities_queryset()
-        self.fields["questionnaire"].queryset = get_mentorship_questionnaires_queryset()
-        self.helper.form_id = "facility_and_questionnaire_form"
-        self.helper.form_action = reverse_lazy("ops:facility_questionnaire_create")
-
-    class Meta(BaseModelForm.Meta):
-        model = MentorshipQuestionnaire
-        fields = ["facility", "questionnaire"]
-        widgets = {
-            "facility": SearchableComboBox(),
-            "questionnaire": SearchableComboBox(),
-        }
-
-
-class MentorshipQuestionnaireUpdateForm(BaseModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.form_id = "mentorship_questionnaire_update_form"
-        self.helper.form_action = reverse_lazy("ops:mentorship_team_create")
-
-    class Meta(BaseModelForm.Meta):
-        model = MentorshipQuestionnaire
-        fields = ["mentorship_team"]
