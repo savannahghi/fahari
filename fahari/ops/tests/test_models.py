@@ -241,7 +241,7 @@ def test_weekly_program_update_comment_url():
     weekly_program_update = baker.make(
         WeeklyProgramUpdate,
         organisation=organisation,
-        operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+        operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN_FINANCE.value,
         status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
         assigned_persons=json.dumps([fake.name(), fake.name()]),
         date=timezone.now().date(),

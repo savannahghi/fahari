@@ -596,12 +596,23 @@ class WeeklyProgramUpdate(AbstractBase):
     class OperationGroup(models.TextChoices):
         """The different areas of program operation."""
 
-        ADMIN = "admin", "Administration"
-        FINANCE = "finance", "Finance"
-        AWARD = "awarding", "Awarding"
-        SUBGRANTING = "subgranting", "Subgranting"
-        SII = "sii", "Strategic Information System"
-        PROGRAM = "program", "Program"
+        ADMIN_FINANCE = "admin_finance", "Finance & Administration"
+        HIV_PREVENTION = "hiv_prevention", "HIV Prevention services"
+        HIV_TREATMENT = "hiv_treatment", "HIV Treatment services"
+        FP_RMNCAH = "fp_rmncah", "FP/RMNCAH"
+        NUTRITION = "nutrition", "Nutrition"
+        WASH = "wash", "Water Sanitation Services"
+        LOGISTICS_INVENTORY = (
+            "logistics_inventory",
+            "County HSS: Logistics and inventory management",
+        )
+        SURVEILLANCE = (
+            "surveillance",
+            "County HSS: Case based surveillance, public health response",
+        )
+        QUALITY_IMPROVEMENT = "quality_improvement", "County HSS: Quality improvement"
+        LOCAL_PARTNERS = "local_partners", "County HSS: Local partners' capacity"
+        COMMUNITY_ENGAGEMENT = "community_engagement", "County HSS: Engagement of the community"
 
     class TaskStatus(models.TextChoices):
         """The status of weekly program."""
@@ -617,7 +628,7 @@ class WeeklyProgramUpdate(AbstractBase):
     operation_area = models.CharField(
         max_length=20,
         choices=OperationGroup.choices,
-        default=OperationGroup.PROGRAM.value,
+        default=OperationGroup.HIV_PREVENTION.value,
         help_text="Task Area of Operation",
     )
     status = models.CharField(

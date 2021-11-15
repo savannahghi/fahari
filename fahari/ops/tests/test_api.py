@@ -1092,7 +1092,7 @@ class WeeklyProgramUpdateViewsetTest(LoggedInMixin, APITestCase):
     def test_create(self):
         data = {
             "organisation": self.global_organisation.pk,
-            "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+            "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN_FINANCE.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
             "date": timezone.now().date().isoformat(),
@@ -1153,7 +1153,7 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
             "title": fake.text(max_nb_chars=50),
             "description": fake.text(),
             "attachment": fake.file_name(),
-            "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+            "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN_FINANCE.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
             "date": timezone.now().date().isoformat(),
@@ -1175,7 +1175,7 @@ class WeeklyProgramUpdateFormTest(LoggedInMixin, TestCase):
             "title": fake.text(max_nb_chars=50),
             "description": fake.text(),
             "attachment": fake.file_name(),
-            "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+            "operation_area": WeeklyProgramUpdate.OperationGroup.ADMIN_FINANCE.value,
             "status": WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             "assigned_persons": json.dumps([fake.name(), fake.name()]),
             "date": timezone.now().date().isoformat(),
@@ -1209,7 +1209,7 @@ class WeeklyProgramUpdateCommentFormTest(LoggedInMixin, TestCase):
         self.weekly_update = baker.make(
             WeeklyProgramUpdate,
             organisation=self.global_organisation,
-            operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+            operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN_FINANCE.value,
             status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
             date=timezone.now().today(),
