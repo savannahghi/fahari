@@ -4,15 +4,22 @@
 {% endblock %}
 {% block content %}
 <div class="container d-flex h-100 justify-content-center align-items-center">
-    <div class="row">
-        <p class="font-weight-bolder">Select a questionnaire to continue</p>
+    <div class="col-sm-8">
+        <p class="font-weight-bolder h3">Select a questionnaire to continue</p>
+        <hr/>
         {% for questionnaire in questionnaires %}
-            <button type="button" class="btn btn-secondary btn-lg btn-block text-left">
+            <a
+                    type="button"
+                    class="btn btn-secondary btn-lg btn-block text-left"
+                    href="{% url 'sims:questionnaire_responses_create' questionnaire.pk %}"
+            >
                 <span class="icon text-white-50 float-right">
                     <i class="fas fa-chevron-right" style="vertical-align: middle;"></i>
                 </span>
                 <span class="text">{{ questionnaire }}</span>
-            </button>
+            </a>
+        {% empty %}
+            <p class="text-center">No Questionnaires to show at the moment</p>
         {% endfor %}
     </div>
 </div>

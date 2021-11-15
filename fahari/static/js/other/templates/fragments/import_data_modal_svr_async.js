@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Handle import click
     $btn_ingest_data.click(function(event) {
          $fm_import_stock_verification_receipts_form.validate({
-            errorClass: "invalid-feedback",
+            errorClass: "is-invalid",
             errorElement: "span"
          });
          if (!$fm_import_stock_verification_receipts_form.valid()) {

@@ -1,9 +1,30 @@
-from typing import Optional, cast
+from typing import List, Optional, TypedDict, cast
 
 from django.db import models
 from django.utils import timezone
 
 from fahari.common.models import AbstractBase, AbstractBaseManager, AbstractBaseQuerySet, Facility
+
+# =============================================================================
+# QUERYSETS
+# =============================================================================
+
+
+class MentorshipTeamMemberMetadata(TypedDict):
+    """The structure of a mentorship metadata dictionary."""
+
+    name: str
+    email: str
+    phone: str
+    member_org: str
+    role: str
+
+
+class MentorshipQuestionnaireMetadata(TypedDict):
+    """The structure of a mentorship questionnaire metadata."""
+
+    mentors: List[MentorshipTeamMemberMetadata]
+
 
 # =============================================================================
 # QUERYSETS

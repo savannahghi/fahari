@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}
+    Add/Edit {{ questionnaire }} Questionnaire
+{% endblock title %}
+{% block content %}
+    {% block page_title %}
+        <p class="font-weight-bolder">
+            Step {{ current_step }} of {{ total_steps }}
+        </p>
+        <h1 class="h3 mb-4 text-gray-800"> {{ questionnaire }} </h1>
+    {% endblock page_title %}
+    {% if perms.sims.change_questionnaireresponses %}
+        {% block questionnaire_form_container %}
+            <div class="row">
+                <div class="col-sm-6">
+                    {% crispy form %}
+                </div>
+            </div>
+        {% endblock questionnaire_form_container %}
+        {% block questionnaire_metadata_container %}
+            <div class="row">
+                {% if questionnaire.questionnaire_type == 'mentorship' %}
+                    {% include "fragments/mentorship_questionnaire_metadata_content.html" %}
+                {% endif %}
+            </div>
+        {% endblock questionnaire_metadata_container %}
+        {% block questionnaire_navigate_container %}
+            <div class="row align-items-end mt-3">
+                <div class="col">
+                    <button type="button" class="btn btn-secondary px-5">Back</button>
+                </div>
+                <div class="col">
+                    <button type="button" class="btn btn-primary float-right px-5">Next</button>
+                </div>
+            </div>
+        {% endblock questionnaire_navigate_container %}
+    {% else %}
+        <p>You do not have permission to edit questionnaires.</p>
+    {% endif %}
+{% endblock content %}

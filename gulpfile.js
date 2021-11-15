@@ -123,6 +123,7 @@ function scripts() {
             `${paths.js}/other/templates/fragments/export_data_modal.js`,
             `${paths.js}/other/templates/fragments/import_data_modal_svr.js`,
             `${paths.js}/other/templates/fragments/import_data_modal_svr_async.js`,
+            `${paths.js}/other/templates/fragments/mentorship_questionnaire_metadata_content.js`,
         ])
         .pipe(sourcemaps.init())
         .pipe(plumber()) // Checks for errors

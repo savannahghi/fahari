@@ -17,6 +17,8 @@ class QuestionnaireResponsesSerializer(BaseSerializer):
     questionnaire_data = QuestionnaireSerializer(source="questionnaire", read_only=True)
     is_complete = serializers.BooleanField(read_only=True)
     progress = serializers.FloatField(read_only=True)
+    start_date = serializers.DateTimeField(format="%d %b %Y, %I:%M:%S %p", read_only=True)
+    finish_date = serializers.DateTimeField(format="%d %b %Y, %I:%M:%S %p", read_only=True)
 
     class Meta(BaseSerializer.Meta):
         model = QuestionnaireResponses

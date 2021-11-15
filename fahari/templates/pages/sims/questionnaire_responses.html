@@ -113,7 +113,11 @@
             columns: [
                 {data: "facility_data.name", name: 'facility__name'},
                 {data: "questionnaire_data.name", name: "questionnaire__name"},
-                {data: "start_date", name: "start_date"},
+                {
+                    data: "start_date",
+                    name: "start_date",
+                    searchable: false,
+                },
                 {
                     data: "progress",
                     name: "progress",
@@ -129,7 +133,6 @@
                         `;
                     }
                 },
-
             ]
         });
     });
