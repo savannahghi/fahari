@@ -14,12 +14,6 @@
                 </a>
             {% endif %}
 
-            {% if perms.ops.view_sitementorship %}
-                <a class="collapse-item {% if selected == "site-mentorship" %}active {% endif %}" id="site-mentorship" href="{% url 'ops:site_mentorships' %}">
-                    Site Mentorship
-                </a>
-            {% endif %}
-
             {% if perms.ops.view_dailyupdate %}
                 <a class="collapse-item {% if selected == "daily-site-updates" %}active {% endif %}" id="daily-site-updates" href="{% url 'ops:daily_site_updates' %}">
                     Daily Site Updates

@@ -13,7 +13,6 @@ from fahari.ops.views import (
     FacilitySystemTicketViewSet,
     FacilitySystemViewSet,
     SecurityIncidenceViewSet,
-    SiteMentorshipViewSet,
     StockReceiptVerificationViewSet,
     TimeSheetViewSet,
     UoMCategoryViewSet,
@@ -36,7 +35,6 @@ router.register("versions", FacilitySystemViewSet)
 router.register("tickets", FacilitySystemTicketViewSet)
 router.register("stock_receipts", StockReceiptVerificationViewSet)
 router.register("activity_logs", ActivityLogViewSet)
-router.register("site_mentorships", SiteMentorshipViewSet)
 router.register("daily_updates", DailyUpdateViewSet)
 router.register("timesheets", TimeSheetViewSet)
 router.register("weekly_updates", WeeklyProgramUpdateViewSet)

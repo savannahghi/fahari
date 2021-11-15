@@ -38,10 +38,6 @@ from .views import (
     SecurityIncidenceDeleteView,
     SecurityIncidenceUpdateView,
     SecurityIncidentsListView,
-    SiteMentorshipCreateView,
-    SiteMentorshipDeleteView,
-    SiteMentorshipUpdateView,
-    SiteMentorshipView,
     StockReceiptVerificationCreateView,
     StockReceiptVerificationDeleteView,
     StockReceiptVerificationUpdateView,
@@ -123,22 +119,6 @@ urlpatterns = [
         "activity_log_delete/<pk>",
         view=ActivityLogDeleteView.as_view(),
         name="activity_log_delete",
-    ),
-    path("site_mentorships", view=SiteMentorshipView.as_view(), name="site_mentorships"),
-    path(
-        "site_mentorship_create",
-        view=SiteMentorshipCreateView.as_view(),
-        name="site_mentorship_create",
-    ),
-    path(
-        "site_mentorship_update/<pk>",
-        view=SiteMentorshipUpdateView.as_view(),
-        name="site_mentorship_update",
-    ),
-    path(
-        "site_mentorship_delete/<pk>",
-        view=SiteMentorshipDeleteView.as_view(),
-        name="site_mentorship_delete",
     ),
     path(
         "daily_site_updates",

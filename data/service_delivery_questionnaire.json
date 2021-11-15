@@ -3,14 +3,12 @@
     "questionnaire_type": "mentorship",
     "question_groups": [
         {
-            "has_children": false,
             "title": "SERVICE QUESTIONS",
             "precedence": 1,
             "precedence_display_type": "bullet",
-            "child_groups": [],
+            "children": [],
             "questions": [
                 {
-                    "has_child_question": false,
                     "precedence": 1,
                     "precedence_display_type": "numbered_td",
                     "answer_type": "yes_no",
@@ -19,7 +17,6 @@
                     "children": []
                 },
                 {
-                    "has_child_question": false,
                     "precedence": 2,
                     "precedence_display_type": "numbered_td",
                     "answer_type": "yes_no",
@@ -28,7 +25,6 @@
                     "children": []
                 },
                 {
-                    "has_child_question": false,
                     "precedence": 3,
                     "precedence_display_type": "numbered_td",
                     "answer_type": "yes_no",
@@ -37,7 +33,6 @@
                     "children": []
                 },
                 {
-                    "has_child_question": false,
                     "precedence": 4,
                     "precedence_display_type": "numbered_td",
                     "answer_type": "yes_no",
@@ -49,18 +44,16 @@
         },
         {
             "title": "ANTENATAL CARE/EMTCT ",
-            "has_children": true,
             "precedence": 2,
             "precedence_display_type": "bullet",
-            "child_groups": [
+            "children": [
                 {
                     "title": "QUALITY IMPROVEMENT",
-                    "has_children": false,
                     "precedence": 1,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "number",
@@ -69,7 +62,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -78,7 +70,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -87,7 +78,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -96,7 +86,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -108,12 +97,11 @@
                 },
                 {
                     "title": "ANC",
-                    "has_children": false,
                     "precedence": 2,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -125,12 +113,11 @@
                 },
                 {
                     "title": "EMTCT",
-                    "has_children": false,
                     "precedence": 3,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -139,7 +126,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": true,
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "number",
@@ -147,7 +133,6 @@
                             "query": "How many HIV positive pregnant women attended ANC in the month?",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -156,7 +141,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -165,7 +149,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -174,7 +157,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -183,7 +165,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -194,7 +175,6 @@
                             ]
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "paragraph",
@@ -206,12 +186,11 @@
                 },
                 {
                     "title": "HEI Register ",
-                    "has_children": false,
                     "precedence": 4,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -220,7 +199,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": true,
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "dependent",
@@ -228,7 +206,6 @@
                             "query": "Check at least 20 HEI in cohorts. Proportion that is correctly filled and up to date.",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -237,7 +214,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -246,7 +222,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -255,7 +230,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -264,7 +238,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -273,7 +246,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "paragraph",
@@ -282,7 +254,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 7,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -296,12 +267,11 @@
                 },
                 {
                     "title": "MOTHER BABY PAIRING",
-                    "has_children": false,
                     "precedence": 5,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -310,7 +280,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -319,7 +288,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -328,7 +296,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": true,
                             "precedence": 4,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -336,7 +303,6 @@
                             "query": "Is there a defaulter tracing register in place? Is it updated?",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -345,7 +311,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -354,7 +319,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "dependent",
@@ -368,12 +332,11 @@
                 },
                 {
                     "title": "EMTCT COMMODITIES",
-                    "has_children": false,
                     "precedence": 6,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -382,7 +345,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -391,7 +353,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -400,7 +361,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -410,17 +370,16 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "questions": []
         },
         {
-            "has_children": false,
             "title": "POST NATAL SERVICES",
             "precedence": 3,
             "precedence_display_type": "bullet",
-            "child_groups": [],
+            "children": [],
             "questions": [
                 {
-                    "has_child_question": true,
                     "precedence": 1,
                     "precedence_display_type": "numbered_td",
                     "answer_type": "none",
@@ -428,7 +387,6 @@
                     "query": "Check the post-natal register for 20 entries done in the last month",
                     "children": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "number",
@@ -437,7 +395,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "number",
@@ -446,7 +403,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "number",
@@ -459,14 +415,12 @@
             ]
         },
         {
-            "has_children": false,
             "title": "FAMILY PLANNING",
             "precedence": 4,
             "precedence_display_type": "bullet",
-            "child_groups": [],
+            "children": [],
             "questions": [
                 {
-                    "has_child_question": true,
                     "precedence": 1,
                     "precedence_display_type": "numbered_td",
                     "answer_type": "none",
@@ -474,7 +428,6 @@
                     "query": "What family planning options are currently being provided in this facility? (A site should offer at least 5 methods of FP)",
                     "children": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -483,7 +436,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -492,7 +444,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -501,7 +452,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -510,7 +460,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -519,7 +468,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 6,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -528,7 +476,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 7,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -537,7 +484,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 8,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -546,7 +492,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 9,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -555,7 +500,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 10,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -564,7 +508,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 11,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "paragraph",
@@ -575,7 +518,6 @@
                     ]
                 },
                 {
-                    "has_child_question": true,
                     "precedence": 2,
                     "precedence_display_type": "numbered_td",
                     "answer_type": "none",
@@ -583,7 +525,6 @@
                     "query": "Where are RH services for WLHIV offered? (FP & Cervical cancer screening & Pre-Conception Care)",
                     "children": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -592,7 +533,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -601,7 +541,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -610,7 +549,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "short_answer",
@@ -619,7 +557,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -628,7 +565,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 6,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "radio_option",
@@ -637,7 +573,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 7,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -646,7 +581,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": true,
                             "precedence": 8,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -654,7 +588,6 @@
                             "query": "Check for completion of register and monthly summary form",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -663,7 +596,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -672,7 +604,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -683,7 +614,6 @@
                             ]
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 9,
                             "precedence_display_type": "bullet",
                             "answer_type": "select_list",
@@ -692,7 +622,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 10,
                             "precedence_display_type": "bullet",
                             "answer_type": "paragraph",
@@ -705,14 +634,12 @@
             ]
         },
         {
-            "has_children": false,
             "title": "GENERAL MATERNITY INPATIENT SERVICES",
             "precedence": 5,
             "precedence_display_type": "bullet",
-            "child_groups": [],
+            "children": [],
             "questions": [
                 {
-                    "has_child_question": true,
                     "precedence": 1,
                     "precedence_display_type": "bullet",
                     "answer_type": "none",
@@ -720,7 +647,6 @@
                     "query": " In the last one month,(See WIT meeting templates in WIT file)",
                     "children": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
@@ -729,7 +655,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
@@ -738,7 +663,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -747,7 +671,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -756,7 +679,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -767,7 +689,6 @@
                     ]
                 },
                 {
-                    "has_child_question": true,
                     "precedence": 2,
                     "precedence_display_type": "bullet",
                     "answer_type": "none",
@@ -775,7 +696,6 @@
                     "query": "Using the record of the last one month;",
                     "children": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
@@ -784,7 +704,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
@@ -793,7 +712,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
@@ -802,7 +720,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
@@ -811,7 +728,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
@@ -820,7 +736,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 6,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -831,7 +746,6 @@
                     ]
                 },
                 {
-                    "has_child_question": true,
                     "precedence": 3,
                     "precedence_display_type": "bullet",
                     "answer_type": "none",
@@ -839,7 +753,6 @@
                     "query": "Are the following services offered in this maternity unit?",
                     "children": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -848,7 +761,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -857,7 +769,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -866,7 +777,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -875,7 +785,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -884,7 +793,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 6,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -893,7 +801,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 7,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -902,7 +809,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 8,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
@@ -915,19 +821,17 @@
             ]
         },
         {
-            "has_children": true,
             "title": "TB/HIV SERVICES",
             "precedence": 6,
             "precedence_display_type": "bullet",
-            "child_groups": [
+            "children": [
                 {
                     "title": "HIV TESTING SERVICES",
-                    "has_children": false,
                     "precedence": 1,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": true,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "none",
@@ -935,7 +839,6 @@
                             "query": "Are the following departments/service points offering HIV testing services?",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -944,7 +847,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -953,7 +855,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -962,7 +863,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -971,7 +871,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -980,7 +879,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -991,7 +889,6 @@
                             ]
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -1000,7 +897,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -1009,7 +905,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "short_answer",
@@ -1018,7 +913,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -1027,7 +921,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 6,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -1036,7 +929,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 7,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
@@ -1045,7 +937,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": true,
                             "precedence": 8,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "none",
@@ -1053,7 +944,6 @@
                             "query": "Pull 20 files from Adults patients seen last month randomly(Care and Treatment)",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1062,7 +952,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1071,7 +960,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1080,7 +968,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1089,7 +976,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1098,7 +984,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1107,7 +992,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 7,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1116,7 +1000,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 8,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1125,7 +1008,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 9,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1134,7 +1016,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 10,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1143,7 +1024,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 11,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1152,7 +1032,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 12,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1163,7 +1042,6 @@
                             ]
                         },
                         {
-                            "has_child_question": true,
                             "precedence": 9,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "none",
@@ -1171,7 +1049,6 @@
                             "query": "Pull 10 pediatric files seen last month",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1180,7 +1057,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1189,7 +1065,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1198,7 +1073,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1207,7 +1081,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1216,7 +1089,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1225,7 +1097,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 7,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1234,7 +1105,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 8,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1243,7 +1113,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 9,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
@@ -1257,12 +1126,11 @@
                 },
                 {
                     "title": "GENDER BASED VIOLENCE",
-                    "has_children": false,
                     "precedence": 2,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "select_list",
@@ -1274,12 +1142,11 @@
                 },
                 {
                     "title": "ADOLESCENT SERVICES",
-                    "has_children": false,
                     "precedence": 3,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": true,
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "none",
@@ -1287,7 +1154,6 @@
                             "query": "Does the facility have the following?",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1296,7 +1162,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1305,7 +1170,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1314,7 +1178,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1323,7 +1186,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1332,7 +1194,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1346,12 +1207,11 @@
                 },
                 {
                     "title": "CONTINUITY ON TREATMENT",
-                    "has_children": false,
                     "precedence": 4,
                     "precedence_display_type": "numbered_td",
+                    "children": [],
                     "questions": [
                         {
-                            "has_child_question": false,
                             "precedence": 1,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -1360,7 +1220,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 2,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -1369,7 +1228,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 3,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -1378,7 +1236,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 4,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -1387,7 +1244,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 5,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -1396,7 +1252,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": false,
                             "precedence": 6,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
@@ -1405,7 +1260,6 @@
                             "children": []
                         },
                         {
-                            "has_child_question": true,
                             "precedence": 7,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "none",
@@ -1413,7 +1267,6 @@
                             "query": "COT strategies;",
                             "children": [
                                 {
-                                    "has_child_question": false,
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1422,7 +1275,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1431,7 +1283,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1440,7 +1291,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1449,7 +1299,6 @@
                                     "children": []
                                 },
                                 {
-                                    "has_child_question": false,
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
@@ -1461,7 +1310,8 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "questions": []
         }
     ]
 }

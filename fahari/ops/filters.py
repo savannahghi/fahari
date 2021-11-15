@@ -12,7 +12,6 @@ from .models import (
     FacilitySystem,
     FacilitySystemTicket,
     SecurityIncidence,
-    SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
     UoM,
@@ -62,16 +61,6 @@ class ActivityLogFilter(CommonFieldsFilterset):
     class Meta:
 
         model = ActivityLog
-        fields = "__all__"
-
-
-class SiteMentorshipFilter(CommonFieldsFilterset):
-
-    search = filters.SearchFilter()
-
-    class Meta:
-
-        model = SiteMentorship
         fields = "__all__"
 
 

@@ -7,7 +7,7 @@ from django.utils import timezone
 from fahari.common.models import AbstractBase, AbstractBaseManager, AbstractBaseQuerySet, Facility
 
 # =============================================================================
-# QUERYSETS
+# CONSTANTS
 # =============================================================================
 
 
