@@ -1,4 +1,8 @@
 document.addEventListener("DOMContentLoaded", function() {
+    // Global vars
+    window.mentor_edit_id = -1;
+
+    // Local vars
     var $btn_save_mentor_details = $("#btn_save_mentor_details");
     var $md_capture_mentor_details_modal = $("#capture_mentor_details_modal");
     var $fm_questionnaire_response_form = $("#questionnaire_response_form");
@@ -10,6 +14,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Reset the form on modal close
     $md_capture_mentor_details_modal.on("hidden.bs.modal", function() {
         $fm_mentorship_details_form.trigger("reset");
+        window.mentor_edit_id = -1;  // Reset the mentor id being edited
     });
 
     function appendMentorToMentorsTable(mentor, id) {
@@ -35,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
             $(`input[name=${mentor_field}`).val(field_value);
         }
 
+        window.mentor_edit_id = mentor_id;
         $md_capture_mentor_details_modal.modal("show");
     }
 
@@ -72,7 +78,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
             var mentors = JSON.parse($txt_mentors.val());
             mentors = (mentors)? mentors : [];
-            mentors.push(mentor_data);
+            if (window.mentor_edit_id > -1) {   // Edit an existing record
+                mentors[window.mentor_edit_id] = mentor_data;
+            } else {                            // Add a new record
+                mentors.push(mentor_data);
+            }
             $txt_mentors.val(JSON.stringify(mentors));
             updateMentorsTable();
 

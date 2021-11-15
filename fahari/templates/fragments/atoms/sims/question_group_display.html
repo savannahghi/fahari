@@ -1,0 +1,28 @@
+{% load static i18n compress %}
+<div class="accordion my-2" id="acc_qg_{{ question_group.pk }}">
+    <div class="card">
+        <div class="card-header" id="headingOne">
+            <h2 class="mb-0">
+                <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#clp_{{ question_group.pk }}" aria-expanded="true" aria-controls="collapseOne">
+                    {{ question_group.title }}
+                </button>
+            </h2>
+        </div>
+
+        <div id="clp_{{ question_group.pk }}" class="collapse show" aria-labelledby="headingOne" data-parent="#acc_qg_{{ question_group.pk }}">
+            <div class="card-body">
+                {% if question_group.is_parent %}
+                    {% with question_group as parent %}
+                        {% for question_group in parent.sub_question_groups.all %}
+                            {% include "fragments/atoms/sims/question_group_display.html" %}
+                        {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    {% for question in question_group.questions.all %}
+                        {% include "fragments/atoms/sims/question_display.html" %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

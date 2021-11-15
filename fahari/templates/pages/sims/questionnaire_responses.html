@@ -133,6 +133,15 @@
                         `;
                     }
                 },
+                {
+                    data: "url",
+                    name: "id",
+                    orderable: false,
+                    searchable: false,
+                    render: function ( data, type, row ) {
+                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                    }
+                }
             ]
         });
     });

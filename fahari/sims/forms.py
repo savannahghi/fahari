@@ -36,6 +36,7 @@ class QuestionnaireResponsesForm(GetAllottedFacilitiesMixin, forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.html5_required = True
         self.fields["questionnaire"].disabled = True
+        self.fields["questionnaire"].widget = forms.HiddenInput()
         self.fields["facility"].queryset = self.get_allotted_facilities().active()
 
     class Meta(BaseModelForm.Meta):

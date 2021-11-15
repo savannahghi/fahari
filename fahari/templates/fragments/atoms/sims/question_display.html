@@ -1,0 +1,14 @@
+{% load static i18n compress %}
+<div class="row" id="div_qst_{{ question.pk }}">
+    <div class="col-sm-1 px-2">
+        {{ question.precedence }}.
+    </div>
+    <div class="col-sm-10">
+        <p class="lead">
+            {{ question.query }}
+        </p>
+    </div>
+    <div class="col-sm-5">
+        <p>Answers go here.</p>
+    </div>
+</div>

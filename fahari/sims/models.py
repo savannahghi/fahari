@@ -1,6 +1,7 @@
 from typing import List, Optional, TypedDict, cast
 
 from django.db import models
+from django.urls import reverse_lazy
 from django.utils import timezone
 
 from fahari.common.models import AbstractBase, AbstractBaseManager, AbstractBaseQuerySet, Facility
@@ -484,6 +485,13 @@ class QuestionnaireResponses(AbstractBase):
         """Return the completion status of the given questionnaire as a percentage."""
 
         return 60.0
+
+    def get_absolute_url(self):
+        update_url = reverse_lazy("sims:questionnaire_responses_update", kwargs={"pk": self.pk})
+        return update_url
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return "Facility: %s, Questionnaire: %s, Status: %s" % (
