@@ -118,7 +118,7 @@ class WeeklyProgramUpdateUpdateTest(LoggedInMixin, TestCase):
         self.program_update = baker.make(
             WeeklyProgramUpdate,
             organisation=self.global_organisation,
-            operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN.value,
+            operation_area=WeeklyProgramUpdate.OperationGroup.ADMIN_FINANCE.value,
             status=WeeklyProgramUpdate.TaskStatus.IN_PROGRESS.value,
             assigned_persons=json.dumps([fake.name(), fake.name()]),
             date=timezone.now().date(),
