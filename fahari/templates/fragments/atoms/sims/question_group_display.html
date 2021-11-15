@@ -4,7 +4,7 @@
         <div class="card-header" id="headingOne">
             <h2 class="mb-0">
                 <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#clp_{{ question_group.pk }}" aria-expanded="true" aria-controls="collapseOne">
-                    {{ question_group.title }}
+                    {{ question_group.precedence }}. {{ question_group.title }}
                 </button>
             </h2>
         </div>
@@ -13,12 +13,12 @@
             <div class="card-body">
                 {% if question_group.is_parent %}
                     {% with question_group as parent %}
-                        {% for question_group in parent.sub_question_groups.all %}
+                        {% for question_group in parent.sub_question_groups.active.by_precedence %}
                             {% include "fragments/atoms/sims/question_group_display.html" %}
                         {% endfor %}
                     {% endwith %}
                 {% else %}
-                    {% for question in question_group.questions.all %}
+                    {% for question in question_group.questions.active.by_precedence %}
                         {% include "fragments/atoms/sims/question_display.html" %}
                     {% endfor %}
                 {% endif %}

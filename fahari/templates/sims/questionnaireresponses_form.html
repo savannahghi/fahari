@@ -29,7 +29,7 @@
         {% block questionnaire_navigate_container %}
             <div class="row align-items-end mt-3">
                 <div class="col">
-                    <button type="button" class="btn btn-secondary px-5">Back</button>
+                    <a class="btn btn-secondary px-5" href="{% url 'sims:questionnaire_responses' %} ">Back</a>
                 </div>
                 <div class="col">
                     <button id="btn_next" type="button" class="btn btn-primary float-right px-5">Next</button>

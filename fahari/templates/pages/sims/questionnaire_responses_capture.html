@@ -16,7 +16,7 @@
         {% block questionnaire_metadata_container %}
             <div class="row">
                 <div class="col">
-                    {% for question_group in questionnaire.question_groups.active %}
+                    {% for question_group in questionnaire.question_groups.active.by_precedence %}
                         {% include "fragments/atoms/sims/question_group_display.html" %}
                     {% endfor %}
                 </div>
@@ -25,7 +25,7 @@
         {% block questionnaire_navigate_container %}
             <div class="row align-items-end my-3">
                 <div class="col">
-                    <button type="button" class="btn btn-secondary px-5">Back</button>
+                    <a class="btn btn-secondary px-5" href="{% url 'sims:questionnaire_responses_update' object.pk %}">Back</a>
                 </div>
                 <div class="col">
                     <button id="btn_submit" type="button" class="btn btn-primary float-right px-5">Submit</button>

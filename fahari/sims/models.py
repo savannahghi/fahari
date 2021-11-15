@@ -33,6 +33,11 @@ class MentorshipQuestionnaireMetadata(TypedDict):
 
 
 class ChildrenMixinQuerySet(models.QuerySet):
+    def by_precedence(self) -> models.QuerySet:
+        """Return a queryset of elements ordered by precedence."""
+
+        return self.order_by("precedence")
+
     def parents_only(self) -> models.QuerySet:
         """Return a queryset consisting of only parent elements."""
 
@@ -155,6 +160,11 @@ class QuestionManager(AbstractBaseManager):
 
         return self.get_queryset().answered_for_questionnaire(responses)
 
+    def by_precedence(self) -> models.QuerySet:
+        """Return a queryset of elements ordered by precedence."""
+
+        return self.get_queryset().by_precedence()
+
     def for_question(self, question: "Question") -> "QuestionQuerySet":
         """Return all the sub-questions and nested sub-questions belonging to a given question."""
 
@@ -186,6 +196,11 @@ class QuestionGroupManager(AbstractBaseManager):
         """Return a queryset containing answered question groups for the given questionnaire."""
 
         return self.get_queryset().answered_for_questionnaire(responses)
+
+    def by_precedence(self) -> models.QuerySet:
+        """Return a queryset of elements ordered by precedence."""
+
+        return self.get_queryset().by_precedence()
 
     def for_questionnaire(self, questionnaire: "Questionnaire") -> QuestionGroupQuerySet:
         """Return a queryset containing all the question groups in the given questionnaire."""

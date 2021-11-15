@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
@@ -56,8 +56,12 @@ class QuestionnaireResponseCreateView(
     model = QuestionnaireResponses
     success_url = reverse_lazy("sims:questionnaire_responses")
 
+    # Protected properties
+    _questionnaire: Optional[Questionnaire] = None
+
     def form_valid(self, form):
         form.instance.metadata["mentors"] = form.cleaned_data["mentors"]
+        self._questionnaire = form.instance
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
@@ -74,13 +78,22 @@ class QuestionnaireResponseCreateView(
         initial["questionnaire"] = self.get_object(Questionnaire.objects.active())
         return initial
 
+    def get_success_url(self) -> str:
+        return (
+            reverse_lazy(
+                "sims:questionnaire_responses_capture", kwargs={"pk": self._questionnaire.pk}
+            )
+            if self._questionnaire
+            else self.success_url
+        )
+
 
 class QuestionnaireResponseUpdateView(
     MentorShipQuestionnaireResponsesContextMixin, BaseFormMixin, FormContextMixin, UpdateView
 ):
     form_class = QuestionnaireResponsesForm
     model = QuestionnaireResponses
-    success_url = reverse_lazy("sims:questionnaire_responses")
+    # success_url = reverse_lazy("sims:questionnaire_responses")
 
     def form_valid(self, form):
         form.instance.metadata["mentors"] = form.cleaned_data["mentors"]
@@ -99,6 +112,11 @@ class QuestionnaireResponseUpdateView(
         initial = super().get_initial()
         initial["mentors"] = self.get_object().metadata.get("mentors", [])  # noqa
         return initial
+
+    def get_success_url(self) -> str:
+        return reverse_lazy(
+            "sims:questionnaire_responses_capture", kwargs={"pk": self.get_object().pk}
+        )
 
 
 class QuestionnaireResponseViewSet(BaseView):
