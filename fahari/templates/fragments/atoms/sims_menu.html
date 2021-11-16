@@ -3,13 +3,13 @@
 <li class="nav-item {% if active == 'sims-nav' %}active{% endif %}" id="sims-nav">
 <a class="nav-link collapsed" id="facilities-nav-link" href="#" data-toggle="collapse" data-target="#sims-menu" aria-expanded="true" aria-controls="sims-menu">
     <i class="fas fa-poll-h"></i>
-    <span>Sims</span>
+    <span>Questionnaire</span>
 </a>
 <div id="sims-menu" class="collapse {% if active == 'sims-nav' %}show{% endif %}"  data-parent="#accordionSidebar">
 <div class="bg-white py-2 collapse-inner rounded">
     {% if perms.common.view_facility %}
         <a class="collapse-item  {% if selected == 'questionnaire-responses' %}active {% endif %}" id="questionnaire-responses" href="{% url 'sims:questionnaire_responses' %}">
-            Questionnaire Responses
+            Questionnaire
         </a>
     {% endif %}
 </div>

@@ -9,10 +9,44 @@
         </p>
         <div class="form-group">
             <label for="{{ question.pk }}"><small class="text-muted">Comments</small></label>
-            <textarea class="form-control" id="{{ question.pk }}" name="comments_{{ question.pk }}" rows="4"></textarea>
+            <textarea class="form-control" id="id_comments_{{ question.pk }}" name="comments_{{ question.pk }}"
+                rows="4"></textarea>
         </div>
     </div>
     <div class="col-sm-3">
-        <p>Answers go here.</p>
+        {% if question.answer_type == "yes_no" %}
+        <div class="row mt-4">
+            <div class="form-check form-check-block col d-flex flex-col">
+                <label class="form-check-label">YES</label>
+                <input class="form-check-input" type="radio" name="response_{{question.pk}}" value="True">
+            </div>
+
+            <div class="form-check form-check-block col d-flex flex-col">
+                <label class="form-check-label">NO</label>
+                <input class="form-check-input" type="radio" name="response_{{question.pk}}" value="False">
+            </div>
+        </div>
+        {% elif question.answer_type == "true_false" %}
+        <div class="row mt-4">
+            <div class="form-check form-check-block col d-flex flex-col">
+                <label class="form-check-label">TRUE</label>
+                <input class="form-check-input" type="radio" name="response_{{question.pk}}" value="True">
+            </div>
+            <div class="form-check form-check-block col d-flex flex-col">
+                <label class="form-check-label">FALSE</label>
+                <input class="form-check-input" type="radio" name="response_{{question.pk}}" value="False">
+            </div>
+        </div>
+        {% elif question.answer_type == "number" %}
+        <div class="form-group">
+            <label for="number">Enter number</label>
+            <input type="text" class="form-control" id="response_{{question.pk}}">
+        </div>
+
+        {% elif question.answer_type == "fraction" %}
+
+
+        {% endif %}
+
     </div>
 </div>

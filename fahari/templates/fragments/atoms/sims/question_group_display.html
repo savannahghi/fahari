@@ -1,37 +1,66 @@
 {% load static i18n compress %}
 <div class="accordion my-2" id="acc_qg_{{ question_group.pk }}">
-    <div class="card">
+    <div class="card border border-secondary rounded-7">
         <div class="card-header" id="headingOne">
             <h2 class="mb-0">
-                <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#clp_{{ question_group.pk }}" aria-expanded="true" aria-controls="collapseOne">
+                <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse"
+                    data-target="#clp_{{ question_group.pk }}" aria-expanded="true" aria-controls="collapseOne">
                     {{ question_group.precedence }}. {{ question_group.title }}
                 </button>
             </h2>
         </div>
 
-        <div id="clp_{{ question_group.pk }}" class="collapse show" aria-labelledby="headingOne" data-parent="#acc_qg_{{ question_group.pk }}">
+        <div id="clp_{{ question_group.pk }}" class="collapse" aria-labelledby="headingOne"
+            data-parent="#acc_qg_{{ question_group.pk }}">
             <div class="card-body">
                 {% if question_group.is_parent %}
-                    {% with question_group as parent %}
-                        {% for question_group in parent.sub_question_groups.active.by_precedence %}
-                            {% include "fragments/atoms/sims/question_group_display.html" %}
-                        {% endfor %}
-                    {% endwith %}
+                {% with question_group as parent %}
+                {% for question_group in parent.sub_question_groups.active.by_precedence %}
+                {% include "fragments/atoms/sims/question_group_display.html" %}
+                {% endfor %}
+                {% endwith %}
                 {% else %}
-                    <form>
-                        <input type="hidden" name="question_group" value="{{ question_group.pk }}">
-                        {% for question in question_group.questions.active.by_precedence %}
-                            {% include "fragments/atoms/sims/question_display.html" %}
-                        {% endfor %}
-                        <div class="row">
-                            <div class="col-sm-1"></div>
-                            <div class="col-sm-11">
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
-                            </div>
+                <form id="question_response_form">
+                    <input type="hidden" name="question_group" value="{{ question_group.pk }}">
+                    {% for question in question_group.questions.active.by_precedence %}
+                    {% include "fragments/atoms/sims/question_display.html" %}
+                    {% endfor %}
+                    <div class="row">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-11">
+                            <button type="submit" id="btn_submit_qg_response" class="btn btn-primary">Save
+                                Changes</button>
                         </div>
-                    </form>
+                    </div>
+                </form>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+{% block inline_javascript %}
+<script>
+    window.addEventListener("load", function () {
+        $(document).ready(function () {
+
+
+            // {
+            //     "question_group": "question_group_pk",
+            //     "question_answers": {
+            //         "question_1_pk": {
+            //             "comments": "comments",
+            //             "response": ""
+            //         },
+            //         "question_2_pk": {
+            //             "comments": "comments",
+            //             "response": ""
+            //     }
+            // }
+
+
+
+        });
+    });
+</script>
+{% endblock inline_javascript %}
