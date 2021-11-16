@@ -338,7 +338,7 @@ class Question(AbstractBase, ChildrenMixin):
         help_text=parent_field_help_text,
     )
     precedence = models.PositiveSmallIntegerField(help_text=precedence_field_help_text)
-    metadata = models.JSONField(default=[], blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
 
     objects = QuestionManager()
 
