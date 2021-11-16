@@ -18,9 +18,18 @@
                         {% endfor %}
                     {% endwith %}
                 {% else %}
-                    {% for question in question_group.questions.active.by_precedence %}
-                        {% include "fragments/atoms/sims/question_display.html" %}
-                    {% endfor %}
+                    <form>
+                        <input type="hidden" name="question_group" value="{{ question_group.pk }}">
+                        {% for question in question_group.questions.active.by_precedence %}
+                            {% include "fragments/atoms/sims/question_display.html" %}
+                        {% endfor %}
+                        <div class="row">
+                            <div class="col-sm-1"></div>
+                            <div class="col-sm-11">
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </div>
+                    </form>
                 {% endif %}
             </div>
         </div>

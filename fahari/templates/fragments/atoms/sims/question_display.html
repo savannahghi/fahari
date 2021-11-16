@@ -7,6 +7,10 @@
         <p class="lead">
             {{ question.query }}
         </p>
+        <div class="form-group">
+            <label for="{{ question.pk }}"><small class="text-muted">Comments</small></label>
+            <textarea class="form-control" id="{{ question.pk }}" name="comments_{{ question.pk }}" rows="4"></textarea>
+        </div>
     </div>
     <div class="col-sm-3">
         <p>Answers go here.</p>
