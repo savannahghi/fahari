@@ -43,10 +43,26 @@
             <input type="text" class="form-control" id="response_{{question.pk}}">
         </div>
 
-        {% elif question.answer_type == "fraction" %}
+        {% elif question.answer_type == "short_answer" %}
+        <div class="form-group">
+            <label for="number">Response</label>
+            <textarea type="text" class="form-control" id="response_{{question.pk}}"></textarea>
+        </div>
+
+        {% elif question.answer_type == "select_list" %}
+        {% for data in question.metadata %}
+        <div class="form-group">
+            <input type="checkbox" id="response_{{question.pk}}" name="response_{{question.pk}}" value="Bike" />
+            <label for="metadata">{{data.name}}</label>
+        </div>
+        {% endfor %}
+
+        {% elif question.answer_type == "none" %}
+        <input type="hidden" hidden="True" class="form-control" value="" id="response_{{question.pk}}">
 
 
         {% endif %}
+
 
     </div>
 </div>

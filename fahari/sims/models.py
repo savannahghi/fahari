@@ -297,7 +297,6 @@ class Question(AbstractBase, ChildrenMixin):
         NUMBER = "number", "Whole Number"
         FRACTION = "fraction", "Fractional Number"
         SHORT_ANSWER = "short_answer", "Short Answer"
-        PARAGRAPH = "paragraph", "Long Answer"
         RADIO_OPTION = "radio_option", "Select One"
         SELECT_LIST = "select_list", "Select Multiple"
         DEPENDENT = "dependent", "Dependent on Another Answer"
@@ -339,7 +338,7 @@ class Question(AbstractBase, ChildrenMixin):
         help_text=parent_field_help_text,
     )
     precedence = models.PositiveSmallIntegerField(help_text=precedence_field_help_text)
-    metadata = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=[], blank=True)
 
     objects = QuestionManager()
 
