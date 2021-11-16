@@ -64,7 +64,7 @@ def get_organisation():
 def _load_question(
     org: "fahari.common.models.Organisation",  # noqa
     question_data: QuestionData,
-    question_group: Optional["fahari.sims.models.QuestionGroup"] = None,  # noqa
+    question_group: "fahari.sims.models.QuestionGroup",  # noqa
     parent: Optional["fahari.sims.models.Question"] = None,  # noqa
 ):
     from fahari.sims.models import Question
@@ -83,13 +83,13 @@ def _load_question(
     )
     if len(question_data["children"]) > 0:
         for _question_data in question_data["children"]:
-            _load_question(org, _question_data, None, question)
+            _load_question(org, _question_data, question_group, question)
 
 
 def _load_question_group(
     org: "fahari.common.models.Organisation",  # noqa
     question_group_data: QuestionGroupData,
-    questionnaire: Optional["fahari.sims.models.Questionnaire"] = None,  # noqa
+    questionnaire: "fahari.sims.models.Questionnaire",  # noqa
     parent: Optional["fahari.sims.models.QuestionGroup"] = None,  # noqa
 ) -> None:
     from fahari.sims.models import QuestionGroup
@@ -106,7 +106,7 @@ def _load_question_group(
     )
     if len(question_group_data["children"]) > 0:
         for _question_group_data in question_group_data["children"]:
-            _load_question_group(org, _question_group_data, None, question_group)
+            _load_question_group(org, _question_group_data, questionnaire, question_group)
 
     for question_data in question_group_data["questions"]:
         _load_question(org, question_data, question_group)
@@ -125,7 +125,7 @@ def load_questionnaire(source_file):
     try:
         question_group_data: QuestionGroupData
         for question_group_data in data["question_groups"]:
-            _load_question_group(org, question_group_data, questionnaire, None)
+            _load_question_group(org, question_group_data, questionnaire)
     except Exception as e:
         print("Error loading question group: %s" % question_group_data["title"])  # noqa
         raise e

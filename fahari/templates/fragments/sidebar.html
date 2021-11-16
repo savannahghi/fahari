@@ -15,9 +15,10 @@
     <div class="sidebar-heading">Hardware and Network</div>
     {% include "fragments/atoms/hardware_network_menu.html" %}
     <hr class="sidebar-divider">
+    <div class="sidebar-heading">Mentorship Questionnaire</div>
     <div class="nav-link collapsed ml-3">
         <a class="collapse-item text-light {% if selected == 'questionnaire-responses' %}active {% endif %}" id="questionnaire-responses" href="{% url 'sims:questionnaire_responses' %}">
-            <i class="fas fa-fw fa-file"></i>
+            <i class="fas fa-poll-h"></i>
             <span>Questionnaire</span>
         </a>
     </div>

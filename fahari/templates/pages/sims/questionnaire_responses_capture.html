@@ -17,7 +17,7 @@
             <form class="csrf_form">{% csrf_token %}</form>
             <div class="row">
                 <div class="col">
-                    {% for question_group in questionnaire.question_groups.active.by_precedence %}
+                    {% for question_group in questionnaire.direct_decedents_only.active.by_precedence %}
                         {% include "fragments/atoms/sims/question_group_display.html" %}
                     {% endfor %}
                 </div>

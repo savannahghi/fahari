@@ -21,7 +21,7 @@
                     {% endwith %}
                 {% else %}
                 <form id="question_group_form_{{ question_group.pk }}" class="question_group_answers_form">
-                    {% for question in question_group.questions.active.by_precedence %}
+                    {% for question in question_group.direct_decedents_only.active.by_precedence %}
                         {% include "fragments/atoms/sims/question_display.html" %}
                     {% endfor %}
                     <div class="row">

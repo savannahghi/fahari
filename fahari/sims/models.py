@@ -87,31 +87,12 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         This includes all the questions in the nested questions and question groups.
         """
 
-        def visit(
-            _question_group: "QuestionGroup", _questions: "QuestionQuerySet"
-        ) -> "QuestionQuerySet":
-            question: Question
-            for question in _question_group.questions.all():  # noqa
-                if question.is_parent:
-                    _questions = _questions.union(self.for_question(question))
-
-            if _question_group.is_parent:
-                for qg in _question_group.children:
-                    _questions = _questions.union(visit(qg, self.filter(question_group=qg)))
-
-            return _questions
-
-        return visit(question_group, self.filter(question_group=question_group))
+        return self.filter(question_group=question_group)
 
     def for_questionnaire(self, questionnaire: "Questionnaire") -> "QuestionQuerySet":
         """Return all the questions belonging to the given questionnaire."""
 
-        questions = self.none()
-        question_groups = QuestionGroup.objects.for_questionnaire(questionnaire)
-        for question_group in question_groups:
-            questions = questions.union(self.for_question_group(question_group))
-
-        return questions
+        return self.filter(question_group__questionnaire=questionnaire)
 
 
 class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixinQuerySet):  # noqa
@@ -127,17 +108,7 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
     def for_questionnaire(self, questionnaire: "Questionnaire") -> "QuestionGroupQuerySet":
         """Return a queryset containing all the question groups in the given questionnaire."""
 
-        def visit(question_groups: "QuestionGroupQuerySet") -> "QuestionGroupQuerySet":
-            question_group: QuestionGroup
-            for question_group in question_groups.all():
-                if question_group.is_parent:
-                    question_groups = question_groups.union(
-                        visit(self.filter(parent=question_group))
-                    )
-
-            return question_groups
-
-        return visit(self.filter(questionnaire=questionnaire))
+        return self.filter(questionnaire=questionnaire)
 
 
 # =============================================================================
@@ -306,8 +277,8 @@ class Question(AbstractBase, ChildrenMixin):
     parent_field_help_text = "The parent question that this question is part of."
     parent_field_related_name = "sub_questions"
     precedence_field_help_text = (
-        "The rank of a question within it's container. Used to position the "
-        "question when rendering a questionnaire."
+        'The rank of a question within it\'s "container". Used to position '
+        "the question when rendering a questionnaire."
     )
 
     query = models.TextField(verbose_name="Question")
@@ -321,12 +292,9 @@ class Question(AbstractBase, ChildrenMixin):
         "QuestionGroup",
         on_delete=models.PROTECT,
         related_name="questions",
-        blank=True,
-        null=True,
         help_text=(
-            "The question group that a question belongs to. This should "
-            "only be provided for questions that are not sub-questions of "
-            "other questions."
+            "The question group that a question belongs to. Sub-questions "
+            "should provide the same group as their parent question."
         ),
     )
     parent = models.ForeignKey(
@@ -368,7 +336,7 @@ class Question(AbstractBase, ChildrenMixin):
             models.UniqueConstraint(
                 name="unique_precedence_for_question_group",
                 fields=["precedence", "question_group"],
-                condition=models.Q(question_group__isnull=False),
+                condition=models.Q(parent__isnull=True),
             ),
         ]
 
@@ -388,12 +356,10 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
         "Questionnaire",
         on_delete=models.PROTECT,
         related_name="question_groups",
-        blank=True,
-        null=True,
         help_text=(
-            "The questionnaire that a question group belongs to. This should "
-            "only be provided for question groups that are not sub-questions "
-            "groups of other question groups."
+            "The questionnaire that a question group belongs to. Sub-question"
+            " groups should provide the same questionnaire as their parent "
+            "question group."
         ),
     )
     parent = models.ForeignKey(
@@ -407,6 +373,12 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
     precedence = models.PositiveSmallIntegerField(help_text=precedence_field_help_text)
 
     objects = QuestionGroupManager()
+
+    @property
+    def direct_decedents_only(self) -> QuestionQuerySet:
+        """Return a queryset of all "parentless" questions belonging to this question group."""
+
+        return self.questions.filter(parent__isnull=True)  # noqa
 
     def is_complete_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
         """Return true if this question group has been answered for the given questionnaire."""
@@ -423,7 +395,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
             models.UniqueConstraint(
                 name="unique_precedence_for_questionnaire",
                 fields=["precedence", "questionnaire"],
-                condition=models.Q(questionnaire__isnull=False),
+                condition=models.Q(parent__isnull=True),
             ),
         ]
 
@@ -444,6 +416,14 @@ class Questionnaire(AbstractBase):
         choices=QuestionnaireTypes.choices,
         default=QuestionnaireTypes.MENTORSHIP.value,
     )
+
+    @property
+    def direct_decedents_only(self) -> QuestionGroupQuerySet:
+        """
+        Return a queryset of all "parentless" questions groups belonging to this questionnaire.
+        """
+
+        return self.question_groups.filter(parent__isnull=True)  # noqa
 
     def __str__(self) -> str:
         return self.name
