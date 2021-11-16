@@ -14,22 +14,27 @@
             data-parent="#acc_qg_{{ question_group.pk }}">
             <div class="card-body">
                 {% if question_group.is_parent %}
-                {% with question_group as parent %}
-                {% for question_group in parent.sub_question_groups.active.by_precedence %}
-                {% include "fragments/atoms/sims/question_group_display.html" %}
-                {% endfor %}
-                {% endwith %}
+                    {% with question_group as parent %}
+                        {% for question_group in parent.sub_question_groups.active.by_precedence %}
+                            {% include "fragments/atoms/sims/question_group_display.html" %}
+                        {% endfor %}
+                    {% endwith %}
                 {% else %}
-                <form id="question_response_form">
-                    <input type="hidden" name="question_group" value="{{ question_group.pk }}">
+                <form id="question_group_form_{{ question_group.pk }}" class="question_group_answers_form">
                     {% for question in question_group.questions.active.by_precedence %}
-                    {% include "fragments/atoms/sims/question_display.html" %}
+                        {% include "fragments/atoms/sims/question_display.html" %}
                     {% endfor %}
                     <div class="row">
                         <div class="col-sm-1"></div>
                         <div class="col-sm-11">
-                            <button type="submit" id="btn_submit_qg_response" class="btn btn-primary">Save
-                                Changes</button>
+                            <button
+                                    type="button"
+                                    class="btn btn-primary save_changes"
+                                    data-question_group="{{ question_group.pk }}"
+                                    data-save_changes_url="{% url 'api:questionnaireresponses-save-question-group-answers' object.pk  %}"
+                            >
+                                Save Changes
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -38,29 +43,3 @@
         </div>
     </div>
 </div>
-
-{% block inline_javascript %}
-<script>
-    window.addEventListener("load", function () {
-        $(document).ready(function () {
-
-
-            // {
-            //     "question_group": "question_group_pk",
-            //     "question_answers": {
-            //         "question_1_pk": {
-            //             "comments": "comments",
-            //             "response": ""
-            //         },
-            //         "question_2_pk": {
-            //             "comments": "comments",
-            //             "response": ""
-            //     }
-            // }
-
-
-
-        });
-    });
-</script>
-{% endblock inline_javascript %}

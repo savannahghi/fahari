@@ -2,7 +2,19 @@ from rest_framework import serializers
 
 from fahari.common.serializers import BaseSerializer, FacilitySerializer
 
-from .models import Questionnaire, QuestionnaireResponses
+from .models import QuestionAnswer, QuestionGroup, Questionnaire, QuestionnaireResponses
+
+
+class QuestionAnswerSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = QuestionAnswer
+        fields = "__all__"
+
+
+class QuestionGroupSerializer(BaseSerializer):
+    class Meta(BaseSerializer.Meta):
+        model = QuestionGroup
+        fields = "__all__"
 
 
 class QuestionnaireSerializer(BaseSerializer):

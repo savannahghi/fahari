@@ -3,7 +3,25 @@ from rest_framework import filters
 
 from fahari.common.filters import CommonFieldsFilterset
 
-from .models import QuestionnaireResponses
+from .models import QuestionAnswer, QuestionGroup, QuestionnaireResponses
+
+
+class QuestionAnswerFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+        model = QuestionAnswer
+        fields = ("question", "answered_on", "comments")
+
+
+class QuestionGroupFilter(CommonFieldsFilterset):
+
+    search = filters.SearchFilter()
+
+    class Meta:
+        model = QuestionGroup
+        fields = ("title", "precedence")
 
 
 class QuestionnaireResponsesFilter(CommonFieldsFilterset):

@@ -14,6 +14,7 @@
     {% endblock page_title %}
     {% if perms.sims.change_questionnaireresponses %}
         {% block questionnaire_metadata_container %}
+            <form class="csrf_form">{% csrf_token %}</form>
             <div class="row">
                 <div class="col">
                     {% for question_group in questionnaire.question_groups.active.by_precedence %}
@@ -35,5 +36,5 @@
     {% else %}
         <p>You do not have permission to edit questionnaires.</p>
     {% endif %}
-<!--    <script defer src="{% static 'js/questionnaire_responses_form.min.js' %}"></script>-->
+    <script defer src="{% static 'js/questionnaire_responses_capture.min.js' %}"></script>
 {% endblock content %}

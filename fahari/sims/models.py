@@ -460,7 +460,7 @@ class QuestionAnswer(AbstractBase):
     )
     question = models.ForeignKey(Question, on_delete=models.PROTECT, related_name="answers")
     response = models.JSONField(default=dict)
-    answered_on = models.DateTimeField(default=timezone.datetime.now)
+    answered_on = models.DateTimeField(auto_now=True, editable=False)
     comments = models.TextField(null=True, blank=True)
 
     def __str__(self) -> str:

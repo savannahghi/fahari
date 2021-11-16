@@ -124,6 +124,7 @@ function scripts() {
             `${paths.js}/other/templates/fragments/import_data_modal_svr.js`,
             `${paths.js}/other/templates/fragments/import_data_modal_svr_async.js`,
             `${paths.js}/other/templates/fragments/mentorship_questionnaire_metadata_content.js`,
+            `${paths.js}/other/templates/pages/sims/questionnaire_responses_capture.js`,
             `${paths.js}/sims/forms/questionnaire_responses_form.js`,
         ])
         .pipe(sourcemaps.init())
