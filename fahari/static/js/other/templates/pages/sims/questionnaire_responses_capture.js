@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
             questions_answers_data[input_name_contents.question_id] = $.extend(
                 questions_answers_data[input_name_contents.question_id],
-                { [input_name_contents.field_name]: form_entry.value }
+                { [input_name_contents.field_name]: (typeof form_entry.value === "string")? form_entry.value.trim() : form_entry.value }
             );
         }
 

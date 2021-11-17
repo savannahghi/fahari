@@ -1,4 +1,5 @@
 {% load static i18n compress %}
+{% load questionnaire_responses %}
 <div class="row" id="div_qst_{{ question.pk }}">
     <div class="col-sm-1">
         {{ question.precedence }}.
@@ -9,54 +10,58 @@
         </p>
         <div class="form-group">
             <label for="id_comments:::{{ question.pk }}"><small class="text-muted">Comments</small></label>
-            <textarea class="form-control" id="id_comments:::{{ question.pk }}" name="comments:::{{ question.pk }}" rows="4"></textarea>
+            {% with question|answer_for_questionnaire:object as answer %}
+                <textarea class="form-control" id="id_comments:::{{ question.pk }}" name="comments:::{{ question.pk }}" rows="4">{{ answer.comments }}</textarea>
+            {% endwith %}
         </div>
     </div>
     <div class="col-sm-3 ml-auto">
-        {% if question.answer_type == "yes_no" %}
-            <div class="row">
-                <div class="form-check form-check-block col d-flex flex-col">
-                    <label class="form-check-label">YES</label>
-                    <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="true">
-                </div>
+        {% with question|answer_for_questionnaire:object as answer %}
+            {% if question.answer_type == "yes_no" %}
+                <div class="row">
+                    <div class="form-check form-check-block col d-flex flex-col">
+                        <label class="form-check-label">YES</label>
+                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="true" {% if answer.response.content == 'true' %} checked {% endif %}>
+                    </div>
 
-                <div class="form-check form-check-block col d-flex flex-col">
-                    <label class="form-check-label">NO</label>
-                    <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="false">
+                    <div class="form-check form-check-block col d-flex flex-col">
+                        <label class="form-check-label">NO</label>
+                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="false" {% if answer.response.content == 'false' %} checked {% endif %}>
+                    </div>
                 </div>
-            </div>
-        {% elif question.answer_type == "true_false" %}
-            <div class="row">
-                <div class="form-check form-check-block col d-flex flex-col">
-                    <label class="form-check-label">TRUE</label>
-                    <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="true">
+            {% elif question.answer_type == "true_false" %}
+                <div class="row">
+                    <div class="form-check form-check-block col d-flex flex-col">
+                        <label class="form-check-label">TRUE</label>
+                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="true" {% if answer.response.content == 'true' %} checked {% endif %}>
+                    </div>
+                    <div class="form-check form-check-block col d-flex flex-col">
+                        <label class="form-check-label">FALSE</label>
+                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="false" {% if answer.response.content == 'false' %} checked {% endif %}>
+                    </div>
                 </div>
-                <div class="form-check form-check-block col d-flex flex-col">
-                    <label class="form-check-label">FALSE</label>
-                    <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="false">
+            {% elif question.answer_type == "number" %}
+                <div class="form-group">
+                    <input type="text" class="form-control" name="response:::{{ question.pk }}" placeholder="Enter a number" value="{{ answer.response.content }}">
                 </div>
-            </div>
-        {% elif question.answer_type == "number" %}
-            <div class="form-group">
-                <input type="text" class="form-control" name="response:::{{ question.pk }}" placeholder="Enter a number">
-            </div>
-        {% elif question.answer_type == "short_answer" %}
-            <div class="form-group">
-                <textarea class="form-control" name="response:::{{ question.pk }}" placeholder="Enter a response" rows="5"></textarea>
-            </div>
-        {% elif question.answer_type == "select_list" %}
-            <div class="form-group">
-               <div class="dropdown bootstrap-select select form-control custom-select">
-                    <select class="select form-control custom-select" name="response:::{{ question.pk }}">
-                        <option selected>Choose...</option>
-                        {% for select_option in question.metadata.select_list_options %}
-                            <option value="{{ select_option }}">{{ select_option }}</option>
-                        {% endfor %}
-                    </select>
-               </div>
-            </div>
-        {% elif question.answer_type == "none" %}
-            <input type="hidden" hidden value="" name="response:::{{ question.pk }}">
-        {% endif %}
+            {% elif question.answer_type == "short_answer" %}
+                <div class="form-group">
+                    <textarea class="form-control" name="response:::{{ question.pk }}" placeholder="Enter a response" rows="5">{{ answer.response.content }}</textarea>
+                </div>
+            {% elif question.answer_type == "select_list" %}
+                <div class="form-group">
+                   <div class="dropdown bootstrap-select select form-control custom-select">
+                        <select class="select form-control custom-select" name="response:::{{ question.pk }}">
+                            <option selected>Choose...</option>
+                            {% for select_option in question.metadata.select_list_options %}
+                                <option value="{{ select_option }}" {% if answer.response.content == select_option %} selected {% endif %} >{{ select_option }}</option>
+                            {% endfor %}
+                        </select>
+                   </div>
+                </div>
+            {% elif question.answer_type == "none" %}
+                <input type="hidden" hidden value="{{ answer.response.content }}" name="response:::{{ question.pk }}">
+            {% endif %}
+        {% endwith %}
     </div>
 </div>

@@ -316,16 +316,27 @@ class Question(AbstractBase, ChildrenMixin):
 
         return self.answer_type != self.AnswerType.NONE.value
 
+    def answer_for_questionnaire(
+        self, responses: "QuestionnaireResponses"
+    ) -> Optional["QuestionAnswer"]:
+        """Return the answer to this question the given questionnaire responses."""
+
+        return responses.answers.filter(question=self).first()  # noqa
+
     def is_answered_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
-        """Return true if this question has been answered for the given questionnaire."""
+        """Return true if this question has been answered for the given questionnaire responses.
+
+        If this is a parent question, true will only be returned if all it's
+        sub-questions have also being answered.
+        """
 
         if self.is_parent:
-            sub_questions: QuestionQuerySet = self.sub_questions  # noqa
+            sub_questions: QuestionQuerySet = self.objects.for_question(self)
             return not sub_questions.difference(
                 self.objects.answered_for_questionnaire(responses)
             ).exists()
 
-        return self.objects.answered_for_questionnaire(responses).filter(pk=self.pk).exists()
+        return responses.answers.filter(question=self).exists()  # noqa
 
     def __str__(self) -> str:
         return self.query
