@@ -1,10 +1,10 @@
 {% load static i18n compress %}
 {% load questionnaire_responses %}
-<div class="row" id="div_qst_{{ question.pk }}">
+<div class="row my-4" id="div_qst_{{ question.pk }}">
     <div class="col-sm-1">
         {{ question.precedence }}.
     </div>
-    <div class="col-sm-7">
+    <div class="col-sm-7 border-bottom border-secondary">
         <p class="lead">
             {{ question.query }}
         </p>
@@ -15,7 +15,10 @@
             {% endwith %}
         </div>
     </div>
-    <div class="col-sm-3 ml-auto">
+    <div class="col-sm-1 border-bottom border-secondary">
+        <!-- This empty column acts as spacer between the answer and the question. -->
+    </div>
+    <div class="col-sm-3 border-bottom border-secondary">
         {% with question|answer_for_questionnaire:object as answer %}
             {% if question.answer_type == "yes_no" %}
                 <div class="row">

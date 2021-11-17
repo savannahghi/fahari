@@ -450,6 +450,10 @@ class QuestionAnswer(AbstractBase):
         "QuestionnaireResponses", on_delete=models.PROTECT, related_name="answers"
     )
     question = models.ForeignKey(Question, on_delete=models.PROTECT, related_name="answers")
+    is_not_applicable = models.BooleanField(
+        default=False,
+        help_text="Indicates that answer is not applicable for the attached question.",
+    )
     response = models.JSONField(default=dict)
     answered_on = models.DateTimeField(auto_now=True, editable=False)
     comments = models.TextField(null=True, blank=True)
