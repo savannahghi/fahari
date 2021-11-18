@@ -195,7 +195,7 @@
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
                             "metadata": {},
-                            "query": "Is the HEI register in use correctly and updated?",
+                            "query": "Is the HEI register in use correc and upto updated?",
                             "children": []
                         },
                         {
@@ -1159,6 +1159,134 @@
                             },
                             "query": "What  post-violence services offered are provided on site? Tick all that apply",
                             "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "none",
+                            "query": "GBV Integration",
+                            "metadata": {},
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for HTS?",
+                                    "children": [
+                                        {
+                                            "precedence": 1,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for OPD?",
+                                    "children": [
+                                        {
+                                            "precedence": 2,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for MCH?",
+                                    "children": [
+                                        {
+                                            "precedence": 3,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for MATERNITY?",
+                                    "children": [
+                                        {
+                                            "precedence": 4,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for IPD?",
+                                    "children": [
+                                        {
+                                            "precedence": 5,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 6,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for PMTC?",
+                                    "children": [
+                                        {
+                                            "precedence": 6,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 7,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for CCC?",
+                                    "children": [
+                                        {
+                                            "precedence": 7,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
                         }
                     ]
                 },
@@ -1180,7 +1308,7 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
                                     "metadata": {},
-                                    "query": "A written policy for disclosure of HIV status to adolescents (visual inspection",
+                                    "query": "A written policy for disclosure of HIV status to adolescents (visual inspection)",
                                     "children": []
                                 },
                                 {
@@ -1262,7 +1390,7 @@
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
                             "metadata": {},
-                            "query": "Physical tracing of IIT clients and check from the record for evidence for >more than 3 months IITs",
+                            "query": "Physical tracing of IIT clients and check from the record for evidence of more than 3 months IITs",
                             "children": []
                         },
                         {
