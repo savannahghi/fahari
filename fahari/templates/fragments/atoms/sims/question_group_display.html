@@ -2,13 +2,18 @@
 <div class="accordion my-2" id="acc_qg_{{ question_group.pk }}">
     <div class="card border border-secondary rounded-7">
         <div class="card-header row">
-            <h2 class="mb-0 col-sm-11">
-                <button class="btn btn-link btn-block text-left " type="button" data-toggle="collapse"
-                    data-target="#clp_{{ question_group.pk }}" aria-expanded="true" aria-controls="collapseOne">
+            <h2 class="mb-0 col">
+                <button
+                        class="btn btn-link text-left"
+                        data-toggle="collapse"
+                        data-target="#clp_{{ question_group.pk }}"
+                        type="button"
+                        style="outline: none !important; box-shadow: none;"
+                >
                     {{ question_group.precedence }}. {{ question_group.title }}
                 </button>
             </h2>
-            <div class="col-sm-1 mb-0 ml-auto">
+            <div class="col mb-0 ml-auto d-flex flex-row-reverse">
                 <div class="form-check form-check-inline">
                     <input
                             class="form-check-input"
@@ -19,8 +24,10 @@
                             data-onstyle="outline-primary"
                             data-off="N/A"
                             data-offstyle="secondary"
-                            data-toggle="toggle"
+                            data-question_group="{{ question_group.pk }}"
                             data-size="sm"
+                            data-toggle="toggle"
+                            data-width="100"
                     >
                 </div>
             </div>
