@@ -7,6 +7,7 @@
                         class="btn btn-link text-left"
                         data-toggle="collapse"
                         data-target="#clp_{{ question_group.pk }}"
+                        id="clp_toggle_{{ question_group.pk }}"
                         type="button"
                         style="outline: none !important; box-shadow: none;"
                 >
@@ -16,7 +17,7 @@
             <div class="col mb-0 ml-auto d-flex flex-row-reverse">
                 <div class="form-check form-check-inline">
                     <input
-                            class="form-check-input"
+                            class="form-check-input applicability_toggle"
                             type="checkbox"
                             checked
                             data-is_applicable="tgl_applicable:::{{ question_group.pk }}"

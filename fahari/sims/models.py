@@ -1,5 +1,5 @@
 from numbers import Number
-from typing import Optional, Sequence, TypedDict, cast
+from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union, cast
 
 from django.db import models
 from django.urls import reverse_lazy
@@ -28,10 +28,19 @@ class MentorshipQuestionnaireMetadata(TypedDict):
     mentors: Sequence[MentorshipTeamMemberMetadata]
 
 
+class QuestionAnswerResponse(TypedDict):
+    """The structure of a question answer response."""
+
+    content: Union[Any, Dict[str, Any], List[Any]]
+    """This is the actual content of the answer."""
+
+
 class QuestionMetadata(TypedDict):
     """The structure of a question metadata dictionary."""
 
+    max_length: Optional[Number]
     max_value: Optional[Number]
+    min_length: Optional[Number]
     min_value: Optional[Number]
     optional: Optional[bool]
     ratio_lower_bound: Optional[int]
@@ -485,6 +494,18 @@ class QuestionAnswer(AbstractBase):
     response = models.JSONField(default=dict)
     answered_on = models.DateTimeField(auto_now=True, editable=False)
     comments = models.TextField(null=True, blank=True)
+
+    @property
+    def is_valid(self) -> bool:
+        """Return true if this answer is valid for the given question.
+
+        The validity of an answer for a given question is dependent on the
+        validation metadata present on a question. Eg. max-length, min-length,
+        max_value, min_value, etc.
+        """
+
+        # TODO: Add implementation
+        return False
 
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
