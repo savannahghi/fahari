@@ -2,7 +2,7 @@ from typing import Optional
 
 from django import template
 
-from ..models import Question, QuestionAnswer, QuestionnaireResponses
+from ..models import Question, QuestionAnswer, QuestionGroup, QuestionnaireResponses
 
 register = template.Library()
 
@@ -26,3 +26,27 @@ def is_answered_for_questionnaire(value: Question, responses: QuestionnaireRespo
     """
 
     return value.is_answered_for_questionnaire(responses)
+
+
+@register.filter
+def is_complete_for_questionnaire(value: QuestionGroup, responses: QuestionnaireResponses) -> bool:
+    """Return true if the given question group has been fully answered for the provided responses.
+
+    This will only return true if all the questions and sub-questions of the
+    given question group have answers for the provided questionnaire responses.
+    """
+
+    return value.is_complete_for_questionnaire(responses)
+
+
+@register.filter
+def is_not_applicable_for_questionnaire(
+    value: QuestionGroup, responses: QuestionnaireResponses
+) -> bool:
+    """Returns true if the given group's questions are not answerable for the given responses.
+
+    That is, for all the questions in the given question group, only not
+    applicable answers have been provided for the provided questionnaire
+    response.
+    """
+    return value.is_not_applicable_for_questionnaire(responses)

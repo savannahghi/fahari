@@ -1,25 +1,54 @@
 document.addEventListener("DOMContentLoaded", function() {
-    function retrieveQuestionIdFromInputName(input_name, delimiter=":::") {
-        var end_of_input_name = input_name.indexOf(delimiter);
-        var field_name = input_name.substring(0, end_of_input_name);
-        var question_id = input_name.substring(end_of_input_name + delimiter.length);
+    var SCALAR_VALUE = "-", LIST_VALUE = "[]", DICT_VALUE = "{}";
 
-        return {field_name: field_name, question_id: question_id};
+    function cleanFormData(serialized_form_data) {
+        var cleaned_form_data = {};
+        for (var index = 0; index < serialized_form_data.length; index++) {
+            var form_entry = serialized_form_data[index];
+
+            var cleaned_form_value = (typeof form_entry.value === "string")? form_entry.value.trim() : form_entry.value;
+            if (cleaned_form_data.hasOwnProperty(form_entry.name))
+                cleaned_form_data[form_entry.name].push(cleaned_form_value);
+            else
+                cleaned_form_data[form_entry.name] = [cleaned_form_value];
+        }
+
+        return cleaned_form_data;
+    }
+
+    function composeQuestionAnswersRequestPayload(cleaned_form_data) {
+        var request_payload = {};
+        for (var form_input_name in cleaned_form_data) {
+            if (!cleaned_form_data.hasOwnProperty(form_input_name))
+                continue;
+
+            var input_name_contents = retrieveQuestionDataFromInputName(form_input_name);
+            var input_value = cleaned_form_data[form_input_name];
+            request_payload[input_name_contents.question_id] = $.extend(
+                request_payload[input_name_contents.question_id],
+                { [input_name_contents.field_name]: (input_value.length === 1)? input_value[0] : input_value }
+            );
+        }
+
+        return request_payload;
+    }
+
+    function retrieveQuestionDataFromInputName(input_name, delimiter=":::", list_type_char="[]", dict_type_char="{}") {
+        var end_of_field_name = input_name.indexOf(delimiter);
+        var field_name = input_name.substring(0, end_of_field_name);
+        var question_id_and_type = input_name.substring(end_of_field_name + delimiter.length);
+        var end_of_question_id = question_id_and_type.indexOf(delimiter);
+        var question_id = question_id_and_type.substring(0, end_of_question_id);
+        var question_type = question_id_and_type.substring(end_of_question_id + delimiter.length)
+
+        return {field_name: field_name, question_id: question_id, question_type: question_type};
     }
 
     $("form.question_group_answers_form button.save_changes").on("click", function() {
         var question_group_pk = $(this).data("question_group");
         var question_group_form_data = $(`#question_group_form_${question_group_pk}`).serializeArray();
-        var questions_answers_data = {};
-        for (var index = 0; index < question_group_form_data.length; index++) {
-            var form_entry = question_group_form_data[index];
-            var input_name_contents = retrieveQuestionIdFromInputName(form_entry.name);
-
-            questions_answers_data[input_name_contents.question_id] = $.extend(
-                questions_answers_data[input_name_contents.question_id],
-                { [input_name_contents.field_name]: (typeof form_entry.value === "string")? form_entry.value.trim() : form_entry.value }
-            );
-        }
+        var cleaned_form_data = cleanFormData(question_group_form_data);
+        var questions_answers_data = composeQuestionAnswersRequestPayload(cleaned_form_data);
 
         var this_button = this;
         var save_changes_url = $(this).data("save_changes_url");

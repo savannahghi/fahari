@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, TypedDict, Union
+from typing import Any, Dict, Optional, Sequence, TypedDict, Union
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
@@ -27,7 +27,7 @@ from .serializers import (
 
 class QuestionAnswerPayload(TypedDict):
     comments: Optional[str]
-    response: Optional[Union[bool, float, int, str]]
+    response: Optional[Union[Any, Dict[str, Any], Sequence[Any]]]
 
 
 class QuestionGroupAnswersPayload(TypedDict):

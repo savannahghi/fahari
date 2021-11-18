@@ -1,17 +1,31 @@
 {% load static i18n compress %}
 <div class="accordion my-2" id="acc_qg_{{ question_group.pk }}">
     <div class="card border border-secondary rounded-7">
-        <div class="card-header" id="headingOne">
-            <h2 class="mb-0">
-                <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse"
+        <div class="card-header row">
+            <h2 class="mb-0 col-sm-11">
+                <button class="btn btn-link btn-block text-left " type="button" data-toggle="collapse"
                     data-target="#clp_{{ question_group.pk }}" aria-expanded="true" aria-controls="collapseOne">
                     {{ question_group.precedence }}. {{ question_group.title }}
                 </button>
             </h2>
+            <div class="col-sm-1 mb-0 ml-auto">
+                <div class="form-check form-check-inline">
+                    <input
+                            class="form-check-input"
+                            type="checkbox"
+                            checked
+                            data-is_applicable="tgl_applicable:::{{ question_group.pk }}"
+                            data-on="Applicable"
+                            data-onstyle="outline-primary"
+                            data-off="N/A"
+                            data-offstyle="secondary"
+                            data-toggle="toggle"
+                            data-size="sm"
+                    >
+                </div>
+            </div>
         </div>
-
-        <div id="clp_{{ question_group.pk }}" class="collapse" aria-labelledby="headingOne"
-            data-parent="#acc_qg_{{ question_group.pk }}">
+        <div id="clp_{{ question_group.pk }}" class="collapse" data-parent="#acc_qg_{{ question_group.pk }}">
             <div class="card-body">
                 {% if question_group.is_parent %}
                     {% with question_group as parent %}

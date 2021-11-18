@@ -1,4 +1,5 @@
-from typing import List, Optional, TypedDict, cast
+from numbers import Number
+from typing import Optional, Sequence, TypedDict, cast
 
 from django.db import models
 from django.urls import reverse_lazy
@@ -22,9 +23,20 @@ class MentorshipTeamMemberMetadata(TypedDict):
 
 
 class MentorshipQuestionnaireMetadata(TypedDict):
-    """The structure of a mentorship questionnaire metadata."""
+    """The structure of a mentorship questionnaire metadata dictionary."""
 
-    mentors: List[MentorshipTeamMemberMetadata]
+    mentors: Sequence[MentorshipTeamMemberMetadata]
+
+
+class QuestionMetadata(TypedDict):
+    """The structure of a question metadata dictionary."""
+
+    max_value: Optional[Number]
+    min_value: Optional[Number]
+    optional: Optional[bool]
+    ratio_lower_bound: Optional[int]
+    ratio_upper_bound: Optional[int]
+    select_list_options: Optional[Sequence[str]]
 
 
 # =============================================================================
@@ -396,6 +408,22 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
 
         return self.objects.answered_for_questionnaire(responses).filter(pk=self.pk).exists()
 
+    def is_not_applicable_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
+        """Returns true if this group's questions are not answerable for the given responses.
+
+        That is, for all the questions in this question group, only not
+        applicable answers have been provided for the given questionnaire
+        response.
+        """
+        if not self.is_complete_for_questionnaire(responses):
+            return False
+
+        return (
+            not responses.answers.filter(question__question_group=self)  # noqa
+            .exclude(is_not_applicable=False)
+            .exist()
+        )
+
     def __str__(self) -> str:
         return self.title
 
@@ -493,7 +521,9 @@ class QuestionnaireResponses(AbstractBase):
     def progress(self) -> float:
         """Return the completion status of the given questionnaire as a percentage."""
 
-        return 60.0
+        total_questions = Question.objects.for_questionnaire(self.questionnaire).count()
+        answered_count = self.answers.count()  # noqa
+        return answered_count / total_questions
 
     def get_absolute_url(self):
         update_url = reverse_lazy("sims:questionnaire_responses_update", kwargs={"pk": self.pk})

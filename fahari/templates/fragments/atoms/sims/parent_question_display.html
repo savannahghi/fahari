@@ -1,0 +1,20 @@
+{% load static i18n compress %}
+{% load questionnaire_responses %}
+<div class="row my-4" id="div_qst_{{ question.pk }}">
+    <div class="col-sm-1">
+        {{ question.precedence }}.
+    </div>
+    <div class="col-sm-11">
+    <div class="col-sm-7 border-bottom border-secondary">
+        <p class="lead">
+            {{ question.query }}
+        </p>
+        <div class="form-group">
+            <label for="id_comments:::{{ question.pk }}"><small class="text-muted">Comments</small></label>
+            {% with question|answer_for_questionnaire:object as answer %}
+                <textarea class="form-control" id="id_comments:::{{ question.pk }}" name="comments:::{{ question.pk }}:::-" rows="4">{{ answer.comments }}</textarea>
+            {% endwith %}
+        </div>
+    </div>
+    </div>
+</div>

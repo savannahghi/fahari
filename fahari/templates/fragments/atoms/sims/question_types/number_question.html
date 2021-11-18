@@ -1,0 +1,3 @@
+<div class="form-group">
+    <input type="number" step="{{ step_interval }}" class="form-control" name="response:::{{ question.pk }}:::-" placeholder="{{ placeholder }}" value="{{ answer.response.content }}" min="{{ min }}" max="{{ max }}" {% if not optional %} required {% endif %}>
+</div>

@@ -126,8 +126,8 @@
                     render: function(data, type, row) {
                         return `
                             <div class="progress">
-                                <div class="progress-bar" role="progressbar" aria-valuenow="${data}" aria-valuemin="0" aria-valuemax="100" aria-valuemax="100" style="width: ${data}%;">
-                                    ${data}%
+                                <div class="progress-bar" role="progressbar" aria-valuenow="${data}" aria-valuemin="0" aria-valuemax="100" aria-valuemax="100" style="width: ${data * 100}%;">
+                                    ${(data * 100).toFixed(2)}%
                                 </div>
                             </div>
                         `;

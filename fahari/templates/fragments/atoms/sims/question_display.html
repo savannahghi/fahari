@@ -1,70 +1,45 @@
 {% load static i18n compress %}
 {% load questionnaire_responses %}
-<div class="row my-4" id="div_qst_{{ question.pk }}">
-    <div class="col-sm-1">
-        {{ question.precedence }}.
-    </div>
-    <div class="col-sm-7 border-bottom border-secondary">
-        <p class="lead">
-            {{ question.query }}
-        </p>
-        <div class="form-group">
-            <label for="id_comments:::{{ question.pk }}"><small class="text-muted">Comments</small></label>
-            {% with question|answer_for_questionnaire:object as answer %}
-                <textarea class="form-control" id="id_comments:::{{ question.pk }}" name="comments:::{{ question.pk }}" rows="4">{{ answer.comments }}</textarea>
-            {% endwith %}
+<div class="col my-4" id="div_qst_{{ question.pk }}">
+    <div class="row my-0">
+        <div class="col-sm-1">
+            {{ question.precedence }}.
+        </div>
+        <div class="col-sm-7">
+            {% include "fragments/atoms/sims/question_details_and_comment_block.html" %}
+        </div>
+        <div class="col-sm-1">
+            <!-- This empty column acts as spacer between the answer and the question. -->
+        </div>
+        <div class="col-sm-3">
+            {% include "fragments/atoms/sims/capture_question_answer_block.html" %}
         </div>
     </div>
-    <div class="col-sm-1 border-bottom border-secondary">
-        <!-- This empty column acts as spacer between the answer and the question. -->
-    </div>
-    <div class="col-sm-3 border-bottom border-secondary">
-        {% with question|answer_for_questionnaire:object as answer %}
-            {% if question.answer_type == "yes_no" %}
-                <div class="row">
-                    <div class="form-check form-check-block col d-flex flex-col">
-                        <label class="form-check-label">YES</label>
-                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="true" {% if answer.response.content == 'true' %} checked {% endif %}>
+    {% if question.is_parent %}
+        {% with question as parent_question %}
+            {% for question in parent_question.sub_questions.active.by_precedence %}
+                <div class="row mt-3 mb-0 pt-2">
+                    <div class="col-sm-1"></div>
+                    <div class="col-sm-7 border-left border-secondary">
+                        {{ question.precedence }}.
+                        {% include "fragments/atoms/sims/question_details_and_comment_block.html" %}
                     </div>
-
-                    <div class="form-check form-check-block col d-flex flex-col">
-                        <label class="form-check-label">NO</label>
-                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="false" {% if answer.response.content == 'false' %} checked {% endif %}>
+                    <div class="col-sm-1">
+                        <!-- This empty column acts as spacer between the answer and the question. -->
                     </div>
-                </div>
-            {% elif question.answer_type == "true_false" %}
-                <div class="row">
-                    <div class="form-check form-check-block col d-flex flex-col">
-                        <label class="form-check-label">TRUE</label>
-                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="true" {% if answer.response.content == 'true' %} checked {% endif %}>
-                    </div>
-                    <div class="form-check form-check-block col d-flex flex-col">
-                        <label class="form-check-label">FALSE</label>
-                        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}" value="false" {% if answer.response.content == 'false' %} checked {% endif %}>
+                    <div class="col-sm-3">
+                        {% include "fragments/atoms/sims/capture_question_answer_block.html" %}
                     </div>
                 </div>
-            {% elif question.answer_type == "number" %}
-                <div class="form-group">
-                    <input type="text" class="form-control" name="response:::{{ question.pk }}" placeholder="Enter a number" value="{{ answer.response.content }}">
-                </div>
-            {% elif question.answer_type == "short_answer" %}
-                <div class="form-group">
-                    <textarea class="form-control" name="response:::{{ question.pk }}" placeholder="Enter a response" rows="5">{{ answer.response.content }}</textarea>
-                </div>
-            {% elif question.answer_type == "select_list" %}
-                <div class="form-group">
-                   <div class="dropdown bootstrap-select select form-control custom-select">
-                        <select class="select form-control custom-select" name="response:::{{ question.pk }}">
-                            <option selected>Choose...</option>
-                            {% for select_option in question.metadata.select_list_options %}
-                                <option value="{{ select_option }}" {% if answer.response.content == select_option %} selected {% endif %} >{{ select_option }}</option>
-                            {% endfor %}
-                        </select>
-                   </div>
-                </div>
-            {% elif question.answer_type == "none" %}
-                <input type="hidden" hidden value="{{ answer.response.content }}" name="response:::{{ question.pk }}">
-            {% endif %}
+            {% endfor %}
         {% endwith %}
+    {% endif %}
+    <div class="row">
+        <div class="col-sm-1"></div>
+        <div class="col-sm-7 border-bottom border-secondary"></div>
+        <div class="col-sm-1 border-bottom border-secondary">
+            <!-- This empty column acts as spacer between the answer and the question. -->
+        </div>
+        <div class="col-sm-3 border-bottom border-secondary"></div>
     </div>
 </div>

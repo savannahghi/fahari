@@ -38,6 +38,7 @@ function pathsConfig(appName) {
             `${vendorsRoot}/bootstrap/dist/js/bootstrap.js`,
             `${vendorsRoot}/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js`,
             `${vendorsRoot}/bootstrap-select/dist/js/bootstrap-select.min.js`,
+            `${vendorsRoot}/bootstrap4-toggle/js/bootstrap4-toggle.min.js`,
             `${vendorsRoot}/chart.js/dist/*.js`,
             `${vendorsRoot}/jszip/dist/jszip.min.js`,
             `${vendorsRoot}/pdfmake/dist/*.min.js`,
