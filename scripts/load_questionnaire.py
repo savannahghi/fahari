@@ -38,6 +38,7 @@ class QuestionData(TypedDict):
     precedence: int
     precedence_display_type: PRECEDENCE_DISPLAY_TYPES
     query: str
+    question_code: str
 
 
 class QuestionGroupData(TypedDict):
@@ -69,18 +70,24 @@ def _load_question(
 ):
     from fahari.sims.models import Question
 
-    question = Question.objects.create(
-        **{
-            "answer_type": question_data["answer_type"],
-            "metadata": question_data["metadata"],
-            "organisation": org,
-            "parent": parent,
-            "precedence": question_data["precedence"],
-            "precedence_display_type": question_data["precedence_display_type"],
-            "query": question_data["query"],
-            "question_group": question_group,
-        }
-    )
+    try:
+        question = Question.objects.create(
+            **{
+                "answer_type": question_data["answer_type"],
+                "metadata": question_data["metadata"],
+                "organisation": org,
+                "parent": parent,
+                "precedence": question_data["precedence"],
+                "precedence_display_type": question_data["precedence_display_type"],
+                "query": question_data["query"],
+                "question_code": question_data["question_code"],
+                "question_group": question_group,
+            }
+        )
+    except Exception as e:
+        print("Error saving question %s." % question_data["query"])
+        raise e
+
     if len(question_data["children"]) > 0:
         for _question_data in question_data["children"]:
             _load_question(org, _question_data, question_group, question)
