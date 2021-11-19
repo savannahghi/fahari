@@ -56,13 +56,6 @@ def test_activity_log_view(user_with_all_permissions, client):
     assert response.status_code == status.HTTP_200_OK
 
 
-def test_site_mentorship_view(user_with_all_permissions, client):
-    client.force_login(user_with_all_permissions)
-    url = reverse("ops:site_mentorships")
-    response = client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-
-
 def test_daily_site_updates_view(user_with_all_permissions, client):
     client.force_login(user_with_all_permissions)
     url = reverse("ops:daily_site_updates")

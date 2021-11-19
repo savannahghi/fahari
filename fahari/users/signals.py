@@ -24,7 +24,6 @@ WHITELIST_PERMISSIONS = BASIC_PERMISSIONS + [
     "ops.view_timesheet",
     "ops.view_stockreceiptverification",
     "ops.view_activitylog",
-    "ops.view_sitementorship",
     "ops.view_dailyupdate",
     "ops.add_timesheet",
 ]
