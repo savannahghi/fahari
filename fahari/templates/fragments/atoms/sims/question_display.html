@@ -1,0 +1,45 @@
+{% load static i18n compress %}
+{% load questionnaire_responses %}
+<div class="col my-4" id="div_qst_{{ question.pk }}">
+    <div class="row my-0">
+        <div class="col-sm-1">
+            {{ question.precedence }}.
+        </div>
+        <div class="col-sm-7">
+            {% include "fragments/atoms/sims/question_details_and_comment_block.html" %}
+        </div>
+        <div class="col-sm-1">
+            <!-- This empty column acts as spacer between the answer and the question. -->
+        </div>
+        <div class="col-sm-3">
+            {% include "fragments/atoms/sims/capture_question_answer_block.html" %}
+        </div>
+    </div>
+    {% if question.is_parent %}
+        {% with question as parent_question %}
+            {% for question in parent_question.sub_questions.active.by_precedence %}
+                <div class="row mt-3 mb-0 pt-2">
+                    <div class="col-sm-1"></div>
+                    <div class="col-sm-7 border-left border-secondary">
+                        {{ question.precedence }}.
+                        {% include "fragments/atoms/sims/question_details_and_comment_block.html" %}
+                    </div>
+                    <div class="col-sm-1">
+                        <!-- This empty column acts as spacer between the answer and the question. -->
+                    </div>
+                    <div class="col-sm-3">
+                        {% include "fragments/atoms/sims/capture_question_answer_block.html" %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endwith %}
+    {% endif %}
+    <div class="row">
+        <div class="col-sm-1"></div>
+        <div class="col-sm-7 border-bottom border-secondary"></div>
+        <div class="col-sm-1 border-bottom border-secondary">
+            <!-- This empty column acts as spacer between the answer and the question. -->
+        </div>
+        <div class="col-sm-3 border-bottom border-secondary"></div>
+    </div>
+</div>

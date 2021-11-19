@@ -16,7 +16,6 @@ from .models import (
     FacilitySystem,
     FacilitySystemTicket,
     SecurityIncidence,
-    SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
     UoM,
@@ -219,35 +218,6 @@ class ActivityLogForm(BaseModelForm):
                     "type": "date",
                 }
             ),
-        }
-
-
-class SiteMentorshipForm(GetAllottedFacilitiesMixin, BaseModelForm):
-    field_order = (
-        "staff_member",
-        "site",
-        "day",
-        "duration",
-        "objective",
-        "pick_up_point",
-        "drop_off_point",
-        "active",
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.form_id = "site_mentorship_form"
-        self.fields["site"].queryset = self.get_allotted_facilities().active()
-
-    class Meta(BaseModelForm.Meta):
-        model = SiteMentorship
-        widgets = {
-            "day": TextInput(
-                attrs={
-                    "type": "date",
-                }
-            ),
-            "site": SearchableComboBox(),
         }
 
 

@@ -12,7 +12,6 @@ from .models import (
     FacilitySystem,
     FacilitySystemTicket,
     SecurityIncidence,
-    SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
     UoM,
@@ -69,15 +68,6 @@ class StockReceiptVerificationSerializer(BaseSerializer):
 class ActivityLogSerializer(BaseSerializer):
     class Meta(BaseSerializer.Meta):
         model = ActivityLog
-        fields = "__all__"
-
-
-class SiteMentorshipSerializer(BaseSerializer):
-    staff_member_name = serializers.ReadOnlyField(source="staff_member.name")
-    site_name = serializers.ReadOnlyField(source="site.name")
-
-    class Meta(BaseSerializer.Meta):
-        model = SiteMentorship
         fields = "__all__"
 
 

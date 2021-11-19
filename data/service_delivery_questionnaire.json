@@ -1,0 +1,1467 @@
+{
+    "name": "Service Delivery",
+    "questionnaire_type": "mentorship",
+    "question_groups": [
+        {
+            "title": "SERVICE QUESTIONS",
+            "precedence": 1,
+            "precedence_display_type": "bullet",
+            "children": [],
+            "questions": [
+                {
+                    "precedence": 1,
+                    "precedence_display_type": "numbered_td",
+                    "answer_type": "yes_no",
+                    "metadata": {},
+                    "query": "In the past quarter, has a facility/department staff meeting been conducted to give direction and share general progress of facility to staff including performance of services delivery indicators? (check report/minutes)",
+                    "children": []
+                },
+                {
+                    "precedence": 2,
+                    "precedence_display_type": "numbered_td",
+                    "answer_type": "yes_no",
+                    "metadata": {},
+                    "query": "Evidence of quality management structure at facility level and leadership stewardship of the same?",
+                    "children": []
+                },
+                {
+                    "precedence": 3,
+                    "precedence_display_type": "numbered_td",
+                    "answer_type": "yes_no",
+                    "metadata": {},
+                    "query": "Quality improvement Team (or WITs for small facilities) in Place?",
+                    "children": []
+                },
+                {
+                    "precedence": 4,
+                    "precedence_display_type": "numbered_td",
+                    "answer_type": "yes_no",
+                    "metadata": {},
+                    "query": "In the last one quarter, has the facility been comprehensively supervised by the S/CHMT? (Visits by S/County program officers to support particular health components not counted as County Supervision)",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "title": "ANTENATAL CARE/EMTCT ",
+            "precedence": 2,
+            "precedence_display_type": "bullet",
+            "children": [
+                {
+                    "title": "QUALITY IMPROVEMENT",
+                    "precedence": 1,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "In the last one month, how many WIT meetings have been conducted? See wit meeting templates in WIT file",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Were performance process indicators reviewed in those meetings?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Were action points from meetings implemented?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Was DQA done for the last month data before being uploaded to DHIS/reported to Sub-County?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Were client satisfaction exit interviews conducted for at least 20 clients in the last month?",
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "title": "ANC",
+                    "precedence": 2,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the ANC register in use correctly?(check for completeness and correctness of at least 10 most recent pages)",
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "title": "EMTCT",
+                    "precedence": 3,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the HIV status of all women known in the ANC register?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "How many HIV positive pregnant women attended ANC in the month?",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "How many were staged using WHO criteria?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "How many were offered Cotrimoxazole?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "How many were on/started on HAART?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "How many were given/had NVP/AZT for their unborn babies?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "How many have a viral load not older than 6 months?",
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "short_answer",
+                            "metadata": {},
+                            "query": "Is there a system available to support PMTCT clients failing ART? Specify",
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "title": "HEI Register ",
+                    "precedence": 4,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the HEI register in use correc and upto updated?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "fraction",
+                            "metadata": {},
+                            "query": "Check at least 20 HEI in cohorts. Proportion that is correctly filled and up to date.",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "fraction",
+                                    "metadata": {},
+                                    "query": "6 weeks- was DBS done and result documented?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "fraction",
+                                    "metadata": {},
+                                    "query": "10 weeks- is the HEI on CTX and NVP?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "fraction",
+                                    "metadata": {},
+                                    "query": "6 months- what is the feeding option?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "fraction",
+                                    "metadata": {},
+                                    "query": "12 months- was PCR test done?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "fraction",
+                                    "metadata": {},
+                                    "query": "18 months- was the final HIV test done? What was the final outcome?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 6,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "short_answer",
+                                    "metadata": {},
+                                    "query": "If there was any HEI who was confirmed positive in the month, was he/she started on HAART?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 7,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "fraction",
+                                    "metadata": {},
+                                    "query": "Was infant updated in NASCOP website?",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "MOTHER BABY PAIRING",
+                    "precedence": 5,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the mother – Infant pair register available and in use? Check for completion",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Are the mothers and HEI files joined to form one file for each pair?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is there an existing filing system to quickly identify mother baby pairs who miss appointment?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is there a defaulter tracing register in place? Is it updated?",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "No of defaulters______",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "No tracked and brought back to care__________",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "fraction",
+                                    "metadata": {},
+                                    "query": "Success rate (i/ii) ______ %",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "EMTCT COMMODITIES",
+                    "precedence": 6,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the stock of HAART available in MCH enough to last 3 months? (NB: Not buffer stock)",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the stock of pediatric NVP and AZT enough to last 3 months? (NB: Not buffer stock and AZT)",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the stock of RTKs in MCH enough to last 3 months? (NB: Not buffer stock)",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the stock of Cotrimoxazole enough to last 3 months? (NB: Not buffer stock)",
+                            "children": []
+                        }
+                    ]
+                }
+            ],
+            "questions": []
+        },
+        {
+            "title": "POST NATAL SERVICES",
+            "precedence": 3,
+            "precedence_display_type": "bullet",
+            "children": [],
+            "questions": [
+                {
+                    "precedence": 1,
+                    "precedence_display_type": "numbered_td",
+                    "answer_type": "none",
+                    "metadata": {},
+                    "query": "Check the post-natal register for 20 entries done in the last month",
+                    "children": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Is it filled correctly and completely?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Is the HIV status of every mother (of the 20) known and documented in the register?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Number of post-natal women on/started modern method of family planning in the month (out of the 20)",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "FAMILY PLANNING",
+            "precedence": 4,
+            "precedence_display_type": "bullet",
+            "children": [],
+            "questions": [
+                {
+                    "precedence": 1,
+                    "precedence_display_type": "numbered_td",
+                    "answer_type": "none",
+                    "metadata": {},
+                    "query": "What family planning options are currently being provided in this facility? (A site should offer at least 5 methods of FP)",
+                    "children": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Male condoms",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Female condoms",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Combined oral contraceptives",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Progestogen only pills",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Injectables (IM and/or SC)",
+                            "children": []
+                        },
+                        {
+                            "precedence": 6,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "IUCDs",
+                            "children": []
+                        },
+                        {
+                            "precedence": 7,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Emergency contraceptive pills",
+                            "children": []
+                        },
+                        {
+                            "precedence": 8,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Implants",
+                            "children": []
+                        },
+                        {
+                            "precedence": 9,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Vasectomy",
+                            "children": []
+                        },
+                        {
+                            "precedence": 10,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Tubal ligation",
+                            "children": []
+                        },
+                        {
+                            "precedence": 11,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "short_answer",
+                            "metadata": {},
+                            "query": "Others (specify)",
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "precedence": 2,
+                    "precedence_display_type": "numbered_td",
+                    "answer_type": "none",
+                    "metadata": {},
+                    "query": "Where are RH services for WLHIV offered? (FP & Cervical cancer screening & Pre-Conception Care)",
+                    "children": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Post-natal clinic?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Maternity?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "CCC?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "short_answer",
+                            "metadata": {},
+                            "query": "In which other service areas/units offer FP counselling/commodities offered? Specify",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Are women living with HIV offered cervical Cancer screening services as part of routine care?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 6,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "select_list",
+                            "metadata": {
+                                "select_list_options": [
+                                    "VIA",
+                                    "HPV"
+                                ]
+                            },
+                            "query": "Screening method used",
+                            "children": []
+                        },
+                        {
+                            "precedence": 7,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Availability of cervical cancer screening register and monthly summary",
+                            "children": []
+                        },
+                        {
+                            "precedence": 8,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Check for completion of register and monthly summary form",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "Count Number of clients screened in last 3 months",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "Positive lesions identified ",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "Positive lesions treated ",
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "precedence": 9,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "select_list",
+                            "metadata": {
+                                "select_list_options": [
+                                    "Thermocoagulation",
+                                    "Cryotherapy",
+                                    "LEEP",
+                                    "None"
+                                ]
+                            },
+                            "query": "Cervical cancer screening treatment services available? ",
+                            "children": []
+                        },
+                        {
+                            "precedence": 10,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "short_answer",
+                            "metadata": {},
+                            "query": "Challenges identified",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "GENERAL MATERNITY INPATIENT SERVICES",
+            "precedence": 5,
+            "precedence_display_type": "bullet",
+            "children": [],
+            "questions": [
+                {
+                    "precedence": 1,
+                    "precedence_display_type": "bullet",
+                    "answer_type": "none",
+                    "metadata": {},
+                    "query": " In the last one month,(See WIT meeting templates in WIT file)",
+                    "children": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "How many maternity WIT meetings have been conducted?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Were performance process indicators reviewed in those meetings?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Were action points from meetings implemented?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Was DQA done for last month data before uploaded to DHIS/reported to Sub-County?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Were client satisfaction exit interviews conducted for at least 20 mothers in the last month (to include respectful maternity care)",
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "precedence": 2,
+                    "precedence_display_type": "bullet",
+                    "answer_type": "none",
+                    "metadata": {},
+                    "query": "Using the record of the last one month;",
+                    "children": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Number of deliveries in the last one month",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Number of neonatal deaths in last one month",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Number of neonatal death audits/reviews conducted",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Number of maternal deaths in last one month",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "number",
+                            "metadata": {},
+                            "query": "Number of maternal death audits/reviews conducted",
+                            "children": []
+                        },
+                        {
+                            "precedence": 6,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Were action points from the audits implemented?",
+                            "children": []
+                        }
+                    ]
+                },
+                {
+                    "precedence": 3,
+                    "precedence_display_type": "bullet",
+                    "answer_type": "none",
+                    "metadata": {},
+                    "query": "Are the following services offered in this maternity unit?",
+                    "children": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "National guidelines for quality obstetric and antenatal care",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Danger signs for mother and baby poster",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Infant and young child feeding practices chart",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Breastfeeding poster",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Neonatal resuscitation chart",
+                            "children": []
+                        },
+                        {
+                            "precedence": 6,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Infection prevention chart",
+                            "children": []
+                        },
+                        {
+                            "precedence": 7,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "PMTCT guidelines version 2016 or ART Guidelines version 2018",
+                            "children": []
+                        },
+                        {
+                            "precedence": 8,
+                            "precedence_display_type": "bullet",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Kangaroo Mother Care",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "title": "TB/HIV SERVICES",
+            "precedence": 6,
+            "precedence_display_type": "bullet",
+            "children": [
+                {
+                    "title": "HIV TESTING SERVICES",
+                    "precedence": 1,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "none",
+                            "metadata": {},
+                            "query": "Are the following departments/service points offering HIV testing services?",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Outpatient",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Chronic care clinics",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Inpatient",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "TB clinic",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "FP clinic",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 6,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "MCH",
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is the stock of rapid Test Kits enough to last 3 months? (NB: Not buffer stock) ",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": " Is there a linkage in each of the above departments?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "short_answer",
+                            "metadata": {},
+                            "query": "  Confirm whether all the clients who tested positive in the last month and confirm whether they were successfully linked to care? With a CCC number indicated in the linkage register.",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is there a system to identify clients who miss their appointments immediately?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 6,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is there a defaulter register in place and used correctly and up to date?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 7,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Is a written SOP for identifying and tracking defaulters available?",
+                            "children": []
+                        },
+                        {
+                            "precedence": 8,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "none",
+                            "metadata": {},
+                            "query": "Pull 20 files from Adults patients seen last month randomly(Care and Treatment)",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of reviewed charts document WHO staging at the last clinical assessment?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts reviewed have documentation of VL within the appropriate interval per the national guidelines?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts reviewed have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines at the last visit?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 6,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient’s nutrition status per national guidelines?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 7,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 8,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "Do patients with a positive screen (suspected of TB) have documented evidence of a diagnostic work-up (gene Xpert)?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 9,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts for clients who screened -ve for TB have documentation of IPT offered?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 10,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Is a written SOP or clinic algorithm available for monitoring patients on ART and responding to results of viral load tests?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 11,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Does the WIT review viral load results regularly and institute appropriate follow on action points?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 12,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Do clients have access to at least five contraceptive methods at the CCC?",
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "precedence": 9,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "none",
+                            "metadata": {},
+                            "query": "Pull 10 pediatric files seen last month",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of reviewed charts were complete and accurate?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts reviewed have documentation of VL within the appropriate interval per the national guideline?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of reviewed charts have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines last visit?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 6,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient’s nutrition status per national guidelines?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 7,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 8,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "Do the patients with a positive screen (suspected of TB) have documents evidence of a diagnostic work-up (gene Xpert)?",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 9,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "number",
+                                    "metadata": {},
+                                    "query": "What percent of charts for clients who screened -ve for TB have documentation for IPT offered",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "GENDER BASED VIOLENCE",
+                    "precedence": 2,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "select_list",
+                            "metadata": {
+                                "select_list_options": [
+                                    "Treatment of Injuries",
+                                    "Rapid HIV testing",
+                                    "STI testing/screening and treatment",
+                                    "Counselling (First-line support)",
+                                    "Referral to other services as necessary",
+                                    "PEP (within 72HOURS)",
+                                    "Emergency contraceptive (Within 120hours)"
+                                ]
+                            },
+                            "query": "What  post-violence services offered are provided on site? Tick all that apply",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "none",
+                            "query": "GBV Integration",
+                            "metadata": {},
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for HTS?",
+                                    "children": [
+                                        {
+                                            "precedence": 1,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for OPD?",
+                                    "children": [
+                                        {
+                                            "precedence": 2,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for MCH?",
+                                    "children": [
+                                        {
+                                            "precedence": 3,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for MATERNITY?",
+                                    "children": [
+                                        {
+                                            "precedence": 4,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for IPD?",
+                                    "children": [
+                                        {
+                                            "precedence": 5,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 6,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for PMTC?",
+                                    "children": [
+                                        {
+                                            "precedence": 6,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                },
+                                {
+                                    "precedence": 7,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Was screening done for CCC?",
+                                    "children": [
+                                        {
+                                            "precedence": 7,
+                                            "precedence_display_type": "lower_case_letters_tcb",
+                                            "answer_type": "number",
+                                            "metadata": {},
+                                            "query": "How many cases were identified?",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "ADOLESCENT SERVICES",
+                    "precedence": 3,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "numbered_td",
+                            "answer_type": "none",
+                            "metadata": {},
+                            "query": "Does the facility have the following?",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "A written policy for disclosure of HIV status to adolescents (visual inspection)",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "A written policy for consent for HIV testing and counselling for adolescents including provisions for testing of emancipated minors (visual inspection)",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Adolescent-specific support groups, or offering extended/weekend hours for adolescents to receive clinical services",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Sexual and reproductive health services, including education and family planning, offered to adolescents",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Services geared to adolescent boys and girls to enhance patient engagement and retention",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 6,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Does the facility have APOC guidelines?",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "title": "CONTINUITY ON TREATMENT",
+                    "precedence": 4,
+                    "precedence_display_type": "numbered_td",
+                    "children": [],
+                    "questions": [
+                        {
+                            "precedence": 1,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Appointment management of all PLHIV",
+                            "children": []
+                        },
+                        {
+                            "precedence": 2,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Prior arrangement of reminding clients of their TCAs",
+                            "children": []
+                        },
+                        {
+                            "precedence": 3,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Phone tracing of clients who miss appointments",
+                            "children": []
+                        },
+                        {
+                            "precedence": 4,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Physical tracing of IIT clients and check from the record for evidence of more than 3 months IITs",
+                            "children": []
+                        },
+                        {
+                            "precedence": 5,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "COT dashboard for missed and IIT follow up",
+                            "children": []
+                        },
+                        {
+                            "precedence": 6,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "yes_no",
+                            "metadata": {},
+                            "query": "Structural system for Capturing TX ML",
+                            "children": []
+                        },
+                        {
+                            "precedence": 7,
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "none",
+                            "metadata": {},
+                            "query": "COT strategies;",
+                            "children": [
+                                {
+                                    "precedence": 1,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "CAG",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 2,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "PSSGs",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 3,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "FGDs",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 4,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Physical Tracing",
+                                    "children": []
+                                },
+                                {
+                                    "precedence": 5,
+                                    "precedence_display_type": "lower_case_letters_tcb",
+                                    "answer_type": "yes_no",
+                                    "metadata": {},
+                                    "query": "Decentralization CCC services",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "questions": []
+        }
+    ]
+}

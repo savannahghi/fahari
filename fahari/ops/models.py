@@ -246,35 +246,6 @@ class ActivityLog(AbstractBase):
         )
 
 
-class SiteMentorship(AbstractBase):
-    staff_member = models.ForeignKey(User, on_delete=models.PROTECT)
-    day = models.DateField(default=timezone.datetime.today)
-    duration = models.DurationField(
-        help_text="HH:MM:SS e.g '08:00:00' for 8 hours",
-        default="08:00:00",
-    )
-    site = models.ForeignKey(Facility, on_delete=models.PROTECT)
-    objective = models.TextField()
-    pick_up_point = models.TextField()
-    drop_off_point = models.TextField()
-
-    def get_absolute_url(self):
-        update_url = reverse_lazy("ops:site_mentorship_update", kwargs={"pk": self.pk})
-        return update_url
-
-    def __str__(self) -> str:
-        return (
-            f"Site Mentorship: {self.staff_member.name} "
-            + f"at {self.site.name} on {self.day} (for {self.duration})"
-        )
-
-    class Meta:
-        ordering = (
-            "-day",
-            "site__name",
-        )
-
-
 class DailyUpdate(AbstractBase):
     """
     Daily updates from facilities.

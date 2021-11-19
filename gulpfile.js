@@ -38,6 +38,7 @@ function pathsConfig(appName) {
             `${vendorsRoot}/bootstrap/dist/js/bootstrap.js`,
             `${vendorsRoot}/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js`,
             `${vendorsRoot}/bootstrap-select/dist/js/bootstrap-select.min.js`,
+            `${vendorsRoot}/bootstrap4-toggle/js/bootstrap4-toggle.min.js`,
             `${vendorsRoot}/chart.js/dist/*.js`,
             `${vendorsRoot}/jszip/dist/jszip.min.js`,
             `${vendorsRoot}/pdfmake/dist/*.min.js`,
@@ -123,6 +124,9 @@ function scripts() {
             `${paths.js}/other/templates/fragments/export_data_modal.js`,
             `${paths.js}/other/templates/fragments/import_data_modal_svr.js`,
             `${paths.js}/other/templates/fragments/import_data_modal_svr_async.js`,
+            `${paths.js}/other/templates/fragments/mentorship_questionnaire_metadata_content.js`,
+            `${paths.js}/other/templates/pages/sims/questionnaire_responses_capture.js`,
+            `${paths.js}/sims/forms/questionnaire_responses_form.js`,
         ])
         .pipe(sourcemaps.init())
         .pipe(plumber()) // Checks for errors

@@ -1,0 +1,40 @@
+{% load static i18n compress %}
+{% load questionnaire_responses %}
+
+{% with question|answer_for_questionnaire:object as answer %}
+    {% if question.answer_type == "yes_no" %}
+        {% with on_label="Yes" off_label="No" %}
+            {% include "fragments/atoms/sims/question_types/boolean_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "true_false" %}
+        {% with on_label="True" off_label="False" %}
+            {% include "fragments/atoms/sims/question_types/boolean_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "fraction" %}
+        {% with step_interval="0.1" placeholder="Enter a fraction" min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional %}
+            {% include "fragments/atoms/sims/question_types/number_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "number" %}
+        {% with step_interval="1" placeholder="Enter a number" min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional %}
+            {% include "fragments/atoms/sims/question_types/number_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "short_answer" %}
+        {% with optional=question.metadata.optional %}
+            {% include "fragments/atoms/sims/question_types/text_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "radio_option" %}
+        {% with optional=question.metadata.optional multiple=False %}
+            {% include "fragments/atoms/sims/question_types/options_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "select_list" %}
+        {% with optional=question.metadata.optional multiple=True %}
+            {% include "fragments/atoms/sims/question_types/options_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "ratio" %}
+        {% with optional=question.metadata.optional multiple=True %}
+            {% include "fragments/atoms/sims/question_types/ratio_question.html" %}
+        {% endwith %}
+    {% elif question.answer_type == "none" %}
+        <input type="hidden" data-non_applicable="true" hidden value=":::N/A:::" name="response:::{{ question.pk }}:::-">
+    {% endif %}
+{% endwith %}

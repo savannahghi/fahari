@@ -1,0 +1,59 @@
+{% load static i18n compress %}
+{% load crispy_forms_tags %}
+
+<div class="col">
+    <div class="card mb-1">
+        <div class="card-header">
+            <h5 class="h5 text-gray-900 mb-4">Mentorship Team Details</h5>
+            <div class="toolbar float-right">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#capture_mentor_details_modal">
+                    Add new mentor
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table
+                    id="questionnaire-mentorship-team-list"
+                    class="table table-striped table-sm dataTable"
+                    style="width:100%"
+                >
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Organisation</th>
+                            <th>Phone Number</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="capture_mentor_details_modal" tabindex="-1" role="dialog" aria-labelledby="add-mentor-modal" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Mentor</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                {% crispy mentor_details_form %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button id="btn_save_mentor_details" type="button" class="btn btn-primary">
+                    <span class="text">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script defer src="{% static 'js/mentorship_questionnaire_metadata_content.min.js' %}"></script>

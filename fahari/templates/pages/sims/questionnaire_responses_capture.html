@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static i18n compress %}
+{% load crispy_forms_tags %}
+{% block title %}
+    Capture {{ questionnaire }} Responses
+{% endblock title %}
+{% block content %}
+    {% block page_title %}
+        <p class="font-weight-bolder">
+            Step {{ current_step }} of {{ total_steps }}
+        </p>
+        <h1 class="h3 text-gray-800"> {{ questionnaire }} </h1>
+        <h6 class="h6 text-muted text-gray-800 mb-4"> {{ object.facility.name }} </h6>
+    {% endblock page_title %}
+    {% if perms.sims.change_questionnaireresponses %}
+        {% block questionnaire_metadata_container %}
+            <form class="csrf_form">{% csrf_token %}</form>
+            <div class="row">
+                <div class="col">
+                    {% for question_group in questionnaire.direct_decedents_only.active.by_precedence %}
+                        {% include "fragments/atoms/sims/question_group_display.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endblock questionnaire_metadata_container %}
+        {% block questionnaire_navigate_container %}
+            <div class="row align-items-end my-3">
+                <div class="col">
+                    <a class="btn btn-secondary px-5" href="{% url 'sims:questionnaire_responses_update' object.pk %}">Back</a>
+                </div>
+                <div class="col">
+                    <button id="btn_submit" type="button" class="btn btn-primary float-right px-5">Submit</button>
+                </div>
+            </div>
+        {% endblock questionnaire_navigate_container %}
+    {% else %}
+        <p>You do not have permission to edit questionnaires.</p>
+    {% endif %}
+    <script defer src="{% static 'js/questionnaire_responses_capture.min.js' %}"></script>
+{% endblock content %}

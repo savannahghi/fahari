@@ -23,7 +23,6 @@ from .filters import (
     FacilitySystemFilter,
     FacilitySystemTicketFilter,
     SecurityIncidenceFilter,
-    SiteMentorshipFilter,
     StockReceiptVerificationFilter,
     TimeSheetFilter,
     UoMCategoryFilter,
@@ -42,7 +41,6 @@ from .forms import (
     FacilitySystemTicketForm,
     FacilitySystemTicketResolveForm,
     SecurityIncidenceForm,
-    SiteMentorshipForm,
     StockReceiptVerificationForm,
     TimeSheetForm,
     UoMCategoryForm,
@@ -60,7 +58,6 @@ from .models import (
     FacilitySystem,
     FacilitySystemTicket,
     SecurityIncidence,
-    SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
     UoM,
@@ -78,7 +75,6 @@ from .serializers import (
     FacilitySystemSerializer,
     FacilitySystemTicketSerializer,
     SecurityIncidenceSerializer,
-    SiteMentorshipSerializer,
     StockReceiptVerificationSerializer,
     TimeSheetSerializer,
     UoMCategorySerializer,
@@ -349,63 +345,6 @@ class ActivityLogViewSet(BaseView):
         "activity",
         "remarks",
     )
-
-
-class SiteMentorshipContextMixin:
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)  # type: ignore
-        context["active"] = "program-nav"  # id of active nav element
-        context["selected"] = "site-mentorship"  # id of selected page
-        return context
-
-
-class SiteMentorshipView(
-    SiteMentorshipContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
-):
-    template_name = "pages/ops/site_mentorship.html"
-    permission_required = "ops.view_sitementorship"
-
-
-class SiteMentorshipCreateView(
-    SiteMentorshipContextMixin, BaseFormMixin, FormContextMixin, CreateView
-):
-    form_class = SiteMentorshipForm
-    model = SiteMentorship
-    success_url = reverse_lazy("ops:site_mentorships")
-
-
-class SiteMentorshipUpdateView(
-    SiteMentorshipContextMixin, BaseFormMixin, FormContextMixin, UpdateView
-):
-    form_class = SiteMentorshipForm
-    model = SiteMentorship
-    success_url = reverse_lazy("ops:site_mentorships")
-
-
-class SiteMentorshipDeleteView(
-    SiteMentorshipContextMixin, BaseFormMixin, FormContextMixin, DeleteView
-):
-    form_class = SiteMentorshipForm
-    model = SiteMentorship
-    success_url = reverse_lazy("ops:site_mentorships")
-
-
-class SiteMentorshipViewSet(BaseView):
-    queryset = SiteMentorship.objects.active()
-    serializer_class = SiteMentorshipSerializer
-    filterset_class = SiteMentorshipFilter
-    ordering_fields = (
-        "-day",
-        "-end",
-        "-start",
-        "site__name",
-    )
-    search_fields = (
-        "staff_member__name",
-        "site__name",
-        "objective",
-    )
-    facility_field_lookup = "site"
 
 
 class DailySiteUpdatesContextMixin:

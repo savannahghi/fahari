@@ -1,0 +1,20 @@
+<div class="form-group">
+  <div class="dropdown bootstrap-select select form-control custom-select">
+    <select
+            class="select form-control custom-select"
+            data-question="{{ question.pk }}"
+            name="response:::{{ question.pk }}:::{% if multiple %} [] {% else %} - {% endif %}"
+            {% if multiple %} multiple {% endif %}
+            {% if not optional %} required {% endif %}
+    >
+      {% for select_option in question.metadata.select_list_options %}
+        <option
+                value="{{ select_option }}"
+                {% if select_option in answer.response.content %} selected {% endif %}
+        >
+            {{ select_option }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
