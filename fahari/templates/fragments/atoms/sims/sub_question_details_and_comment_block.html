@@ -1,0 +1,11 @@
+{% load static i18n compress %}
+    {{ question.precedence }}.
+    {% include "fragments/atoms/sims/question_details_and_comment_block.html" %}
+
+<div class="col border-left border-secondary">
+    {% with question as parent_question %}
+        {% for question in parent_question.sub_questions.active.by_precedence %}
+            {% include "fragments/atoms/sims/sub_question_details_and_comment_block.html" %}
+        {% endfor %}
+    {% endwith %}
+</div>
