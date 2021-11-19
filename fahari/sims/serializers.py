@@ -6,6 +6,8 @@ from .models import QuestionAnswer, QuestionGroup, Questionnaire, QuestionnaireR
 
 
 class QuestionAnswerSerializer(BaseSerializer):
+    is_valid = serializers.BooleanField(read_only=True)
+
     class Meta(BaseSerializer.Meta):
         model = QuestionAnswer
         fields = "__all__"

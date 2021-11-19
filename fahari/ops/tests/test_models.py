@@ -24,7 +24,6 @@ from fahari.ops.models import (
     FacilitySystemTicket,
     OperationalArea,
     SecurityIncidence,
-    SiteMentorship,
     StockReceiptVerification,
     TimeSheet,
     UoM,
@@ -201,7 +200,6 @@ def test_string_reprs():
     models = [
         TimeSheet,
         ActivityLog,
-        SiteMentorship,
         DailyUpdate,
         StockReceiptVerification,
         OperationalArea,

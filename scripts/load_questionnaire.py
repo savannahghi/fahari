@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Sequence, TypedDict
+from typing import Any, Dict, Literal, Sequence, TypedDict
 
 import django
 from django.db import transaction
@@ -33,7 +33,7 @@ class QuestionData(TypedDict):
     """The structure of a question dictionary."""
 
     answer_type: ANSWER_TYPES
-    children: Sequence["QuestionData"]
+    children: Sequence["QuestionData"]  # type: ignore
     metadata: Dict[str, Any]
     precedence: int
     precedence_display_type: PRECEDENCE_DISPLAY_TYPES
@@ -43,7 +43,7 @@ class QuestionData(TypedDict):
 class QuestionGroupData(TypedDict):
     """The structure of a question group dictionary."""
 
-    children: Sequence["QuestionGroupData"]
+    children: Sequence["QuestionGroupData"]  # type: ignore
     precedence: int
     precedence_display_type: PRECEDENCE_DISPLAY_TYPES
     questions: Sequence[QuestionData]
@@ -62,10 +62,10 @@ def get_organisation():
 
 
 def _load_question(
-    org: "fahari.common.models.Organisation",  # noqa
+    org,  # "fahari.common.models.Organisation"
     question_data: QuestionData,
-    question_group: "fahari.sims.models.QuestionGroup",  # noqa
-    parent: Optional["fahari.sims.models.Question"] = None,  # noqa
+    question_group,  # "fahari.sims.models.QuestionGroup"
+    parent=None,
 ):
     from fahari.sims.models import Question
 
@@ -87,10 +87,10 @@ def _load_question(
 
 
 def _load_question_group(
-    org: "fahari.common.models.Organisation",  # noqa
+    org,  # "fahari.common.models.Organisation"
     question_group_data: QuestionGroupData,
-    questionnaire: "fahari.sims.models.Questionnaire",  # noqa
-    parent: Optional["fahari.sims.models.QuestionGroup"] = None,  # noqa
+    questionnaire,  # "fahari.sims.models.Questionnaire"
+    parent=None,
 ) -> None:
     from fahari.sims.models import QuestionGroup
 

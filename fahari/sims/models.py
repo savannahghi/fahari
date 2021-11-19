@@ -96,7 +96,9 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         def visit(questions: "QuestionQuerySet") -> "QuestionQuerySet":
             for _question in questions:
                 if _question.is_parent:
-                    questions = questions.union(visit(_question.sub_questions.all()))  # noqa
+                    questions = questions.union(
+                        visit(_question.sub_questions.all())  # type: ignore
+                    )
 
             return questions
 
@@ -236,9 +238,9 @@ class ChildrenMixin(models.Model):
         related_name=parent_field_related_name,
         blank=True,
         null=True,
-        help_text=parent_field_help_text,
+        help_text=cast(str, parent_field_help_text),
     )
-    precedence = models.PositiveSmallIntegerField(help_text=precedence_field_help_text)
+    precedence = models.PositiveSmallIntegerField(help_text=cast(str, precedence_field_help_text))
     precedence_display_type = models.CharField(
         max_length=150,
         choices=PrecedenceDisplayTypes.choices,
@@ -318,7 +320,7 @@ class Question(AbstractBase, ChildrenMixin):
             "should provide the same group as their parent question."
         ),
     )
-    parent = models.ForeignKey(
+    parent = models.ForeignKey(  # type: ignore
         "self",
         models.PROTECT,
         related_name=parent_field_related_name,
@@ -394,7 +396,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
             "question group."
         ),
     )
-    parent = models.ForeignKey(
+    parent = models.ForeignKey(  # type: ignore
         "self",
         models.PROTECT,
         related_name=parent_field_related_name,
@@ -410,7 +412,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
     def direct_decedents_only(self) -> QuestionQuerySet:
         """Return a queryset of all "parentless" questions belonging to this question group."""
 
-        return self.questions.filter(parent__isnull=True)  # noqa
+        return self.questions.filter(parent__isnull=True)  # type: ignore
 
     def is_complete_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
         """Return true if this question group has been answered for the given questionnaire."""
@@ -428,7 +430,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
             return False
 
         return (
-            not responses.answers.filter(question__question_group=self)  # noqa
+            not responses.answers.filter(question__question_group=self)  # type: ignore
             .exclude(is_not_applicable=False)
             .exist()
         )
@@ -471,7 +473,7 @@ class Questionnaire(AbstractBase):
         Return a queryset of all "parentless" questions groups belonging to this questionnaire.
         """
 
-        return self.question_groups.filter(parent__isnull=True)  # noqa
+        return self.question_groups.filter(parent__isnull=True)  # type: ignore
 
     def __str__(self) -> str:
         return self.name

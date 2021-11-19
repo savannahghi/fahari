@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence, TypedDict, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, TypedDict, Union
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
@@ -89,7 +89,7 @@ class QuestionnaireResponsesCaptureView(QuestionnaireResponsesContextMixin, Deta
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["current_step"] = 2
-        context["questionnaire"] = self.get_object().questionnaire  # noqa
+        context["questionnaire"] = self.get_object().questionnaire  # type: ignore
         context["total_steps"] = 2
 
         return context
@@ -149,14 +149,14 @@ class QuestionnaireResponseUpdateView(
         context = super().get_context_data(**kwargs)
         context["current_step"] = 1
         context["mentor_details_form"] = MentorshipTeamMemberForm()
-        context["questionnaire"] = self.get_object().questionnaire  # noqa
+        context["questionnaire"] = self.get_object().questionnaire  # type: ignore
         context["total_steps"] = 2
 
         return context
 
     def get_initial(self) -> Dict[str, Any]:
         initial = super().get_initial()
-        initial["mentors"] = self.get_object().metadata.get("mentors", [])  # noqa
+        initial["mentors"] = self.get_object().metadata.get("mentors", [])  # type: ignore
         return initial
 
     def get_success_url(self) -> str:
@@ -176,7 +176,6 @@ class QuestionnaireResponseViewSet(BaseView):
     @action(detail=True, methods=["POST"])
     def save_question_group_answers(self, request: Request, pk) -> Response:
         payload: QuestionGroupAnswersPayload = request.data
-        print(payload)
         question_group: QuestionGroup
         try:
             question_group = QuestionGroup.objects.get(pk=payload["question_group"])
@@ -197,13 +196,14 @@ class QuestionnaireResponseViewSet(BaseView):
 
     def perform_save_question_group_answers(
         self, question_group: QuestionGroup, data: Dict[str, QuestionAnswerPayload]
-    ) -> (bool, Dict[str, Any]):
+    ) -> Tuple[bool, Dict[str, Any]]:
         if question_group.is_parent:
             return False, self._create_error_response_data(
                 "The selected question group has no questions."
             )
 
         questionnaire_response: QuestionnaireResponses = self.get_object()
+        response_data: Dict[str, Any] = {"answers": {}}
         for question_pk, question_answer in data.items():
             try:
                 question = question_group.questions.get(pk=question_pk)  # noqa
@@ -218,17 +218,24 @@ class QuestionnaireResponseViewSet(BaseView):
                 "response": {"content": question_answer.get("response")},
                 "updated_by": self.request.user.pk,
             }
-            QuestionAnswer.objects.update_or_create(
+            answer, created = QuestionAnswer.objects.update_or_create(
                 organisation=question.organisation,
                 question=question,
                 questionnaire_response=questionnaire_response,
                 defaults=question_answer_data,
             )
+            response_data["answers"][str(answer.pk)] = {
+                "created": created,
+                "data": QuestionAnswerSerializer(answer).data,
+            }
 
-        return True, {"success": True}
+        question_group.refresh_from_db()
+        response_data["question_group"] = QuestionGroupSerializer(question_group).data
+        response_data["success"] = True
+        return True, response_data
 
     @staticmethod
-    def _create_error_response_data(error_message: str) -> Dict[str, str]:
+    def _create_error_response_data(error_message: str) -> Dict[str, Any]:
         return {"error_message": error_message, "success": False}
 
 

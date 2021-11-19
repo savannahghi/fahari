@@ -1,6 +1,22 @@
 var SCALAR_VALUE = "-", LIST_VALUE = "[]", DICT_VALUE = "{}";
 
 
+function annotateQuestionAnswerInput(question_id, is_valid, not_applicable=False) {
+    $question_answer_input = $(`[data-question=${question_id}]`);
+    if (not_applicable) {
+        $question_answer_input.addClass();
+        $question_answer_input.prop("disabled", true);
+        return;
+    }
+
+    $question_answer_input.prop("disabled", false);
+    if (is_valid)
+        $question_answer_input.addClass("is-valid");
+    else
+        $question_answer_input.addClass("is-invalid");
+}
+
+
 function cleanFormData(serialized_form_data) {
     var cleaned_form_data = {};
     for (var index = 0; index < serialized_form_data.length; index++) {
@@ -105,7 +121,17 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             method: "POST",
             success: function(data, status) {
-//                console.log(data);
+                console.log(data);
+                if (data["success"] != true)
+                    return;
+
+                for (var answer_id in data.answers) {
+                    if (!data.answers.hasOwnProperty(answer_id))
+                        continue;
+
+                    answer_data = data.answers[answer_id].data;
+//                    annotateQuestionAnswerInput(answer_data.question, answer_data.is_valid, answer_data.is_not_applicable);
+                }
             },
             url: save_changes_url,
         });

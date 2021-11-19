@@ -1,7 +1,7 @@
 [run]
 branch=True
 source=fahari
-omit=fahari/config/*,fahari/**/migrations/*,scripts/*,fahari/**/tests/*
+omit=fahari/config/*,fahari/**/migrations/*,scripts/*,fahari/**/tests/*,fahari/sims/*
 
 [report]
 exclude_lines =

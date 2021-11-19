@@ -1,11 +1,11 @@
 <div class="row">
     <div class="form-check form-check-block col d-flex flex-col">
         <label class="form-check-label">{{ on_label }}</label>
-        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}:::-" value="true" {% if answer.response.content == 'true' %} checked {% endif %}>
+        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}:::-" data-question="{{ question.pk }}" value="true" {% if answer.response.content == 'true' %} checked {% endif %}>
     </div>
 
     <div class="form-check form-check-block col d-flex flex-col">
         <label class="form-check-label">{{ off_label }}</label>
-        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}:::-" value="false" {% if answer.response.content == 'false' %} checked {% endif %}>
+        <input class="form-check-input" type="radio" name="response:::{{ question.pk }}:::-" data-question="{{ question.pk }}" value="false" {% if answer.response.content == 'false' %} checked {% endif %}>
     </div>
 </div>
