@@ -35,16 +35,23 @@ class QuestionAnswerResponse(TypedDict):
     """This is the actual content of the answer."""
 
 
-class QuestionMetadata(TypedDict):
-    """The structure of a question metadata dictionary."""
+class QuestionConstraints(TypedDict):
+    """The structure of a question's constraints metadata dictionary."""
 
     max_length: Optional[Number]
     max_value: Optional[Number]
     min_length: Optional[Number]
     min_value: Optional[Number]
-    optional: Optional[bool]
     ratio_lower_bound: Optional[int]
     ratio_upper_bound: Optional[int]
+
+
+class QuestionMetadata(TypedDict):
+    """The structure of a question metadata dictionary."""
+
+    constraints: Optional[QuestionConstraints]
+    depends_on: Optional[str]
+    optional: Optional[bool]
     select_list_options: Optional[Sequence[str]]
 
 
@@ -305,6 +312,16 @@ class Question(AbstractBase, ChildrenMixin):
     )
 
     query = models.TextField(verbose_name="Question")
+    question_code = models.CharField(
+        max_length=100,
+        editable=False,
+        help_text=(
+            "A simple code that can be used to uniquely identify a question. "
+            "This is mostly useful in the context of dependent question "
+            "answers."
+        ),
+        unique=True,
+    )
     answer_type = models.CharField(
         max_length=15,
         choices=AnswerType.choices,
