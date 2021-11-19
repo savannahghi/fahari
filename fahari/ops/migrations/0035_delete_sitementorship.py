@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ops', '0033_auto_20211015_0829'),
+        ('ops', '0034_alter_weeklyprogramupdate_operation_area'),
     ]
 
     operations = [
