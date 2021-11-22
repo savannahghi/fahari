@@ -61,7 +61,11 @@
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "number",
-                            "metadata": {},
+                            "metadata": {
+                                "constraints": {
+                                    "min_value": 0
+                                }
+                            },
                             "query": "In the last one month, how many WIT meetings have been conducted? See wit meeting templates in WIT file",
                             "children": [],
                             "question_code": "418402"
@@ -140,7 +144,11 @@
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
                             "answer_type": "number",
-                            "metadata": {},
+                            "metadata": {
+                                "constraints": {
+                                    "min_value": 0
+                                }
+                            },
                             "query": "How many HIV positive pregnant women attended ANC in the month?",
                             "children": [
                                 {
@@ -376,7 +384,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "5cd825"
+                                        "depends_on": "5cd825",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "No tracked and brought back to care__________",
                                     "children": [],
@@ -742,7 +753,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "dc1f72"
+                                        "depends_on": "dc1f72",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "Count Number of clients screened in last 3 months",
                                     "children": [],
@@ -753,7 +767,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "dc1f72"
+                                        "depends_on": "dc1f72",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "Positive lesions identified ",
                                     "children": [],
@@ -764,7 +781,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "dc1f72"
+                                        "depends_on": "dc1f72",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "Positive lesions treated ",
                                     "children": [],
@@ -827,7 +847,11 @@
                             "precedence": 1,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
-                            "metadata": {},
+                            "metadata": {
+                                "constraints": {
+                                    "min_value": 0
+                                }
+                            },
                             "query": "How many maternity WIT meetings have been conducted?",
                             "children": [],
                             "question_code": "b9a701"
@@ -836,7 +860,11 @@
                             "precedence": 2,
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
-                            "metadata": {},
+                            "metadata": {
+                                "constraints": {
+                                    "min_value": 0
+                                }
+                            },
                             "query": "Were performance process indicators reviewed in those meetings?",
                             "children": [],
                             "question_code": "598d8d"
@@ -883,7 +911,10 @@
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
                             "metadata": {
-                                "depends_on": "9861da"
+                                "depends_on": "9861da",
+                                "constraints": {
+                                    "min_value": 0
+                                }
                             },
                             "query": "Number of deliveries in the last one month",
                             "children": [],
@@ -894,7 +925,10 @@
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
                             "metadata": {
-                                "depends_on": "9861da"
+                                "depends_on": "9861da",
+                                "constraints": {
+                                    "min_value": 0
+                                }
                             },
                             "query": "Number of neonatal deaths in last one month",
                             "children": [],
@@ -905,7 +939,10 @@
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
                             "metadata": {
-                                "depends_on": "9861da"
+                                "depends_on": "9861da",
+                                "constraints": {
+                                    "min_value": 0
+                                }
                             },
                             "query": "Number of neonatal death audits/reviews conducted",
                             "children": [],
@@ -916,7 +953,10 @@
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
                             "metadata": {
-                                "depends_on": "9861da"
+                                "depends_on": "9861da",
+                                "constraints": {
+                                    "min_value": 0
+                                }
                             },
                             "query": "Number of maternal deaths in last one month",
                             "children": [],
@@ -927,7 +967,10 @@
                             "precedence_display_type": "bullet",
                             "answer_type": "number",
                             "metadata": {
-                                "depends_on": "9861da"
+                                "depends_on": "9861da",
+                                "constraints": {
+                                    "min_value": 0
+                                }
                             },
                             "query": "Number of maternal death audits/reviews conducted",
                             "children": [],
@@ -1200,7 +1243,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of reviewed charts document WHO staging at the last clinical assessment?",
                                     "children": [],
@@ -1211,7 +1257,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
                                     "children": [],
@@ -1222,7 +1271,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts reviewed have documentation of VL within the appropriate interval per the national guidelines?",
                                     "children": [],
@@ -1233,7 +1285,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
                                     "children": [],
@@ -1244,7 +1299,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts reviewed have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines at the last visit?",
                                     "children": [],
@@ -1255,7 +1313,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient\u2019s nutrition status per national guidelines?",
                                     "children": [],
@@ -1266,7 +1327,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
                                     "children": [],
@@ -1277,7 +1341,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "Do patients with a positive screen (suspected of TB) have documented evidence of a diagnostic work-up (gene Xpert)?",
                                     "children": [],
@@ -1288,7 +1355,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "07a1b1"
+                                        "depends_on": "07a1b1",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts for clients who screened -ve for TB have documentation of IPT offered?",
                                     "children": [],
@@ -1342,7 +1412,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of reviewed charts were complete and accurate?",
                                     "children": [],
@@ -1353,7 +1426,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
                                     "children": [],
@@ -1364,7 +1440,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts reviewed have documentation of VL within the appropriate interval per the national guideline?",
                                     "children": [],
@@ -1375,7 +1454,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
                                     "children": [],
@@ -1386,7 +1468,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of reviewed charts have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines last visit?",
                                     "children": [],
@@ -1397,7 +1482,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient\u2019s nutrition status per national guidelines?",
                                     "children": [],
@@ -1408,7 +1496,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
                                     "children": [],
@@ -1419,7 +1510,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "Do the patients with a positive screen (suspected of TB) have documents evidence of a diagnostic work-up (gene Xpert)?",
                                     "children": [],
@@ -1430,7 +1524,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "number",
                                     "metadata": {
-                                        "depends_on": "e956b4"
+                                        "depends_on": "e956b4",
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "What percent of charts for clients who screened -ve for TB have documentation for IPT offered",
                                     "children": [],
@@ -1491,7 +1588,10 @@
                                             "precedence_display_type": "lower_case_letters_tcb",
                                             "answer_type": "number",
                                             "metadata": {
-                                                "depends_on": "222351"
+                                                "depends_on": "222351",
+                                                "constraints": {
+                                                    "min_value": 0
+                                                }
                                             },
                                             "query": "How many cases were identified?",
                                             "children": [],
@@ -1514,7 +1614,10 @@
                                             "precedence_display_type": "lower_case_letters_tcb",
                                             "answer_type": "number",
                                             "metadata": {
-                                                "depends_on": "df1186"
+                                                "depends_on": "df1186",
+                                                "constraints": {
+                                                    "min_value": 0
+                                                }
                                             },
                                             "query": "How many cases were identified?",
                                             "children": [],
@@ -1537,7 +1640,10 @@
                                             "precedence_display_type": "lower_case_letters_tcb",
                                             "answer_type": "number",
                                             "metadata": {
-                                                "depends_on": "8cd14b"
+                                                "depends_on": "8cd14b",
+                                                "constraints": {
+                                                    "min_value": 0
+                                                }
                                             },
                                             "query": "How many cases were identified?",
                                             "children": [],
@@ -1560,7 +1666,10 @@
                                             "precedence_display_type": "lower_case_letters_tcb",
                                             "answer_type": "number",
                                             "metadata": {
-                                                "depends_on": "7fd8a0"
+                                                "depends_on": "7fd8a0",
+                                                "constraints": {
+                                                    "min_value": 0
+                                                }
                                             },
                                             "query": "How many cases were identified?",
                                             "children": [],
@@ -1583,7 +1692,10 @@
                                             "precedence_display_type": "lower_case_letters_tcb",
                                             "answer_type": "number",
                                             "metadata": {
-                                                "depends_on": "de51f5"
+                                                "depends_on": "de51f5",
+                                                "constraints": {
+                                                    "min_value": 0
+                                                }
                                             },
                                             "query": "How many cases were identified?",
                                             "children": [],
@@ -1606,7 +1718,10 @@
                                             "precedence_display_type": "lower_case_letters_tcb",
                                             "answer_type": "number",
                                             "metadata": {
-                                                "depends_on": "fc0d4f"
+                                                "depends_on": "fc0d4f",
+                                                "constraints": {
+                                                    "min_value": 0
+                                                }
                                             },
                                             "query": "How many cases were identified?",
                                             "children": [],
@@ -1629,7 +1744,10 @@
                                             "precedence_display_type": "lower_case_letters_tcb",
                                             "answer_type": "number",
                                             "metadata": {
-                                                "depends_on": "08f150"
+                                                "depends_on": "08f150",
+                                                "constraints": {
+                                                    "min_value": 0
+                                                }
                                             },
                                             "query": "How many cases were identified?",
                                             "children": [],
