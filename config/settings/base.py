@@ -349,3 +349,6 @@ WHITELISTED_DOMAINS = env.list(
         "savannahghi.org",
     ],
 )
+
+
+SIMS = {"CONSTRAINT_CHECKERS": {"max_value": [], "min_value": []}}
