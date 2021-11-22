@@ -371,9 +371,9 @@ class Question(AbstractBase, ChildrenMixin):
         """
 
         if self.is_parent:
-            sub_questions: QuestionQuerySet = self.objects.for_question(self)
+            sub_questions: QuestionQuerySet = Question.objects.for_question(self)
             return not sub_questions.difference(
-                self.objects.answered_for_questionnaire(responses)
+                Question.objects.answered_for_questionnaire(responses)
             ).exists()
 
         return responses.answers.filter(question=self).exists()  # noqa
@@ -434,7 +434,9 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
     def is_complete_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
         """Return true if this question group has been answered for the given questionnaire."""
 
-        return self.objects.answered_for_questionnaire(responses).filter(pk=self.pk).exists()
+        return (
+            QuestionGroup.objects.answered_for_questionnaire(responses).filter(pk=self.pk).exists()
+        )
 
     def is_not_applicable_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
         """Returns true if this group's questions are not answerable for the given responses.
@@ -449,7 +451,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
         return (
             not responses.answers.filter(question__question_group=self)  # type: ignore
             .exclude(is_not_applicable=False)
-            .exist()
+            .exists()
         )
 
     def __str__(self) -> str:
@@ -524,7 +526,7 @@ class QuestionAnswer(AbstractBase):
         """
 
         # TODO: Add implementation
-        return False
+        return True
 
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
