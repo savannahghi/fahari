@@ -60,7 +60,7 @@
                         {
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
-                            "answer_type": "number",
+                            "answer_type": "int",
                             "metadata": {
                                 "constraints": {
                                     "min_value": 0
@@ -143,20 +143,19 @@
                         {
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
-                            "answer_type": "number",
-                            "metadata": {
-                                "constraints": {
-                                    "min_value": 0
-                                }
-                            },
+                            "answer_type": "int",
+                            "metadata": {},
                             "query": "How many HIV positive pregnant women attended ANC in the month?",
                             "children": [
                                 {
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "ratio",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "rt6705"
+                                        "depends_on": "rt6705",
+                                        "constraints": {
+                                            "dependency_type": "denominator"
+                                        }
                                     },
                                     "query": "How many were staged using WHO criteria?",
                                     "children": [],
@@ -165,9 +164,12 @@
                                 {
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "ratio",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "rt6705"
+                                        "depends_on": "rt6705",
+                                        "constraints": {
+                                            "dependency_type": "denominator"
+                                        }
                                     },
                                     "query": "How many were offered Cotrimoxazole?",
                                     "children": [],
@@ -176,9 +178,12 @@
                                 {
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "ratio",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "rt6705"
+                                        "depends_on": "rt6705",
+                                        "constraints": {
+                                            "dependency_type": "denominator"
+                                        }
                                     },
                                     "query": "How many were on/started on HAART?",
                                     "children": [],
@@ -187,9 +192,12 @@
                                 {
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "ratio",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "rt6705"
+                                        "depends_on": "rt6705",
+                                        "constraints": {
+                                            "dependency_type": "denominator"
+                                        }
                                     },
                                     "query": "How many were given/had NVP/AZT for their unborn babies?",
                                     "children": [],
@@ -198,9 +206,12 @@
                                 {
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "ratio",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "rt6705"
+                                        "depends_on": "rt6705",
+                                        "constraints": {
+                                            "dependency_type": "denominator"
+                                        }
                                     },
                                     "query": "How many have a viral load not older than 6 months?",
                                     "children": [],
@@ -231,14 +242,14 @@
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
                             "metadata": {},
-                            "query": "Is the HEI register in use correct and upto updated? Add comment.",
+                            "query": "Is the HEI register in use correct and updated? Add comment.",
                             "children": [],
                             "question_code": "252deb"
                         },
                         {
                             "precedence": 2,
                             "precedence_display_type": "numbered_td",
-                            "answer_type": "ratio",
+                            "answer_type": "fraction",
                             "metadata": {
                                 "constraints": {
                                     "ratio_upper_bound": 20
@@ -251,7 +262,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "dba625"
+                                        "depends_on": "dba625",
+                                        "constraints": {
+                                            "dependency_type": "numerator"
+                                        }
                                     },
                                     "query": "6 weeks- was DBS done and result documented?",
                                     "children": [],
@@ -262,7 +276,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "dba625"
+                                        "depends_on": "dba625",
+                                        "constraints": {
+                                            "dependency_type": "numerator"
+                                        }
                                     },
                                     "query": "10 weeks- is the HEI on CTX and NVP?",
                                     "children": [],
@@ -273,7 +290,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "dba625"
+                                        "depends_on": "dba625",
+                                        "constraints": {
+                                            "dependency_type": "numerator"
+                                        }
                                     },
                                     "query": "6 months- what is the feeding option?",
                                     "children": [],
@@ -284,7 +304,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "dba625"
+                                        "depends_on": "dba625",
+                                        "constraints": {
+                                            "dependency_type": "numerator"
+                                        }
                                     },
                                     "query": "12 months- was PCR test done?",
                                     "children": [],
@@ -295,7 +318,10 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "dba625"
+                                        "depends_on": "dba625",
+                                        "constraints": {
+                                            "dependency_type": "numerator"
+                                        }
                                     },
                                     "query": "18 months- was the final HIV test done? What was the final outcome?",
                                     "children": [],
@@ -304,10 +330,8 @@
                                 {
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "short_answer",
-                                    "metadata": {
-                                        "depends_on": "dba625"
-                                    },
+                                    "answer_type": "fraction",
+                                    "metadata": {},
                                     "query": "If there was any HEI who was confirmed positive in the month, was he/she started on HAART?",
                                     "children": [],
                                     "question_code": "ad84fd"
@@ -371,9 +395,11 @@
                                 {
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "int",
                                     "metadata": {
-                                        "depends_on": "5cd825"
+                                        "constraints": {
+                                            "min_value": 0
+                                        }
                                     },
                                     "query": "No of defaulters______",
                                     "children": [],
@@ -382,9 +408,8 @@
                                 {
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "int",
                                     "metadata": {
-                                        "depends_on": "5cd825",
                                         "constraints": {
                                             "min_value": 0
                                         }
@@ -392,17 +417,6 @@
                                     "query": "No tracked and brought back to care__________",
                                     "children": [],
                                     "question_code": "bd5d84"
-                                },
-                                {
-                                    "precedence": 3,
-                                    "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "fraction",
-                                    "metadata": {
-                                        "depends_on": "5cd825"
-                                    },
-                                    "query": "Success rate (i/ii) ______ %",
-                                    "children": [],
-                                    "question_code": "bd54c1"
                                 }
                             ],
                             "question_code": "5cd825"
@@ -472,10 +486,10 @@
                         {
                             "precedence": 1,
                             "precedence_display_type": "lower_case_letters_tcb",
-                            "answer_type": "ratio",
+                            "answer_type": "fraction",
                             "metadata": {
-                                "depends_on": "6b0df9",
-                                "ratio_upper_bound": 20
+                                "denominator_value": 20,
+                                "denominator_editable": false
                             },
                             "query": "Is it filled correctly and completely?",
                             "children": [],
@@ -484,10 +498,10 @@
                         {
                             "precedence": 2,
                             "precedence_display_type": "lower_case_letters_tcb",
-                            "answer_type": "ratio",
+                            "answer_type": "fraction",
                             "metadata": {
-                                "depends_on": "6b0df9",
-                                "ratio_upper_bound": 20
+                                "denominator_value": 20,
+                                "denominator_editable": false
                             },
                             "query": "Is the HIV status of every mother (of the 20) known and documented in the register?",
                             "children": [],
@@ -496,10 +510,10 @@
                         {
                             "precedence": 3,
                             "precedence_display_type": "lower_case_letters_tcb",
-                            "answer_type": "ratio",
+                            "answer_type": "fraction",
                             "metadata": {
-                                "depends_on": "6b0df9",
-                                "ratio_upper_bound": 20
+                                "denominator_value": 20,
+                                "denominator_editable": false
                             },
                             "query": "Number of post-natal women on/started modern method of family planning in the month (out of the 20)",
                             "children": [],
@@ -527,9 +541,7 @@
                             "precedence": 1,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Male condoms",
                             "children": [],
                             "question_code": "988ab2"
@@ -538,9 +550,7 @@
                             "precedence": 2,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Female condoms",
                             "children": [],
                             "question_code": "670455"
@@ -549,9 +559,7 @@
                             "precedence": 3,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Combined oral contraceptives",
                             "children": [],
                             "question_code": "a07ac5"
@@ -560,9 +568,7 @@
                             "precedence": 4,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Progestogen only pills",
                             "children": [],
                             "question_code": "b67204"
@@ -571,9 +577,7 @@
                             "precedence": 5,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Injectables (IM and/or SC)",
                             "children": [],
                             "question_code": "f52f5d"
@@ -582,9 +586,7 @@
                             "precedence": 6,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "IUCDs",
                             "children": [],
                             "question_code": "81b09f"
@@ -593,9 +595,7 @@
                             "precedence": 7,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Emergency contraceptive pills",
                             "children": [],
                             "question_code": "81d2a2"
@@ -604,9 +604,7 @@
                             "precedence": 8,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Implants",
                             "children": [],
                             "question_code": "4649b9"
@@ -615,9 +613,7 @@
                             "precedence": 9,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Vasectomy",
                             "children": [],
                             "question_code": "967d15"
@@ -626,9 +622,7 @@
                             "precedence": 10,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "f8162f"
-                            },
+                            "metadata": {},
                             "query": "Tubal ligation",
                             "children": [],
                             "question_code": "0d1145"
@@ -636,9 +630,9 @@
                         {
                             "precedence": 11,
                             "precedence_display_type": "lower_case_letters_tcb",
-                            "answer_type": "short_answer",
+                            "answer_type": "text_answer",
                             "metadata": {
-                                "depends_on": "f8162f"
+                                "optional": true
                             },
                             "query": "Others (specify)",
                             "children": [],
@@ -658,9 +652,7 @@
                             "precedence": 1,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "metadata": {},
                             "query": "Post-natal clinic?",
                             "children": [],
                             "question_code": "aaa688"
@@ -669,9 +661,7 @@
                             "precedence": 2,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "metadata": {},
                             "query": "Maternity?",
                             "children": [],
                             "question_code": "9d538c"
@@ -680,9 +670,7 @@
                             "precedence": 3,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "metadata": {},
                             "query": "CCC?",
                             "children": [],
                             "question_code": "21403c"
@@ -690,10 +678,8 @@
                         {
                             "precedence": 4,
                             "precedence_display_type": "lower_case_letters_tcb",
-                            "answer_type": "short_answer",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "answer_type": "text_answer",
+                            "metadata": {},
                             "query": "In which other service areas/units offer FP counselling/commodities offered? Specify",
                             "children": [],
                             "question_code": "f9a1db"
@@ -702,9 +688,7 @@
                             "precedence": 5,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "metadata": {},
                             "query": "Are women living with HIV offered cervical Cancer screening services as part of routine care?",
                             "children": [],
                             "question_code": "5bbd51"
@@ -712,7 +696,7 @@
                         {
                             "precedence": 6,
                             "precedence_display_type": "lower_case_letters_tcb",
-                            "answer_type": "select_list",
+                            "answer_type": "select_one",
                             "metadata": {
                                 "select_list_options": [
                                     "VIA",
@@ -721,8 +705,7 @@
                                 "constraints": {
                                     "max_length": 10,
                                     "min_length": 2
-                                },
-                                "depends_on": "d4cc18"
+                                }
                             },
                             "query": "Screening method used",
                             "children": [],
@@ -732,9 +715,7 @@
                             "precedence": 7,
                             "precedence_display_type": "lower_case_letters_tcb",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "metadata": {},
                             "query": "Availability of cervical cancer screening register and monthly summary",
                             "children": [],
                             "question_code": "9ac793"
@@ -742,18 +723,15 @@
                         {
                             "precedence": 8,
                             "precedence_display_type": "lower_case_letters_tcb",
-                            "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "answer_type": "none",
+                            "metadata": {},
                             "query": "Check for completion of register and monthly summary form",
                             "children": [
                                 {
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "int",
                                     "metadata": {
-                                        "depends_on": "dc1f72",
                                         "constraints": {
                                             "min_value": 0
                                         }
@@ -765,9 +743,8 @@
                                 {
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "int",
                                     "metadata": {
-                                        "depends_on": "dc1f72",
                                         "constraints": {
                                             "min_value": 0
                                         }
@@ -779,9 +756,8 @@
                                 {
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "int",
                                     "metadata": {
-                                        "depends_on": "dc1f72",
                                         "constraints": {
                                             "min_value": 0
                                         }
@@ -795,20 +771,15 @@
                         },
                         {
                             "precedence": 9,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "select_list",
+                            "precedence_display_type": "lower_case_letters_tcb",
+                            "answer_type": "select_multiple",
                             "metadata": {
                                 "select_list_options": [
                                     "Thermocoagulation",
                                     "Cryotherapy",
                                     "LEEP",
                                     "None"
-                                ],
-                                "constraints": {
-                                    "max_length": 15,
-                                    "min_length": 5
-                                },
-                                "depends_on": "d4cc18"
+                                ]
                             },
                             "query": "Cervical cancer screening treatment services available? ",
                             "children": [],
@@ -816,11 +787,8 @@
                         },
                         {
                             "precedence": 10,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "short_answer",
-                            "metadata": {
-                                "depends_on": "d4cc18"
-                            },
+                            "answer_type": "text_answer",
+                            "metadata": {},
                             "query": "Challenges identified",
                             "children": [],
                             "question_code": "22a080"
@@ -833,44 +801,27 @@
         {
             "title": "GENERAL MATERNITY INPATIENT SERVICES",
             "precedence": 5,
-            "precedence_display_type": "bullet",
+            "precedence_display_type": "lower_case_letters_tcb",
             "children": [],
             "questions": [
                 {
                     "precedence": 1,
                     "precedence_display_type": "bullet",
-                    "answer_type": "none",
+                    "answer_type": "int",
                     "metadata": {},
-                    "query": " In the last one month,(See WIT meeting templates in WIT file)",
+                    "query": " In the last one month, how many maternity WIT meetings have been conducted? (See WIT meeting templates in WIT file)",
                     "children": [
                         {
                             "precedence": 1,
                             "precedence_display_type": "bullet",
-                            "answer_type": "number",
-                            "metadata": {
-                                "constraints": {
-                                    "min_value": 0
-                                }
-                            },
-                            "query": "How many maternity WIT meetings have been conducted?",
-                            "children": [],
-                            "question_code": "b9a701"
-                        },
-                        {
-                            "precedence": 2,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "number",
-                            "metadata": {
-                                "constraints": {
-                                    "min_value": 0
-                                }
-                            },
+                            "answer_type": "yes_no",
+                            "metadata": {},
                             "query": "Were performance process indicators reviewed in those meetings?",
                             "children": [],
                             "question_code": "598d8d"
                         },
                         {
-                            "precedence": 3,
+                            "precedence": 2,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
                             "metadata": {},
@@ -879,7 +830,7 @@
                             "question_code": "033759"
                         },
                         {
-                            "precedence": 4,
+                            "precedence": 3,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
                             "metadata": {},
@@ -888,7 +839,7 @@
                             "question_code": "021792"
                         },
                         {
-                            "precedence": 5,
+                            "precedence": 4,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
                             "metadata": {},
@@ -901,31 +852,19 @@
                 },
                 {
                     "precedence": 2,
-                    "precedence_display_type": "bullet",
-                    "answer_type": "none",
-                    "metadata": {},
-                    "query": "Using the record of the last one month;",
+                    "precedence_display_type": "lower_case_letters_tcb",
+                    "answer_type": "int",
+                    "metadata": {
+                        "constraints": {
+                            "min_value": 0
+                        }
+                    },
+                    "query": "Number of deliveries in the last one month",
                     "children": [
                         {
                             "precedence": 1,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "number",
+                            "answer_type": "int",
                             "metadata": {
-                                "depends_on": "9861da",
-                                "constraints": {
-                                    "min_value": 0
-                                }
-                            },
-                            "query": "Number of deliveries in the last one month",
-                            "children": [],
-                            "question_code": "2341d3"
-                        },
-                        {
-                            "precedence": 2,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "number",
-                            "metadata": {
-                                "depends_on": "9861da",
                                 "constraints": {
                                     "min_value": 0
                                 }
@@ -935,11 +874,9 @@
                             "question_code": "4084a4"
                         },
                         {
-                            "precedence": 3,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "number",
+                            "precedence": 2,
+                            "answer_type": "int",
                             "metadata": {
-                                "depends_on": "9861da",
                                 "constraints": {
                                     "min_value": 0
                                 }
@@ -949,11 +886,9 @@
                             "question_code": "19a8e0"
                         },
                         {
-                            "precedence": 4,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "number",
+                            "precedence": 3,
+                            "answer_type": "int",
                             "metadata": {
-                                "depends_on": "9861da",
                                 "constraints": {
                                     "min_value": 0
                                 }
@@ -963,11 +898,9 @@
                             "question_code": "1b8a4d"
                         },
                         {
-                            "precedence": 5,
-                            "precedence_display_type": "bullet",
-                            "answer_type": "number",
+                            "precedence": 4,
+                            "answer_type": "int",
                             "metadata": {
-                                "depends_on": "9861da",
                                 "constraints": {
                                     "min_value": 0
                                 }
@@ -977,12 +910,9 @@
                             "question_code": "d0214d"
                         },
                         {
-                            "precedence": 6,
-                            "precedence_display_type": "bullet",
+                            "precedence": 5,
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "9861da"
-                            },
+                            "metadata": {},
                             "query": "Were action points from the audits implemented?",
                             "children": [],
                             "question_code": "4a10d5"
@@ -992,18 +922,15 @@
                 },
                 {
                     "precedence": 3,
-                    "precedence_display_type": "bullet",
+                    "precedence_display_type": "lower_case_letters_tcb",
                     "answer_type": "none",
                     "metadata": {},
                     "query": "Are the following services offered in this maternity unit?",
                     "children": [
                         {
                             "precedence": 1,
-                            "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "National guidelines for quality obstetric and antenatal care",
                             "children": [],
                             "question_code": "7b1424"
@@ -1012,9 +939,7 @@
                             "precedence": 2,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "Danger signs for mother and baby poster",
                             "children": [],
                             "question_code": "0e2e84"
@@ -1023,9 +948,7 @@
                             "precedence": 3,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "Infant and young child feeding practices chart",
                             "children": [],
                             "question_code": "cf39bc"
@@ -1034,9 +957,7 @@
                             "precedence": 4,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "Breastfeeding poster",
                             "children": [],
                             "question_code": "7bbc67"
@@ -1045,9 +966,7 @@
                             "precedence": 5,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "Neonatal resuscitation chart",
                             "children": [],
                             "question_code": "922222"
@@ -1056,9 +975,7 @@
                             "precedence": 6,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "Infection prevention chart",
                             "children": [],
                             "question_code": "7f6d24"
@@ -1067,9 +984,7 @@
                             "precedence": 7,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "PMTCT guidelines version 2016 or ART Guidelines version 2018",
                             "children": [],
                             "question_code": "7a49c1"
@@ -1078,9 +993,7 @@
                             "precedence": 8,
                             "precedence_display_type": "bullet",
                             "answer_type": "yes_no",
-                            "metadata": {
-                                "depends_on": "37cfed"
-                            },
+                            "metadata": {},
                             "query": "Kangaroo Mother Care",
                             "children": [],
                             "question_code": "21bfd7"
@@ -1112,9 +1025,7 @@
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "4a1e2c"
-                                    },
+                                    "metadata": {},
                                     "query": "Outpatient",
                                     "children": [],
                                     "question_code": "0a7d11"
@@ -1123,9 +1034,7 @@
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "4a1e2c"
-                                    },
+                                    "metadata": {},
                                     "query": "Chronic care clinics",
                                     "children": [],
                                     "question_code": "ff7940"
@@ -1134,9 +1043,7 @@
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "4a1e2c"
-                                    },
+                                    "metadata": {},
                                     "query": "Inpatient",
                                     "children": [],
                                     "question_code": "d50536"
@@ -1145,9 +1052,7 @@
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "4a1e2c"
-                                    },
+                                    "metadata": {},
                                     "query": "TB clinic",
                                     "children": [],
                                     "question_code": "28bab6"
@@ -1156,9 +1061,7 @@
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "4a1e2c"
-                                    },
+                                    "metadata": {},
                                     "query": "FP clinic",
                                     "children": [],
                                     "question_code": "00dfa4"
@@ -1167,9 +1070,7 @@
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "4a1e2c"
-                                    },
+                                    "metadata": {},
                                     "query": "MCH",
                                     "children": [],
                                     "question_code": "163002"
@@ -1182,7 +1083,7 @@
                             "precedence_display_type": "numbered_td",
                             "answer_type": "yes_no",
                             "metadata": {},
-                            "query": "Is the stock of rapid Test Kits enough to last 3 months? (NB: Not buffer stock) ",
+                            "query": "Is the stock of rapid Test Kits enough to last 3 months? (NB: Not buffer stock)",
                             "children": [],
                             "question_code": "c35ca9"
                         },
@@ -1198,7 +1099,7 @@
                         {
                             "precedence": 4,
                             "precedence_display_type": "numbered_td",
-                            "answer_type": "short_answer",
+                            "answer_type": "text_answer",
                             "metadata": {},
                             "query": "  Confirm whether all the clients who tested positive in the last month and confirm whether they were successfully linked to care? With a CCC number indicated in the linkage register.",
                             "children": [],
@@ -1241,110 +1142,94 @@
                                 {
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of reviewed charts document WHO staging at the last clinical assessment?",
+                                    "query": "How many of the reviewed charts document WHO staging at the last clinical assessment?",
                                     "children": [],
                                     "question_code": "10946d"
                                 },
                                 {
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
+                                    "query": "How many of the reviewed charts have documentation of adherence assessment at the last clinical visit?",
                                     "children": [],
                                     "question_code": "261183"
                                 },
                                 {
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of charts reviewed have documentation of VL within the appropriate interval per the national guidelines?",
+                                    "query": "How many of the charts reviewed have documentation of VL within the appropriate interval per the national guidelines?",
                                     "children": [],
                                     "question_code": "59b3ab"
                                 },
                                 {
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
+                                    "query": "How many of the charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
                                     "children": [],
                                     "question_code": "9881b9"
                                 },
                                 {
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of charts reviewed have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines at the last visit?",
+                                    "query": "How many of the charts reviewed have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines at the last visit?",
                                     "children": [],
                                     "question_code": "25a956"
                                 },
                                 {
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient\u2019s nutrition status per national guidelines?",
+                                    "query": "How many of the charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient's nutrition status per national guidelines?",
                                     "children": [],
                                     "question_code": "0f576b"
                                 },
                                 {
                                     "precedence": 7,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
+                                    "query": "How many of the charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
                                     "children": [],
                                     "question_code": "378b3f"
                                 },
                                 {
                                     "precedence": 8,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
                                     "query": "Do patients with a positive screen (suspected of TB) have documented evidence of a diagnostic work-up (gene Xpert)?",
                                     "children": [],
@@ -1353,14 +1238,12 @@
                                 {
                                     "precedence": 9,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "07a1b1",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 20
                                     },
-                                    "query": "What percent of charts for clients who screened -ve for TB have documentation of IPT offered?",
+                                    "query": "What number of charts for clients who screened -ve for TB have documentation of IPT offered?",
                                     "children": [],
                                     "question_code": "d5476a"
                                 },
@@ -1368,9 +1251,7 @@
                                     "precedence": 10,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "07a1b1"
-                                    },
+                                    "metadata": {},
                                     "query": "Is a written SOP or clinic algorithm available for monitoring patients on ART and responding to results of viral load tests?",
                                     "children": [],
                                     "question_code": "2d9026"
@@ -1379,9 +1260,7 @@
                                     "precedence": 11,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "07a1b1"
-                                    },
+                                    "metadata": {},
                                     "query": "Does the WIT review viral load results regularly and institute appropriate follow on action points?",
                                     "children": [],
                                     "question_code": "7febad"
@@ -1390,9 +1269,7 @@
                                     "precedence": 12,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "07a1b1"
-                                    },
+                                    "metadata": {},
                                     "query": "Do clients have access to at least five contraceptive methods at the CCC?",
                                     "children": [],
                                     "question_code": "c1ba4a"
@@ -1410,110 +1287,94 @@
                                 {
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of reviewed charts were complete and accurate?",
+                                    "query": "What number of the reviewed charts were complete and accurate?",
                                     "children": [],
                                     "question_code": "cc3a5c"
                                 },
                                 {
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
+                                    "query": "What number of the reviewed charts have documentation of adherence assessment at the last clinical visit?",
                                     "children": [],
                                     "question_code": "5cfe45"
                                 },
                                 {
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of charts reviewed have documentation of VL within the appropriate interval per the national guideline?",
+                                    "query": "What number of the charts reviewed have documentation of VL within the appropriate interval per the national guideline?",
                                     "children": [],
                                     "question_code": "9d6141"
                                 },
                                 {
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
+                                    "query": "What number of the charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
                                     "children": [],
                                     "question_code": "4d063d"
                                 },
                                 {
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of reviewed charts have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines last visit?",
+                                    "query": "What number of reviewed charts have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines last visit?",
                                     "children": [],
                                     "question_code": "8c875b"
                                 },
                                 {
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient\u2019s nutrition status per national guidelines?",
+                                    "query": "What number of reviewed charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient\u2019s nutrition status per national guidelines?",
                                     "children": [],
                                     "question_code": "c1f634"
                                 },
                                 {
                                     "precedence": 7,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
+                                    "query": "What number of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
                                     "children": [],
                                     "question_code": "1acd2f"
                                 },
                                 {
                                     "precedence": 8,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "fraction",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
                                     "query": "Do the patients with a positive screen (suspected of TB) have documents evidence of a diagnostic work-up (gene Xpert)?",
                                     "children": [],
@@ -1522,14 +1383,12 @@
                                 {
                                     "precedence": 9,
                                     "precedence_display_type": "lower_case_letters_tcb",
-                                    "answer_type": "number",
+                                    "answer_type": "int",
                                     "metadata": {
-                                        "depends_on": "e956b4",
-                                        "constraints": {
-                                            "min_value": 0
-                                        }
+                                        "denominator_editable": false,
+                                        "denominator_value": 10
                                     },
-                                    "query": "What percent of charts for clients who screened -ve for TB have documentation for IPT offered",
+                                    "query": "What number of charts for clients who screened -ve for TB have documentation for IPT offered",
                                     "children": [],
                                     "question_code": "45bc98"
                                 }
@@ -1547,7 +1406,7 @@
                         {
                             "precedence": 1,
                             "precedence_display_type": "numbered_td",
-                            "answer_type": "select_list",
+                            "answer_type": "select_multiple",
                             "metadata": {
                                 "select_list_options": [
                                     "Treatment of Injuries",
@@ -1557,11 +1416,7 @@
                                     "Referral to other services as necessary",
                                     "PEP (within 72HOURS)",
                                     "Emergency contraceptive (Within 120hours)"
-                                ],
-                                "constraints": {
-                                    "max_length": 50,
-                                    "min_length": 25
-                                }
+                                ]
                             },
                             "query": "What  post-violence services offered are provided on site? Tick all that apply",
                             "children": [],
@@ -1578,17 +1433,14 @@
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "952a3a"
-                                    },
+                                    "metadata": {},
                                     "query": "Was screening done for HTS?",
                                     "children": [
                                         {
                                             "precedence": 1,
                                             "precedence_display_type": "lower_case_letters_tcb",
-                                            "answer_type": "number",
+                                            "answer_type": "int",
                                             "metadata": {
-                                                "depends_on": "222351",
                                                 "constraints": {
                                                     "min_value": 0
                                                 }
@@ -1604,17 +1456,14 @@
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "952a3a"
-                                    },
+                                    "metadata": {},
                                     "query": "Was screening done for OPD?",
                                     "children": [
                                         {
                                             "precedence": 1,
                                             "precedence_display_type": "lower_case_letters_tcb",
-                                            "answer_type": "number",
+                                            "answer_type": "int",
                                             "metadata": {
-                                                "depends_on": "df1186",
                                                 "constraints": {
                                                     "min_value": 0
                                                 }
@@ -1630,17 +1479,14 @@
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "952a3a"
-                                    },
+                                    "metadata": {},
                                     "query": "Was screening done for MCH?",
                                     "children": [
                                         {
                                             "precedence": 1,
                                             "precedence_display_type": "lower_case_letters_tcb",
-                                            "answer_type": "number",
+                                            "answer_type": "int",
                                             "metadata": {
-                                                "depends_on": "8cd14b",
                                                 "constraints": {
                                                     "min_value": 0
                                                 }
@@ -1656,17 +1502,14 @@
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "952a3a"
-                                    },
+                                    "metadata": {},
                                     "query": "Was screening done for MATERNITY?",
                                     "children": [
                                         {
                                             "precedence": 1,
                                             "precedence_display_type": "lower_case_letters_tcb",
-                                            "answer_type": "number",
+                                            "answer_type": "int",
                                             "metadata": {
-                                                "depends_on": "7fd8a0",
                                                 "constraints": {
                                                     "min_value": 0
                                                 }
@@ -1682,17 +1525,14 @@
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "952a3a"
-                                    },
+                                    "metadata": {},
                                     "query": "Was screening done for IPD?",
                                     "children": [
                                         {
                                             "precedence": 1,
                                             "precedence_display_type": "lower_case_letters_tcb",
-                                            "answer_type": "number",
+                                            "answer_type": "int",
                                             "metadata": {
-                                                "depends_on": "de51f5",
                                                 "constraints": {
                                                     "min_value": 0
                                                 }
@@ -1708,17 +1548,14 @@
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "952a3a"
-                                    },
+                                    "metadata": {},
                                     "query": "Was screening done for PMTC?",
                                     "children": [
                                         {
                                             "precedence": 1,
                                             "precedence_display_type": "lower_case_letters_tcb",
-                                            "answer_type": "number",
+                                            "answer_type": "int",
                                             "metadata": {
-                                                "depends_on": "fc0d4f",
                                                 "constraints": {
                                                     "min_value": 0
                                                 }
@@ -1734,17 +1571,14 @@
                                     "precedence": 7,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "952a3a"
-                                    },
+                                    "metadata": {},
                                     "query": "Was screening done for CCC?",
                                     "children": [
                                         {
                                             "precedence": 1,
                                             "precedence_display_type": "lower_case_letters_tcb",
-                                            "answer_type": "number",
+                                            "answer_type": "int",
                                             "metadata": {
-                                                "depends_on": "08f150",
                                                 "constraints": {
                                                     "min_value": 0
                                                 }
@@ -1778,9 +1612,7 @@
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "48dad1"
-                                    },
+                                    "metadata": {},
                                     "query": "A written policy for disclosure of HIV status to adolescents (visual inspection)",
                                     "children": [],
                                     "question_code": "3733e3"
@@ -1789,9 +1621,7 @@
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "48dad1"
-                                    },
+                                    "metadata": {},
                                     "query": "A written policy for consent for HIV testing and counselling for adolescents including provisions for testing of emancipated minors (visual inspection)",
                                     "children": [],
                                     "question_code": "c2662d"
@@ -1800,9 +1630,7 @@
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "48dad1"
-                                    },
+                                    "metadata": {},
                                     "query": "Adolescent-specific support groups, or offering extended/weekend hours for adolescents to receive clinical services",
                                     "children": [],
                                     "question_code": "a589e4"
@@ -1811,9 +1639,7 @@
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "48dad1"
-                                    },
+                                    "metadata": {},
                                     "query": "Sexual and reproductive health services, including education and family planning, offered to adolescents",
                                     "children": [],
                                     "question_code": "0e6aaf"
@@ -1822,9 +1648,7 @@
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "48dad1"
-                                    },
+                                    "metadata": {},
                                     "query": "Services geared to adolescent boys and girls to enhance patient engagement and retention",
                                     "children": [],
                                     "question_code": "a2755b"
@@ -1833,9 +1657,7 @@
                                     "precedence": 6,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "48dad1"
-                                    },
+                                    "metadata": {},
                                     "query": "Does the facility have APOC guidelines?",
                                     "children": [],
                                     "question_code": "b8a238"
@@ -1916,9 +1738,7 @@
                                     "precedence": 1,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "9a9285"
-                                    },
+                                    "metadata": {},
                                     "query": "CAG",
                                     "children": [],
                                     "question_code": "9a928d"
@@ -1927,9 +1747,7 @@
                                     "precedence": 2,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "9a9285"
-                                    },
+                                    "metadata": {},
                                     "query": "PSSGs",
                                     "children": [],
                                     "question_code": "ebbdac"
@@ -1938,9 +1756,7 @@
                                     "precedence": 3,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "9a9285"
-                                    },
+                                    "metadata": {},
                                     "query": "FGDs",
                                     "children": [],
                                     "question_code": "5055f8"
@@ -1949,9 +1765,7 @@
                                     "precedence": 4,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "9a9285"
-                                    },
+                                    "metadata": {},
                                     "query": "Physical Tracing",
                                     "children": [],
                                     "question_code": "9b7c8a"
@@ -1960,9 +1774,7 @@
                                     "precedence": 5,
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "yes_no",
-                                    "metadata": {
-                                        "depends_on": "9a9285"
-                                    },
+                                    "metadata": {},
                                     "query": "Decentralization CCC services",
                                     "children": [],
                                     "question_code": "28cedf"

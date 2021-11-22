@@ -1,5 +1,5 @@
 from numbers import Number
-from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Sequence, TypedDict, Union, cast
 
 from django.db import models
 from django.urls import reverse_lazy
@@ -38,21 +38,31 @@ class QuestionAnswerResponse(TypedDict):
 class QuestionConstraints(TypedDict):
     """The structure of a question's constraints metadata dictionary."""
 
+    comments_required: Optional[bool]
+    denominator_max_value: Optional[int]
+    denominator_min_value: Optional[int]
+    dependency_type: Optional[Literal["denominator", "numerator"]]
     max_length: Optional[Number]
     max_value: Optional[Number]
     min_length: Optional[Number]
     min_value: Optional[Number]
-    ratio_lower_bound: Optional[int]
-    ratio_upper_bound: Optional[int]
+    numerator_max_value: Optional[int]
+    numerator_min_value: Optional[int]
 
 
 class QuestionMetadata(TypedDict):
     """The structure of a question metadata dictionary."""
 
     constraints: Optional[QuestionConstraints]
+    denominator_editable: Optional[bool]
+    denominator_value: Optional[int]
     depends_on: Optional[str]
+    numerator_editable: Optional[int]
+    numerator_value: Optional[int]
     optional: Optional[bool]
     select_list_options: Optional[Sequence[str]]
+    value: Optional[Any]
+    value_editable: Optional[bool]
 
 
 # =============================================================================
@@ -293,16 +303,15 @@ class Question(AbstractBase, ChildrenMixin):
     class AnswerType(models.TextChoices):
         """The possible types of answer expected for a question."""
 
-        TRUE_FALSE = "true_false", "True/False"
-        YES_NO = "yes_no", "Yes/No"
-        NUMBER = "number", "Whole Number"
-        FRACTION = "fraction", "Fractional Number"
-        SHORT_ANSWER = "short_answer", "Short Answer"
-        RADIO_OPTION = "radio_option", "Select One"
-        SELECT_LIST = "select_list", "Select Multiple"
         DEPENDENT = "dependent", "Dependent on Another Answer"
-        RATIO = "ratio", "Ratio"
+        FRACTION = "fraction", "Fraction"
+        INTEGER = "int", "Whole Number"
         NONE = "none", "Not Applicable"
+        REAL = "real", "Real Number"
+        SELECT_ONE = "select_one", "Select One"
+        SELECT_MULTIPLE = "select_multiple", "Select Multiple"
+        TEXT_ANSWER = "text_answer", "Text Answer"
+        YES_NO = "yes_no", "Yes/No"
 
     parent_field_help_text = "The parent question that this question is part of."
     parent_field_related_name = "sub_questions"
@@ -325,7 +334,7 @@ class Question(AbstractBase, ChildrenMixin):
     answer_type = models.CharField(
         max_length=15,
         choices=AnswerType.choices,
-        default=AnswerType.SHORT_ANSWER.value,
+        default=AnswerType.TEXT_ANSWER.value,
         help_text="Expected answer type",
     )
     question_group = models.ForeignKey(

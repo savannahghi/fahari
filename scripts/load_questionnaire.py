@@ -15,14 +15,12 @@ from django.db import transaction
 ANSWER_TYPES = Literal[
     "dependent",
     "fraction",
+    "int",
     "none",
-    "numbe",
-    "paragraph",
-    "radio_option",
-    "ratio",
-    "select_list",
-    "short_answer",
-    "true_false",
+    "real",
+    "select_one",
+    "select_multiple",
+    "text_answer",
     "yes_no",
 ]
 
@@ -78,7 +76,7 @@ def _load_question(
                 "organisation": org,
                 "parent": parent,
                 "precedence": question_data["precedence"],
-                "precedence_display_type": question_data["precedence_display_type"],
+                "precedence_display_type": question_data.get("precedence_display_type"),
                 "query": question_data["query"],
                 "question_code": question_data["question_code"],
                 "question_group": question_group,
