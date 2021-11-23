@@ -107,7 +107,6 @@ def test_weekly_program_update_context_data():
 
 class WeeklyProgramUpdateUpdateTest(LoggedInMixin, TestCase):
     def setUp(self):
-        self.factory = RequestFactory()
         self.program_update = baker.make(
             WeeklyProgramUpdate,
             organisation=self.global_organisation,

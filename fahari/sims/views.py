@@ -86,10 +86,11 @@ class QuestionnaireResponsesCaptureView(QuestionnaireResponsesContextMixin, Deta
     model = QuestionnaireResponses
     template_name = "pages/sims/questionnaire_responses_capture.html"
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs):
+        questionnaire_obj: QuestionnaireResponses = self.get_object().questionnaire  # type: ignore
         context = super().get_context_data(**kwargs)
         context["current_step"] = 2
-        context["questionnaire"] = self.get_object().questionnaire  # type: ignore
+        context["questionnaire"] = questionnaire_obj
         context["total_steps"] = 2
 
         return context
