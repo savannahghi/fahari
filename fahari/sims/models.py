@@ -190,7 +190,7 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
         return self.filter(questionnaire=questionnaire)
 
 
-class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse"]):  # noqa
+class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponses"]):  # noqa
     def draft(self) -> "QuestionnaireResponsesQuerySet":
         """Return a queryset containing responses that have not being fully filled."""
 

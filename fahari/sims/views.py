@@ -144,7 +144,6 @@ class QuestionnaireResponseUpdateView(
 ):
     form_class = QuestionnaireResponsesForm
     model = QuestionnaireResponses
-    # success_url = reverse_lazy("sims:questionnaire_responses")
 
     def form_valid(self, form):
         form.instance.metadata["mentors"] = form.cleaned_data["mentors"]

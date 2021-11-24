@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.gis.db import models
 from faker import Faker
 from model_bakery import baker
 from rest_framework.test import APITestCase
@@ -62,7 +63,7 @@ class InitializeTestData(LoggedInMixin, APITestCase):
             Question,
             parent=self.qn_1,
             query="How many people were diagnosed positive?",
-            answer_type="number",
+            answer_type="real",
             question_group=self.question_group,
             precedence=1,
             metadata={},
@@ -72,7 +73,7 @@ class InitializeTestData(LoggedInMixin, APITestCase):
             Question,
             parent=self.qn_2,
             query="What number makes up female?",
-            answer_type="number",
+            answer_type="real",
             question_group=self.question_group,
             precedence=1,
             metadata={},
@@ -86,23 +87,28 @@ class InitializeTestData(LoggedInMixin, APITestCase):
             response={"response": 5, "comments": "some response"},
         )
         self.total_questions = Question.objects.for_questionnaire(self.questionnaire).count()
-        self.answered_count = self.questionnaire_response.answers.count()
+        self.answered_count = self.questionnaire_response.answers.filter(  # noqa
+            models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
+        ).count()
+        self.question_qs = Question.objects.all()
+        self.question_group_qs = QuestionGroup.objects.all()
+        self.questionnaire_response_qs = QuestionnaireResponses.objects.all()
         super().setUp()
 
     def test_is_complete_for_questionnaire(self):
 
         assert (
-            self.question_group.is_complete_for_questionnaire(self.questionnaire_response) is True
+            self.question_group.is_complete_for_questionnaire(self.questionnaire_response) is False
         )
 
     def test_is_not_applicable_for_questionnaire(self):
         assert (
             self.question_group.is_not_applicable_for_questionnaire(self.questionnaire_response)
-            is True
+            is False
         )
 
     def test_is_valid(self):
-        assert self.question_answer.is_valid is True
+        assert self.question_answer.is_valid is False
 
     def test_progress(self):
         assert self.questionnaire_response.progress == (self.answered_count / self.total_questions)
@@ -117,7 +123,10 @@ class InitializeTestData(LoggedInMixin, APITestCase):
         assert self.qn_2.is_answered_for_questionnaire(self.questionnaire_response) is True
         assert (
             self.question_group.is_not_applicable_for_questionnaire(self.questionnaire_response)
-            is True
+            is False
+        )
+        self.question.run_metadata_option_processors_on_question_save(
+            "str", {"mentors": [{"name": "abc"}]}
         )
 
     def test_properties(self):
@@ -126,14 +135,18 @@ class InitializeTestData(LoggedInMixin, APITestCase):
         assert self.question.is_answerable is True
         self.question_group.direct_decedents_only
         self.questionnaire.direct_decedents_only
+        self.questionnaire_response.is_complete
 
     def test_queryset(self):
-        Question.objects.all().answerable()
-        Question.objects.all().answered_for_questionnaire(self.questionnaire_response)
-        Question.objects.all().for_question(self.question)
-        Question.objects.all().for_question_group(self.question_group)
-        QuestionGroup.objects.all().for_questionnaire(self.questionnaire)
-        QuestionGroup.objects.all().parents_only()
+        self.question_qs.answered_for_questionnaire(self.questionnaire_response)
+        self.question_qs.answerable()
+        self.question_qs.for_question(self.question)
+        self.question_qs.for_question_group(self.question_group)
+        self.question_group_qs.for_questionnaire(self.questionnaire)
+        self.question_group_qs.parents_only()
+        self.question_group_qs.answered_for_questionnaire(self.questionnaire_response)
+        self.questionnaire_response_qs.draft()
+        self.questionnaire_response_qs.complete()
 
     def test_managers(self):
         Question.objects.answerable()
@@ -143,3 +156,6 @@ class InitializeTestData(LoggedInMixin, APITestCase):
         Question.objects.answered_for_questionnaire(self.questionnaire_response)
         QuestionGroup.objects.by_precedence()
         QuestionGroup.objects.for_questionnaire(self.questionnaire)
+        QuestionGroup.objects.answered_for_questionnaire(self.questionnaire_response)
+        QuestionnaireResponses.objects.draft()
+        QuestionnaireResponses.objects.complete()
