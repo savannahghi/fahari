@@ -51,17 +51,114 @@ function composeQuestionAnswersRequestPayload(cleaned_form_data) {
 }
 
 
-function markQuestionGroupAsApplicable(question_group_id) {
-    var $clp_toggle_question_group = $(`#clp_toggle_${question_group_id}`);
-    $clp_toggle_question_group.prop("disabled", false);
+function makeRequest(url, data, method = "POST", before_send = () => true, success_handler = () => undefined, error_handler = () => undefined, complete_handler = () => undefined) {
+    $.ajax({
+        beforeSend: before_send,
+        complete: complete_handler,
+        contentType: "application/json; charset=UTF-8",
+        data: data,
+        dataType: "json",
+        error: error_handler,
+        headers: {
+            "X-CSRFToken": $("[name=csrfmiddlewaretoken]").val(),
+        },
+        method: method,
+        success: success_handler,
+        url: url,
+    });
 }
 
 
-function markQuestionGroupAsNonApplicable(question_group_id) {
+function markQuestionGroupAsApplicable(question_group_id, $tgl_applicability_toggle) {
+    var $btn_save_changes = $(`#btn_save_changes_${question_group_id}`);
     var $clp_collapse_question_group = $(`#clp_${question_group_id}`);
     var $clp_toggle_question_group = $(`#clp_toggle_${question_group_id}`);
-    $clp_collapse_question_group.collapse("hide");
-    $clp_toggle_question_group.prop("disabled", true);
+    var $spn_spinner_question_group = $(`#spn_spinner_question_group_${question_group_id}`);
+
+    var before_send = function() {
+        $tgl_applicability_toggle.bootstrapToggle("disable");
+        $spn_spinner_question_group.removeClass("d-none");
+        return true;
+    }
+    var complete_handler = function() {
+        $tgl_applicability_toggle.bootstrapToggle("enable");
+        $spn_spinner_question_group.addClass("d-none");
+    }
+    var data = JSON.stringify({
+        question_group: question_group_id
+    });
+    var error_handler = function(request, status, error_thrown) {
+        $btn_save_changes.prop("disabled", true);
+        $clp_toggle_question_group.prop("disabled", true);
+        $tgl_applicability_toggle.bootstrapToggle("off", true);
+    }
+    var mark_as_applicable_url = $tgl_applicability_toggle.data("mark_as_applicable");
+    var success_handler = function(data, status) {
+        console.log(data);
+        if (data["success"] != true)
+            return;
+
+        for (var answer_id in data.answers) {
+            if (!data.answers.hasOwnProperty(answer_id))
+                continue;
+
+            answer_data = data.answers[answer_id].data;
+            annotateQuestionAnswerInput(answer_data.question, answer_data.is_valid, answer_data.is_not_applicable);
+        }
+
+        $btn_save_changes.prop("disabled", false);
+        $clp_toggle_question_group.prop("disabled", false);
+    }
+
+    makeRequest(mark_as_applicable_url, data, "POST", before_send, success_handler, error_handler, complete_handler);
+}
+
+
+function markQuestionGroupAsNonApplicable(question_group_id, $tgl_applicability_toggle) {
+    var $btn_save_changes = $(`#btn_save_changes_${question_group_id}`);
+    var $clp_collapse_question_group = $(`#clp_${question_group_id}`);
+    var $clp_toggle_question_group = $(`#clp_toggle_${question_group_id}`);
+    var $spn_spinner_question_group = $(`#spn_spinner_question_group_${question_group_id}`);
+
+    var before_send = function() {
+        $btn_save_changes.prop("disabled", true);
+        $clp_collapse_question_group.collapse("hide");
+        $clp_toggle_question_group.prop("disabled", true);
+        $spn_spinner_question_group.removeClass("d-none");
+        $tgl_applicability_toggle.bootstrapToggle("disable");
+        return true;
+    }
+    var complete_handler = function() {
+        $spn_spinner_question_group.addClass("d-none");
+        $tgl_applicability_toggle.bootstrapToggle("enable");
+    }
+    var data = JSON.stringify({
+        question_group: question_group_id
+    });
+    var error_handler = function(request, status, error_thrown) {
+        $btn_save_changes.prop("disabled", false);
+        $clp_toggle_question_group.prop("disabled", false);
+        $tgl_applicability_toggle.bootstrapToggle("on", true);
+
+        var data = request.responseJSON;
+        console.error(data);
+    }
+    var mark_as_non_applicable_url = $tgl_applicability_toggle.data("mark_as_non_applicable");
+    var success_handler = function(data, status) {
+        console.log(data);
+        if (data["success"] != true)
+            return;
+
+        for (var answer_id in data.answers) {
+            if (!data.answers.hasOwnProperty(answer_id))
+                continue;
+
+            answer_data = data.answers[answer_id].data;
+            annotateQuestionAnswerInput(answer_data.question, answer_data.is_valid, answer_data.is_not_applicable);
+        }
+    }
+
+    makeRequest(mark_as_non_applicable_url, data, "POST", before_send, success_handler, error_handler, complete_handler);
 }
 
 
@@ -81,11 +178,12 @@ document.addEventListener("DOMContentLoaded", function() {
     $(".applicability_toggle").on("change", function() {
         var question_group_id = $(this).data("question_group");
         var question_group_applicability = $(this).prop("checked");
+        var $tgl_applicability_toggle = $(this);
 
         if (!question_group_applicability)
-            markQuestionGroupAsNonApplicable(question_group_id);
+            markQuestionGroupAsNonApplicable(question_group_id, $tgl_applicability_toggle);
         else
-            markQuestionGroupAsApplicable(question_group_id)
+            markQuestionGroupAsApplicable(question_group_id, $tgl_applicability_toggle);
     });
 
     $("form.question_group_answers_form button.save_changes").on("click", function() {

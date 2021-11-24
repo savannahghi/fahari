@@ -489,7 +489,10 @@
                             "answer_type": "fraction",
                             "metadata": {
                                 "denominator_value": 20,
-                                "denominator_editable": false
+                                "denominator_non_editable": true,
+                                "constraints": {
+                                    "numerator_max_value": 20
+                                }
                             },
                             "query": "Is it filled correctly and completely?",
                             "children": [],
@@ -501,7 +504,10 @@
                             "answer_type": "fraction",
                             "metadata": {
                                 "denominator_value": 20,
-                                "denominator_editable": false
+                                "denominator_non_editable": true,
+                                "constraints": {
+                                    "numerator_max_value": 20
+                                }
                             },
                             "query": "Is the HIV status of every mother (of the 20) known and documented in the register?",
                             "children": [],
@@ -513,7 +519,10 @@
                             "answer_type": "fraction",
                             "metadata": {
                                 "denominator_value": 20,
-                                "denominator_editable": false
+                                "denominator_non_editable": true,
+                                "constraints": {
+                                    "numerator_max_value": 20
+                                }
                             },
                             "query": "Number of post-natal women on/started modern method of family planning in the month (out of the 20)",
                             "children": [],
@@ -1144,8 +1153,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "How many of the reviewed charts document WHO staging at the last clinical assessment?",
                                     "children": [],
@@ -1156,8 +1168,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "How many of the reviewed charts have documentation of adherence assessment at the last clinical visit?",
                                     "children": [],
@@ -1168,8 +1183,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "How many of the charts reviewed have documentation of VL within the appropriate interval per the national guidelines?",
                                     "children": [],
@@ -1180,8 +1198,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "How many of the charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
                                     "children": [],
@@ -1192,8 +1213,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "How many of the charts reviewed have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines at the last visit?",
                                     "children": [],
@@ -1204,8 +1228,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "How many of the charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient's nutrition status per national guidelines?",
                                     "children": [],
@@ -1216,8 +1243,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "How many of the charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
                                     "children": [],
@@ -1228,8 +1258,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "Do patients with a positive screen (suspected of TB) have documented evidence of a diagnostic work-up (gene Xpert)?",
                                     "children": [],
@@ -1240,8 +1273,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 20
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 20,
+                                        "constraints": {
+                                            "numerator_max_value": 20
+                                        }
                                     },
                                     "query": "What number of charts for clients who screened -ve for TB have documentation of IPT offered?",
                                     "children": [],
@@ -1289,8 +1325,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of the reviewed charts were complete and accurate?",
                                     "children": [],
@@ -1301,8 +1340,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of the reviewed charts have documentation of adherence assessment at the last clinical visit?",
                                     "children": [],
@@ -1313,8 +1355,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of the charts reviewed have documentation of VL within the appropriate interval per the national guideline?",
                                     "children": [],
@@ -1325,8 +1370,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of the charts/patient records/beneficiary records reviewed have documentation of CTX prescription within an appropriate interval per the national guidelines/at the last clinical assessment?",
                                     "children": [],
@@ -1337,8 +1385,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of reviewed charts have documentation of a nutrition assessment (i.e. weight/height and BMI or MUAC) per national guidelines last visit?",
                                     "children": [],
@@ -1349,8 +1400,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of reviewed charts reviewed have documentation that data from the nutrition assessment was used to categorize the patient\u2019s nutrition status per national guidelines?",
                                     "children": [],
@@ -1361,8 +1415,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of charts reviewed have documentation of a 4 symptom TB screen at the last clinical assessment (i.e. cough, fever, weight loss, and history of TB contacts)?",
                                     "children": [],
@@ -1373,8 +1430,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "fraction",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "Do the patients with a positive screen (suspected of TB) have documents evidence of a diagnostic work-up (gene Xpert)?",
                                     "children": [],
@@ -1385,8 +1445,11 @@
                                     "precedence_display_type": "lower_case_letters_tcb",
                                     "answer_type": "int",
                                     "metadata": {
-                                        "denominator_editable": false,
-                                        "denominator_value": 10
+                                        "denominator_non_editable": true,
+                                        "denominator_value": 10,
+                                        "constraints": {
+                                            "numerator_max_value": 10
+                                        }
                                     },
                                     "query": "What number of charts for clients who screened -ve for TB have documentation for IPT offered",
                                     "children": [],

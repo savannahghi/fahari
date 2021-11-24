@@ -31,7 +31,7 @@
             {% include "fragments/atoms/sims/question_types/options_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "fraction" %}
-        {% with optional=question.metadata.optional multiple=True %}
+        {% with denominator_non_editable=question.metadata.denominator_non_editable denominator_value=question.metadata.denominator_value multiple=True optional=question.metadata.optional numerator_non_editable=question.metadata.numerator_non_editable numerator_value=question.metadata.numerator_value %}
             {% include "fragments/atoms/sims/question_types/fraction_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "none" %}

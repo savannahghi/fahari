@@ -1,9 +1,13 @@
+from functools import lru_cache
 from numbers import Number
 from typing import Any, Dict, List, Literal, Optional, Sequence, TypedDict, Union, cast
 
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.module_loading import import_string
 
 from fahari.common.models import AbstractBase, AbstractBaseManager, AbstractBaseQuerySet, Facility
 
@@ -54,15 +58,46 @@ class QuestionMetadata(TypedDict):
     """The structure of a question metadata dictionary."""
 
     constraints: Optional[QuestionConstraints]
-    denominator_editable: Optional[bool]
+    denominator_non_editable: Optional[bool]
     denominator_value: Optional[int]
     depends_on: Optional[str]
-    numerator_editable: Optional[int]
+    numerator_non_editable: Optional[int]
     numerator_value: Optional[int]
     optional: Optional[bool]
     select_list_options: Optional[Sequence[str]]
     value: Optional[Any]
-    value_editable: Optional[bool]
+    value_non_editable: Optional[bool]
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
+
+
+@lru_cache(maxsize=None)
+def get_metadata_processors_for_metadata_option(
+    metadata_option: str, metadata_processors: Optional[Dict[str, Sequence[str]]] = None
+) -> Sequence:  # type: ignore
+    from fahari.sims.question_metadata_processors import QuestionMetadataProcessor
+
+    app_config: Dict[str, Any] = getattr(settings, "SIMS", {})
+    _metadata_processors: Dict[str, Sequence[str]] = metadata_processors or app_config.get(
+        "QUESTION_METADATA_PROCESSORS", {}
+    )
+    _option_processors_dotted_paths = _metadata_processors.get(metadata_option, [])
+
+    processors: List[QuestionMetadataProcessor] = []
+    for _processor_dotted_path in _option_processors_dotted_paths:
+        try:
+            processor: QuestionMetadataProcessor = import_string(_processor_dotted_path)()
+            processors.append(processor)
+        except ImportError as exp:
+            raise ImproperlyConfigured(
+                "Cannot import question metadata processor from the following dotted path %s"
+                % _processor_dotted_path
+            ) from exp
+
+    return processors
 
 
 # =============================================================================
@@ -101,9 +136,9 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         """Return a queryset containing answered questions for the given questionnaire."""
 
         qs = self.alias(  # type: ignore
-            answered_questions_for_questionnaire=QuestionAnswer.objects.filter(
-                questionnaire_response=responses
-            ).values_list("question", flat=True)
+            answered_questions_for_questionnaire=responses.answers.values_list(  # noqa
+                "question", flat=True
+            )  # noqa
         ).filter(pk__in=models.F("answered_questions_for_questionnaire"))
         return cast(QuestionQuerySet, qs)
 
@@ -143,12 +178,52 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
     ) -> "QuestionGroupQuerySet":
         """Return a queryset containing answered question groups for the given questionnaire."""
 
-        return self
+        return self.alias(  # type: ignore
+            answered_qg_pks=responses.answers.order_by("question__question_group__pk")  # noqa
+            .values_list("question__question_group", flat=True)
+            .distinct("question__question_group")
+        ).filter(pk__in=models.F("answered_qg_pks"))
 
     def for_questionnaire(self, questionnaire: "Questionnaire") -> "QuestionGroupQuerySet":
         """Return a queryset containing all the question groups in the given questionnaire."""
 
         return self.filter(questionnaire=questionnaire)
+
+
+class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse"]):  # noqa
+    def draft(self) -> "QuestionnaireResponsesQuerySet":
+        """Return a queryset containing responses that have not being fully filled."""
+
+        return self._get_by_completion_status(False)
+
+    def complete(self) -> "QuestionnaireResponsesQuerySet":
+        """Return a queryset containing responses that have been fully filled."""
+
+        return self._get_by_completion_status(True)
+
+    def _get_by_completion_status(self, is_complete: bool) -> "QuestionnaireResponsesQuerySet":
+        """Return a queryset composed of complete or non-complete questionnaire responses."""
+
+        return self.annotate(  # type: ignore
+            has_incomplete=models.Exists(
+                Question.objects.filter(
+                    question_group__questionnaire=models.OuterRef("questionnaire")
+                )
+                .exclude(
+                    pk__in=QuestionAnswer.objects.filter(
+                        question__question_group__questionnaire=models.OuterRef(
+                            models.OuterRef("questionnaire")
+                        ),
+                        questionnaire_response__facility=models.OuterRef(
+                            models.OuterRef("facility")
+                        ),
+                    )
+                    .filter(models.Q(is_not_applicable=True) | ~models.Q(response__content=None))
+                    .values("question")
+                )
+                .values("pk")
+            )
+        ).filter(has_incomplete=not is_complete)
 
 
 # =============================================================================
@@ -222,6 +297,23 @@ class QuestionGroupManager(AbstractBaseManager):
         return QuestionGroupQuerySet(self.model, using=self.db)
 
 
+class QuestionnaireResponsesManager(AbstractBaseManager):
+    """Manager for the QuestionnaireResponses model."""
+
+    def draft(self) -> QuestionnaireResponsesQuerySet:
+        """Return a queryset containing responses that have not being fully filled."""
+
+        return self.get_queryset().draft()
+
+    def complete(self) -> QuestionnaireResponsesQuerySet:
+        """Return a queryset containing responses that have been fully filled."""
+
+        return self.get_queryset().complete()
+
+    def get_queryset(self) -> QuestionnaireResponsesQuerySet:
+        return QuestionnaireResponsesQuerySet(self.model, using=self.db)
+
+
 # =============================================================================
 # MODELS
 # =============================================================================
@@ -251,7 +343,7 @@ class ChildrenMixin(models.Model):
 
     parent = models.ForeignKey(
         "self",
-        models.PROTECT,
+        models.CASCADE,
         related_name=parent_field_related_name,
         blank=True,
         null=True,
@@ -339,7 +431,7 @@ class Question(AbstractBase, ChildrenMixin):
     )
     question_group = models.ForeignKey(
         "QuestionGroup",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="questions",
         help_text=(
             "The question group that a question belongs to. Sub-questions "
@@ -348,7 +440,7 @@ class Question(AbstractBase, ChildrenMixin):
     )
     parent = models.ForeignKey(  # type: ignore
         "self",
-        models.PROTECT,
+        models.CASCADE,
         related_name=parent_field_related_name,
         blank=True,
         null=True,
@@ -387,6 +479,40 @@ class Question(AbstractBase, ChildrenMixin):
 
         return responses.answers.filter(question=self).exists()  # noqa
 
+    def run_metadata_processors_on_question_save(
+        self, metadata_processors: Optional[Dict[str, str]] = None
+    ) -> None:
+        metadata: QuestionMetadata = self.metadata or {}
+        for metadata_option in metadata:
+            self.run_metadata_option_processors_on_question_save(
+                metadata_option, metadata_processors
+            )
+
+    def run_metadata_option_processors_on_question_save(
+        self, metadata_option: str, metadata_processors: Optional[Dict[str, str]] = None
+    ) -> None:
+        from fahari.sims.exceptions import InvalidQuestionMetadataError
+        from fahari.sims.question_metadata_processors import QuestionMetadataProcessor
+        from fahari.sims.question_metadata_processors import (
+            QuestionMetadataProcessorRunModes as Qrm,
+        )
+
+        processors = get_metadata_processors_for_metadata_option(
+            metadata_option, metadata_processors
+        )
+        processor: QuestionMetadataProcessor
+        for processor in filter(
+            lambda p: p.run_mode == Qrm.ON_BOTH or p.run_mode == Qrm.ON_QUESTION_SAVE, processors
+        ):
+            try:
+                processor.process_on_question_save(self)
+            except InvalidQuestionMetadataError as exp:
+                raise ValidationError({"question": str(exp)}, code="invalid") from exp
+
+    def save(self, *args, **kwargs):
+        self.run_metadata_processors_on_question_save()
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return self.query
 
@@ -414,7 +540,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
     title = models.CharField(max_length=255, verbose_name="Group title")
     questionnaire = models.ForeignKey(
         "Questionnaire",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="question_groups",
         help_text=(
             "The questionnaire that a question group belongs to. Sub-question"
@@ -424,7 +550,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
     )
     parent = models.ForeignKey(  # type: ignore
         "self",
-        models.PROTECT,
+        models.CASCADE,
         related_name=parent_field_related_name,
         blank=True,
         null=True,
@@ -440,11 +566,21 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
 
         return self.questions.filter(parent__isnull=True)  # type: ignore
 
+    @property
+    def is_answerable(self) -> bool:
+        """Return true if this question group has at-least one answer."""
+
+        return self.questions.exists()  # noqa
+
     def is_complete_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
         """Return true if this question group has been answered for the given questionnaire."""
 
         return (
-            QuestionGroup.objects.answered_for_questionnaire(responses).filter(pk=self.pk).exists()
+            not Question.objects.for_question_group(self)
+            .difference(
+                Question.objects.for_question_group(self).answered_for_questionnaire(responses)
+            )
+            .exists()
         )
 
     def is_not_applicable_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
@@ -454,13 +590,15 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
         applicable answers have been provided for the given questionnaire
         response.
         """
-        if not self.is_complete_for_questionnaire(responses):
-            return False
 
         return (
-            not responses.answers.filter(question__question_group=self)  # type: ignore
-            .exclude(is_not_applicable=False)
-            .exists()
+            self.is_answerable
+            and self.is_complete_for_questionnaire(responses)
+            and (
+                not responses.answers.filter(question__question_group=self)  # type: ignore
+                .exclude(is_not_applicable=True)
+                .exists()
+            )
         )
 
     def __str__(self) -> str:
@@ -535,7 +673,7 @@ class QuestionAnswer(AbstractBase):
         """
 
         # TODO: Add implementation
-        return True
+        return False
 
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
@@ -562,18 +700,30 @@ class QuestionnaireResponses(AbstractBase):
     finish_date = models.DateTimeField(editable=False, null=True, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
 
+    objects = QuestionnaireResponsesManager()
+
     @property
     def is_complete(self) -> bool:
         """Return True if answerers have been provided for the given questionnaire."""
 
-        return False
+        return (
+            Question.objects.for_questionnaire(self.questionnaire)
+            .exclude(
+                pk__in=self.answers.filter(  # type: ignore
+                    models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
+                ).values("question")
+            )
+            .exists()
+        )
 
     @property
     def progress(self) -> float:
         """Return the completion status of the given questionnaire as a percentage."""
 
         total_questions = Question.objects.for_questionnaire(self.questionnaire).count()
-        answered_count = self.answers.count()  # noqa
+        answered_count = self.answers.filter(  # noqa
+            models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
+        ).count()
         return answered_count / total_questions
 
     def get_absolute_url(self):
@@ -584,8 +734,8 @@ class QuestionnaireResponses(AbstractBase):
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return "Facility: %s, Questionnaire: %s, Status: %s" % (
+        return "Facility: %s, Questionnaire: %s, Submitted: %s" % (
             self.facility.name,
             self.questionnaire.name,
-            "Completed" if self.is_complete else "Draft",
+            str(bool(self.finish_date is not None)),
         )

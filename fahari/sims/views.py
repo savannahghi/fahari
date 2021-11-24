@@ -35,6 +35,10 @@ class QuestionGroupAnswersPayload(TypedDict):
     question_answers: Dict[str, QuestionAnswerPayload]  # The pk of the question being answered
 
 
+class QuestionGroupOperationsPayload(TypedDict):
+    question_group: str  # The pk of the question group
+
+
 # =============================================================================
 # VIEWS
 # =============================================================================
@@ -175,7 +179,51 @@ class QuestionnaireResponseViewSet(BaseView):
     facility_field_lookup = "facility"
 
     @action(detail=True, methods=["POST"])
+    def mark_question_group_as_applicable(self, request: Request, pk) -> Response:
+        """Mark question group as applicable."""
+
+        payload: QuestionGroupOperationsPayload = request.data
+        question_group: QuestionGroup
+        try:
+            question_group = QuestionGroup.objects.get(pk=payload["question_group"])
+        except QuestionGroup.DoesNotExist:
+            return Response(
+                self._create_error_response_data(
+                    'A question group with id "%s" does not exist.' % payload["question_group"]
+                ),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        success, data = self.perform_mark_question_group_as_applicable(question_group)
+        return Response(
+            data, status=status.HTTP_200_OK if success else status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(detail=True, methods=["POST"])
+    def mark_question_group_as_non_applicable(self, request: Request, pk) -> Response:
+        """Mark question group as non-applicable."""
+
+        payload: QuestionGroupOperationsPayload = request.data
+        question_group: QuestionGroup
+        try:
+            question_group = QuestionGroup.objects.get(pk=payload["question_group"])
+        except QuestionGroup.DoesNotExist:
+            return Response(
+                self._create_error_response_data(
+                    'A question group with id "%s" does not exist.' % payload["question_group"]
+                ),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        success, data = self.perform_mark_question_group_as_non_applicable(question_group)
+        return Response(
+            data, status=status.HTTP_200_OK if success else status.HTTP_400_BAD_REQUEST
+        )
+
+    @action(detail=True, methods=["POST"])
     def save_question_group_answers(self, request: Request, pk) -> Response:
+        """Save question group answers."""
+
         payload: QuestionGroupAnswersPayload = request.data
         question_group: QuestionGroup
         try:
@@ -194,6 +242,64 @@ class QuestionnaireResponseViewSet(BaseView):
         return Response(
             data, status=status.HTTP_200_OK if success else status.HTTP_400_BAD_REQUEST
         )
+
+    def perform_mark_question_group_as_applicable(
+        self, question_group: QuestionGroup
+    ) -> Tuple[bool, Dict[str, Any]]:
+        questionnaire_response: QuestionnaireResponses = self.get_object()
+
+        response_data: Dict[str, Any] = {"answers": {}}
+        question_answer_data = {
+            "created_by": self.request.user.pk,
+            "is_not_applicable": False,
+            "response": {"content": None},
+            "updated_by": self.request.user.pk,
+        }
+        for question in Question.objects.for_question_group(question_group):
+            answer, created = QuestionAnswer.objects.update_or_create(
+                organisation=question.organisation,
+                question=question,
+                questionnaire_response=questionnaire_response,
+                defaults=question_answer_data,
+            )
+            response_data["answers"][str(answer.pk)] = {
+                "created": created,
+                "data": QuestionAnswerSerializer(answer).data,
+            }
+
+        question_group.refresh_from_db()
+        response_data["question_group"] = QuestionGroupSerializer(question_group).data
+        response_data["success"] = True
+        return True, response_data
+
+    def perform_mark_question_group_as_non_applicable(
+        self, question_group: QuestionGroup
+    ) -> Tuple[bool, Dict[str, Any]]:
+        questionnaire_response: QuestionnaireResponses = self.get_object()
+
+        response_data: Dict[str, Any] = {"answers": {}}
+        question_answer_data = {
+            "created_by": self.request.user.pk,
+            "is_not_applicable": True,
+            "response": {"content": None},
+            "updated_by": self.request.user.pk,
+        }
+        for question in Question.objects.for_question_group(question_group):
+            answer, created = QuestionAnswer.objects.update_or_create(
+                organisation=question.organisation,
+                question=question,
+                questionnaire_response=questionnaire_response,
+                defaults=question_answer_data,
+            )
+            response_data["answers"][str(answer.pk)] = {
+                "created": created,
+                "data": QuestionAnswerSerializer(answer).data,
+            }
+
+        question_group.refresh_from_db()
+        response_data["question_group"] = QuestionGroupSerializer(question_group).data
+        response_data["success"] = True
+        return True, response_data
 
     def perform_save_question_group_answers(
         self, question_group: QuestionGroup, data: Dict[str, QuestionAnswerPayload]

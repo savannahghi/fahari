@@ -1,9 +1,27 @@
 <div class="form-row">
     <div>
-        <input type="number" class="form-control" name="response:::{{ question.pk }}:::{}" style="width:70px" data-question="{{ question.pk }}" value="{{ answer.response.content.0 }}" min="0">
+        <input
+                class="form-control"
+                data-question="{{ question.pk }}"
+                {% if numerator_non_editable %} disabled {% endif %}
+                min="0"
+                name="response:::{{ question.pk }}:::{}"
+                style="width:70px"
+                type="number"
+                value="{% if numerator_value %}{{ numerator_value }}{% else %}{{ answer.response.content.0 }}{% endif %}"
+        >
     </div>
     <h1 class="text-center" style="width:30px">/</h1>
     <div>
-        <input type="number" class="form-control" name="response:::{{ question.pk }}:::{}" style="width:70px" data-question="{{ question.pk }}" value="{{ answer.response.content.1 }}" min="0">
+        <input
+                class="form-control"
+                data-question="{{ question.pk }}"
+                {% if denominator_non_editable %} disabled {% endif %}
+                name="response:::{{ question.pk }}:::{}"
+                min="0"
+                style="width:70px"
+                type="number"
+                value="{% if denominator_value %}{{ denominator_value }}{% else %}{{ answer.response.content.1 }}{% endif %}"
+        >
     </div>
 </div>

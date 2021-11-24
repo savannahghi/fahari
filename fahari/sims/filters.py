@@ -30,8 +30,8 @@ class QuestionnaireResponsesFilter(CommonFieldsFilterset):
 
     def get_by_complete_status(self, queryset, field, value: bool):  # noqa
         if value:
-            return queryset.none()
-        return queryset
+            return queryset.complete()
+        return queryset.draft()
 
     is_complete = django_filters.BooleanFilter(method="get_by_complete_status")
 
