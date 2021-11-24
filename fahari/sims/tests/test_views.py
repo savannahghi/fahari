@@ -1,5 +1,3 @@
-import json
-
 from django.test.client import RequestFactory
 from django.test.testcases import TestCase
 from django.urls.base import reverse
@@ -15,6 +13,7 @@ from fahari.sims.views import (
     QuestionnaireResponseCreateView,
     QuestionnaireResponsesCaptureView,
     QuestionnaireResponsesView,
+    QuestionnaireResponseUpdateView,
 )
 
 fake = Faker()
@@ -66,13 +65,11 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
     def test_form_valid(self):
         view = QuestionnaireResponseCreateView()
         form = QuestionnaireResponsesForm()
+        form.mentors = [
+            {"name": "salad", "email": "abc@yahoo.com", "member_org": "sil", "role": "s.e"},
+            {"name": "rosio", "email": "def@yahoo.com", "member_org": "sil", "role": "s.e"},
+        ]
         form.cleaned_data = []
-        form.mentors = json.dumps(
-            [
-                {"name": "salad", "email": "abc@yahoo.com", "member_org": "sil", "role": "s.e"},
-                {"name": "rosio", "email": "def@yahoo.com", "member_org": "sil", "role": "s.e"},
-            ]
-        )
         view.form_valid(form)
 
     def test_get_initial(self):
@@ -83,8 +80,49 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
                 kwargs={"pk": self.questionnaire_response.pk},
             )
         )
+        request.user = self.user
         view = QuestionnaireResponseCreateView()
         view.setup(request, pk=self.questionnaire_response.pk)
-        # view.get(request)
+        view.get(request)
         init = view.get_initial()
         init["questionnaire"] = self.questionnaire
+
+    def test_create_questionnaire_response_url(self):
+        request = self.factory.post(
+            reverse(
+                "sims:questionnaire_responses_update",
+                None,
+                kwargs={"pk": self.questionnaire_response.pk},
+            )
+        )
+        v = QuestionnaireResponseCreateView()
+        v.setup(request, pk=self.questionnaire_response.pk)
+        v.get(request)
+        url = "sims/questionnaire_responses"
+        assert url in v.get_success_url()
+
+    def test_questionnaire_response_update(self):
+        request = self.factory.post(
+            reverse(
+                "sims:questionnaire_responses_update",
+                None,
+                kwargs={"pk": self.questionnaire_response.pk},
+            )
+        )
+        v = QuestionnaireResponseUpdateView()
+        v.setup(request, pk=self.questionnaire_response.pk)
+        v.get(request)
+        v.get_context_data()
+
+    def test_update_questionnaire_response_url(self):
+        request = self.factory.post(
+            reverse(
+                "sims:questionnaire_responses_update",
+                None,
+                kwargs={"pk": self.questionnaire_response.pk},
+            )
+        )
+        v = QuestionnaireResponseUpdateView()
+        v.setup(request, pk=self.questionnaire_response.pk)
+        url = "sims/questionnaire_responses"
+        assert url in v.get_success_url()
