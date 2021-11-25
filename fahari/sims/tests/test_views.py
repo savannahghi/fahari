@@ -9,13 +9,15 @@ from model_bakery import baker
 from fahari.common.models.common_models import Facility
 from fahari.common.tests.test_api import LoggedInMixin
 from fahari.sims.forms import QuestionnaireResponsesForm
-from fahari.sims.models import Questionnaire, QuestionnaireResponses
+from fahari.sims.models import QuestionGroup, Questionnaire, QuestionnaireResponses
 from fahari.sims.views import (
     MentorshipQuestionnaireResponsesView,
     QuestionnaireResponseCreateView,
     QuestionnaireResponsesCaptureView,
     QuestionnaireResponsesView,
     QuestionnaireResponseUpdateView,
+    QuestionnaireResponseViewSet,
+    QuestionnaireSelectionView,
 )
 
 fake = Faker()
@@ -46,6 +48,13 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
             organisation=org,
             facility=self.facility,
             questionnaire=self.questionnaire,
+        )
+
+        self.question_group = baker.make(
+            QuestionGroup,
+            title=fake.text(max_nb_chars=30),
+            questionnaire=self.questionnaire,
+            precedence=1,
         )
         super().setUp()
 
@@ -103,3 +112,22 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
         v.setup(request, pk=self.questionnaire_response.pk)
         v.get(request, pk=self.questionnaire_response.pk)
         v.get_context_data()
+
+    def test_questionnaire_selection_context_data(self):
+        v = QuestionnaireSelectionView()
+        ctx = v.get_context_data()
+        assert "questionnaires" in ctx
+
+    def test_questionnaire_response_viewset(self):
+        data = {
+            {"question_group": self.question_group.pk},
+        }
+        v = QuestionnaireResponseViewSet()
+        self.factory.post(
+            reverse(
+                "api:questionnaireresponses-mark-question-group-as-applicable",
+                kwargs={"pk": self.questionnaire_response.pk},
+            ),
+            data=data,
+        )
+        v.mark_question_group_as_applicable(data, pk=self.questionnaire_response.pk)

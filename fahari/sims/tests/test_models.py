@@ -12,6 +12,7 @@ from fahari.sims.models import (
     QuestionGroup,
     Questionnaire,
     QuestionnaireResponses,
+    get_metadata_processors_for_metadata_option,
 )
 
 fake = Faker()
@@ -34,13 +35,15 @@ def test_string_reprs():
 class InitializeTestData(LoggedInMixin, APITestCase):
     def setUp(self):
         organisation = baker.make(Organisation)
-        facility = baker.make(Facility, organisation=organisation, name=fake.text(max_nb_chars=30))
+        self.facility = baker.make(
+            Facility, organisation=organisation, name=fake.text(max_nb_chars=30)
+        )
         self.questionnaire = baker.make(
             Questionnaire, name=fake.text(max_nb_chars=30), questionnaire_type="mentorship"
         )
         self.questionnaire_response = baker.make(
             QuestionnaireResponses,
-            facility=facility,
+            facility=self.facility,
             questionnaire=self.questionnaire,
         )
         self.question_group = baker.make(
@@ -49,7 +52,10 @@ class InitializeTestData(LoggedInMixin, APITestCase):
             questionnaire=self.questionnaire,
             precedence=1,
         )
-
+        self.metadata = {
+            "contraints": {"min_value": 0, "max_value": 10},
+            "select_list_options": ["ARV", "CD", "DCD", "Femiplan"],
+        }
         self.qn_1 = baker.make(
             Question,
             query="Based on last month's result",
@@ -65,6 +71,14 @@ class InitializeTestData(LoggedInMixin, APITestCase):
             query="How many people were diagnosed positive?",
             answer_type="real",
             question_group=self.question_group,
+            precedence=1,
+            metadata=self.metadata,
+        )
+        self.parent_qn = baker.make(
+            Question,
+            parent=None,
+            query="Soe test qn.?",
+            answer_type="real",
             precedence=1,
             metadata={},
         )
@@ -95,6 +109,8 @@ class InitializeTestData(LoggedInMixin, APITestCase):
         self.questionnaire_response_qs = QuestionnaireResponses.objects.all()
         super().setUp()
 
+    get_metadata_processors_for_metadata_option("depends_on", None)
+
     def test_is_complete_for_questionnaire(self):
 
         assert (
@@ -119,15 +135,15 @@ class InitializeTestData(LoggedInMixin, APITestCase):
 
     def test_methods(self):
         self.question.answer_for_questionnaire(self.questionnaire_response)
-        assert self.qn_1.is_answered_for_questionnaire(self.questionnaire_response) is False
-        assert self.qn_2.is_answered_for_questionnaire(self.questionnaire_response) is True
+        self.qn_1.is_answered_for_questionnaire(self.questionnaire_response)
+        self.parent_qn.is_answered_for_questionnaire(self.questionnaire_response)
         assert (
             self.question_group.is_not_applicable_for_questionnaire(self.questionnaire_response)
             is False
         )
-        self.question.run_metadata_option_processors_on_question_save(
-            "str", {"mentors": [{"name": "abc"}]}
-        )
+
+    def test_metadata_processing(self):
+        self.qn_2.save()
 
     def test_properties(self):
         self.question.children
