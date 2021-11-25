@@ -1,3 +1,10 @@
 <div class="form-group">
-    <textarea class="form-control" name="response:::{{ question.pk }}:::-" data-question="{{ question.pk }}" placeholder="{{ placeholder }}" rows="5">{{ answer.response.content }}</textarea>
+    <textarea
+            class="form-control"
+            name="response:::{{ question.pk }}:::-"
+            data-question="{{ question.pk }}"
+            placeholder="{{ placeholder }}"
+            rows="5"
+            {% if questionnaire_is_complete %} disabled {% endif %}
+    >{{ answer.response.content }}</textarea>
 </div>

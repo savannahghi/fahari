@@ -6,6 +6,12 @@
 <div class="form-group">
     <label for="id_comments:::{{ question.pk }}"><small class="text-muted">Comments</small></label>
     {% with question|answer_for_questionnaire:object as answer %}
-        <textarea class="form-control" id="id_comments:::{{ question.pk }}" name="comments:::{{ question.pk }}:::-" rows="4">{{ answer.comments }}</textarea>
+        <textarea
+                class="form-control"
+                {% if questionnaire_is_complete %} disabled {% endif %}
+                id="id_comments:::{{ question.pk }}"
+                name="comments:::{{ question.pk }}:::-"
+                rows="4"
+        >{{ answer.comments }}</textarea>
     {% endwith %}
 </div>

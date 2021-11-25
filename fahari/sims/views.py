@@ -1,7 +1,9 @@
 from typing import Any, Dict, Optional, Sequence, Tuple, TypedDict, Union
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http.response import HttpResponseRedirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, DetailView, TemplateView, UpdateView
 from django.views.generic.base import ContextMixin
 from rest_framework import status
@@ -242,6 +244,13 @@ class QuestionnaireResponseViewSet(BaseView):
             data, status=status.HTTP_200_OK if success else status.HTTP_400_BAD_REQUEST
         )
 
+    @action(detail=True, methods=["POST"])
+    def submit_questionnaire_responses(self, request: Request, pk):
+        """Submit questionnaire responses."""
+
+        self.perform_submit_questionnaire_responses()
+        return HttpResponseRedirect(redirect_to=reverse_lazy("sims:questionnaire_responses"))
+
     def perform_mark_question_group_as_applicable(
         self, question_group: QuestionGroup
     ) -> Tuple[bool, Dict[str, Any]]:
@@ -339,6 +348,30 @@ class QuestionnaireResponseViewSet(BaseView):
         response_data["question_group"] = QuestionGroupSerializer(question_group).data
         response_data["success"] = True
         return True, response_data
+
+    def perform_submit_questionnaire_responses(self) -> Tuple[bool, Dict[str, Any]]:
+        questionnaire_response: QuestionnaireResponses = self.get_object()
+        question_answer_data = {
+            "created_by": self.request.user.pk,
+            "comments": "Skipped during submission.",
+            "is_not_applicable": True,
+            "response": {"content": None},
+            "updated_by": self.request.user.pk,
+        }
+        for question in questionnaire_response.questions.exclude(
+            pk__in=questionnaire_response.answered_questions.all()
+        ):
+            QuestionAnswer.objects.update_or_create(
+                organisation=question.organisation,
+                question=question,
+                questionnaire_response=questionnaire_response,
+                defaults=question_answer_data,
+            )
+
+        questionnaire_response.finish_date = timezone.now()
+        questionnaire_response.save()
+
+        return True, {"success": True}
 
     @staticmethod
     def _create_error_response_data(error_message: str) -> Dict[str, Any]:

@@ -194,14 +194,18 @@ class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse
     def draft(self) -> "QuestionnaireResponsesQuerySet":
         """Return a queryset containing responses that have not being fully filled."""
 
-        return self._get_by_completion_status(False)
+        return self._get_by_completion_status().filter(
+            models.Q(finish_date__isnull=True) | models.Q(has_incomplete=True)
+        )
 
     def complete(self) -> "QuestionnaireResponsesQuerySet":
         """Return a queryset containing responses that have been fully filled."""
 
-        return self._get_by_completion_status(True)
+        return self._get_by_completion_status().filter(
+            finish_date__isnull=False, has_incomplete=False
+        )
 
-    def _get_by_completion_status(self, is_complete: bool) -> "QuestionnaireResponsesQuerySet":
+    def _get_by_completion_status(self) -> "QuestionnaireResponsesQuerySet":
         """Return a queryset composed of complete or non-complete questionnaire responses."""
 
         return self.annotate(  # type: ignore
@@ -223,7 +227,7 @@ class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse
                 )
                 .values("pk")
             )
-        ).filter(has_incomplete=not is_complete)
+        )
 
 
 # =============================================================================
@@ -703,10 +707,20 @@ class QuestionnaireResponses(AbstractBase):
     objects = QuestionnaireResponsesManager()
 
     @property
+    def answered_questions(self) -> QuestionQuerySet:
+        """Return a queryset of all the fully answered questions for this responses."""
+
+        return self.questions.filter(
+            pk__in=self.answers.filter(  # type: ignore
+                models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
+            ).values("question")
+        )
+
+    @property
     def is_complete(self) -> bool:
         """Return True if answerers have been provided for the given questionnaire."""
 
-        return (
+        return self.finish_date is not None and not (
             Question.objects.for_questionnaire(self.questionnaire)
             .exclude(
                 pk__in=self.answers.filter(  # type: ignore
@@ -725,6 +739,12 @@ class QuestionnaireResponses(AbstractBase):
             models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
         ).count()
         return answered_count / total_questions
+
+    @property
+    def questions(self) -> QuestionQuerySet:
+        """Return a queryset of the questions being answered for this responses."""
+
+        return Question.objects.for_questionnaire(questionnaire=self.questionnaire)
 
     def get_absolute_url(self):
         update_url = reverse_lazy("sims:questionnaire_responses_update", kwargs={"pk": self.pk})

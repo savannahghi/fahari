@@ -3,7 +3,7 @@
         <input
                 class="form-control"
                 data-question="{{ question.pk }}"
-                {% if numerator_non_editable %} disabled {% endif %}
+                {% if numerator_non_editable or  questionnaire_is_complete %} disabled {% endif %}
                 min="0"
                 name="response:::{{ question.pk }}:::{}"
                 style="width:70px"
@@ -16,7 +16,7 @@
         <input
                 class="form-control"
                 data-question="{{ question.pk }}"
-                {% if denominator_non_editable %} disabled {% endif %}
+                {% if denominator_non_editable or questionnaire_is_complete %} disabled {% endif %}
                 name="response:::{{ question.pk }}:::{}"
                 min="0"
                 style="width:70px"

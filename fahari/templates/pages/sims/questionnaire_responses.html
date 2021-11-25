@@ -106,32 +106,34 @@
 {% endblock content %}
 {% block inline_javascript %}
 <script>
+    function render_progress(data, type, row) {
+        return `
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="${data}" aria-valuemin="0" aria-valuemax="100" aria-valuemax="100" style="width: ${data * 100}%;">
+                    ${(data * 100).toFixed(2)}%
+                </div>
+            </div>
+        `;
+    }
+
     window.addEventListener("load", function(){
-        $('.table.table-striped.table-sm').DataTable({
+        $('#draft-questionnaire-responses-list').DataTable({
             iDisplayLength: 100,
             responsive: true,
             columns: [
-                {data: "facility_data.name", name: 'facility__name'},
+                {data: "facility_data.name", name: "facility__name"},
                 {data: "questionnaire_data.name", name: "questionnaire__name"},
                 {
                     data: "start_date",
                     name: "start_date",
-                    searchable: false,
+                    searchable: false
                 },
                 {
                     data: "progress",
                     name: "progress",
                     orderable: false,
                     searchable: false,
-                    render: function(data, type, row) {
-                        return `
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" aria-valuenow="${data}" aria-valuemin="0" aria-valuemax="100" aria-valuemax="100" style="width: ${data * 100}%;">
-                                    ${(data * 100).toFixed(2)}%
-                                </div>
-                            </div>
-                        `;
-                    }
+                    render: render_progress
                 },
                 {
                     data: "url",
@@ -139,7 +141,37 @@
                     orderable: false,
                     searchable: false,
                     render: function ( data, type, row ) {
-                        return '<a href="'+ data + '"><i class="fas fa-edit"></i></a>';
+                        return `<a href="${data}"><i class="fas fa-edit"></i></a>`;
+                    }
+                }
+            ]
+        });
+
+        $('#submitted-questionnaire-responses-list').DataTable({
+            iDisplayLength: 100,
+            responsive: true,
+            columns: [
+                {data: "facility_data.name", name: "facility__name"},
+                {data: "questionnaire_data.name", name: "questionnaire__name"},
+                {
+                    data: "start_date",
+                    name: "start_date",
+                    searchable: false
+                },
+                {
+                    data: "progress",
+                    name: "progress",
+                    orderable: false,
+                    searchable: false,
+                    render: render_progress
+                },
+                {
+                    data: "url",
+                    name: "id",
+                    orderable: false,
+                    searchable: false,
+                    render: function ( data, type, row ) {
+                        return `<a href="${data}"><i class="fas fa-eye"></i></a>`;
                     }
                 }
             ]

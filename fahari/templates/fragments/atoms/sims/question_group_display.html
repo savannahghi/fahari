@@ -1,6 +1,6 @@
 {% load static i18n compress %}
 {% load questionnaire_responses %}
-{% with question_group|is_not_applicable_for_questionnaire:object as not_applicable %}
+{% with not_applicable=question_group|is_not_applicable_for_questionnaire:object questionnaire_is_complete=object.is_complete %}
 <div class="accordion my-2" id="acc_qg_{{ question_group.pk }}">
     <div class="card border border-secondary rounded-7">
         <div class="card-header row">
@@ -20,22 +20,23 @@
             <div class="col mb-0 ml-auto d-flex flex-row-reverse">
                 <div class="form-check form-check-inline">
                     {% if question_group.is_answerable %}
-                    <input
-                            class="form-check-input applicability_toggle"
-                            type="checkbox"
-                            {% if not not_applicable %} checked {% endif %}
-                            data-is_applicable="tgl_applicable:::{{ question_group.pk }}"
-                            data-mark_as_applicable="{% url 'api:questionnaireresponses-mark-question-group-as-applicable' object.pk %}"
-                            data-mark_as_non_applicable="{% url 'api:questionnaireresponses-mark-question-group-as-non-applicable' object.pk %}"
-                            data-on="Applicable"
-                            data-onstyle="outline-primary"
-                            data-off="N/A"
-                            data-offstyle="secondary"
-                            data-question_group="{{ question_group.pk }}"
-                            data-size="sm"
-                            data-toggle="toggle"
-                            data-width="100"
-                    >
+                        <input
+                                class="form-check-input applicability_toggle"
+                                type="checkbox"
+                                {% if not not_applicable %} checked {% endif %}
+                                data-is_applicable="tgl_applicable:::{{ question_group.pk }}"
+                                data-mark_as_applicable="{% url 'api:questionnaireresponses-mark-question-group-as-applicable' object.pk %}"
+                                data-mark_as_non_applicable="{% url 'api:questionnaireresponses-mark-question-group-as-non-applicable' object.pk %}"
+                                data-on="Applicable"
+                                data-onstyle="outline-primary"
+                                data-off="N/A"
+                                data-offstyle="secondary"
+                                data-question_group="{{ question_group.pk }}"
+                                data-size="sm"
+                                data-toggle="toggle"
+                                data-width="100"
+                                {% if questionnaire_is_complete %} disabled {% endif %}
+                        >
                     {% endif %}
                 </div>
                 <div id="spn_spinner_question_group_{{ question_group.pk }}" class="spinner-border text-primary mr-2 d-none" role="status">
@@ -59,15 +60,17 @@
                     <div class="row">
                         <div class="col-sm-1"></div>
                         <div class="col-sm-11">
-                            <button
-                                    type="button"i
-                                    class="btn btn-primary save_changes"
-                                    data-question_group="{{ question_group.pk }}"
-                                    data-save_changes_url="{% url 'api:questionnaireresponses-save-question-group-answers' object.pk  %}"
-                                    id="btn_save_changes_{{ question_group.pk }}"
-                            >
-                                Save Changes
-                            </button>
+                            {% if not questionnaire_is_complete %}
+                                <button
+                                        type="button"i
+                                        class="btn btn-primary save_changes"
+                                        data-question_group="{{ question_group.pk }}"
+                                        data-save_changes_url="{% url 'api:questionnaireresponses-save-question-group-answers' object.pk  %}"
+                                        id="btn_save_changes_{{ question_group.pk }}"
+                                >
+                                    Save Changes
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
                 </form>

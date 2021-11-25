@@ -19,7 +19,7 @@
             {% include "fragments/atoms/sims/question_types/number_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "text_answer" %}
-        {% with optional=question.metadata.optional %}
+        {% with optional=question.metadata.optional placeholder="Enter a response" %}
             {% include "fragments/atoms/sims/question_types/text_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "select_one" %}

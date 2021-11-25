@@ -94,7 +94,6 @@ function markQuestionGroupAsApplicable(question_group_id, $tgl_applicability_tog
     }
     var mark_as_applicable_url = $tgl_applicability_toggle.data("mark_as_applicable");
     var success_handler = function(data, status) {
-        console.log(data);
         if (data["success"] != true)
             return;
 
@@ -145,7 +144,6 @@ function markQuestionGroupAsNonApplicable(question_group_id, $tgl_applicability_
     }
     var mark_as_non_applicable_url = $tgl_applicability_toggle.data("mark_as_non_applicable");
     var success_handler = function(data, status) {
-        console.log(data);
         if (data["success"] != true)
             return;
 
@@ -175,6 +173,10 @@ function retrieveQuestionDataFromInputName(input_name, delimiter=":::", list_typ
 
 
 document.addEventListener("DOMContentLoaded", function() {
+    var $btn_submit = $("#btn_submit");
+    var $btn_submit_confirm = $("#btn_submit_confirm");
+    var $mdl_confirm_questionnaire_responses_submission = $("#mdl_confirm_questionnaire_responses_submission");
+
     $(".applicability_toggle").on("change", function() {
         var question_group_id = $(this).data("question_group");
         var question_group_applicability = $(this).prop("checked");
@@ -195,7 +197,7 @@ document.addEventListener("DOMContentLoaded", function() {
         var this_button = this;
         var save_changes_url = $(this).data("save_changes_url");
         $.ajax({
-           beforeSend: function() {
+            beforeSend: function() {
                 $(this_button).prop("disabled", true);
                 $(this_button).html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving ...`);
                 return true;
@@ -219,7 +221,6 @@ document.addEventListener("DOMContentLoaded", function() {
             },
             method: "POST",
             success: function(data, status) {
-                console.log(data);
                 if (data["success"] != true)
                     return;
 
@@ -234,4 +235,37 @@ document.addEventListener("DOMContentLoaded", function() {
             url: save_changes_url,
         });
     });
+
+    $btn_submit.click(function() {
+        $.ajax({
+            beforeSend: function() {
+                $btn_submit.prop("disabled", true);
+                $btn_submit.html(`<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing ...`);
+                return true;
+            },
+            complete: function() {
+                $btn_submit.prop("disabled", false);
+                $btn_submit.html("Submit");
+            },
+            error: function() {
+
+            },
+            method: "GET",
+            success: function(data, success) {
+                $mdl_confirm_questionnaire_responses_submission.modal("show");
+                var remaining = data["questions_count"] - data["answered_question_count"];
+                var message = "";
+                if (remaining === 0)
+                    message = "You are about to submit this questionnaire, once you do, you will not be able to edit it. Are you sure you want to proceed?"
+                else
+                    message = "You have " + remaining + " answered questions, if you proceed, they will be marked as non-applicable. Note that this is a non-reversible operation and once you submit, you can not edit the questionnaire. Are you sure you want to proceed?";
+                $mdl_confirm_questionnaire_responses_submission.find("#p_submission_content").html(message);
+            },
+            url: $btn_submit.data("questionnaire_responses_stats_url")
+        });
+    });
+
+    $btn_submit_confirm.click(function() {
+        $("#fm_submit_form").submit();
+    })
 });
