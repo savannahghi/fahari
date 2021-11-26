@@ -1,6 +1,6 @@
 {% load static i18n compress %}
 {% load questionnaire_responses %}
-{% with not_applicable=question_group|is_not_applicable_for_questionnaire:object questionnaire_is_complete=object.is_complete %}
+{% with not_applicable=question_group.stats_is_not_applicable_for_responses %}
 <div class="accordion my-2" id="acc_qg_{{ question_group.pk }}">
     <div class="card border border-secondary rounded-7">
         <div class="card-header row">
@@ -19,7 +19,7 @@
             </h2>
             <div class="col mb-0 ml-auto d-flex flex-row-reverse">
                 <div class="form-check form-check-inline">
-                    {% if question_group.is_answerable %}
+                    {% if question_group.stats_is_answerable %}
                         <input
                                 class="form-check-input applicability_toggle"
                                 type="checkbox"
@@ -46,15 +46,15 @@
         </div>
         <div id="clp_{{ question_group.pk }}" class="collapse" data-parent="#acc_qg_{{ question_group.pk }}">
             <div class="card-body">
-                {% if question_group.is_parent %}
+                {% if question_group.stats_is_parent %}
                     {% with question_group as parent %}
-                        {% for question_group in parent.sub_question_groups.active.by_precedence %}
+                        {% for question_group in parent.sub_question_groups.active.by_precedence|annotate_with_stats:object %}
                             {% include "fragments/atoms/sims/question_group_display.html" %}
                         {% endfor %}
                     {% endwith %}
                 {% else %}
                 <form id="question_group_form_{{ question_group.pk }}" class="question_group_answers_form">
-                    {% for question in question_group.direct_decedents_only.active.by_precedence %}
+                    {% for question in question_group.direct_decedents_only.active.by_precedence|annotate_with_stats:object %}
                         {% include "fragments/atoms/sims/question_display.html" %}
                     {% endfor %}
                     <div class="row">

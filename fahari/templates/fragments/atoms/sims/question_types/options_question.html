@@ -11,7 +11,7 @@
       {% for select_option in question.metadata.select_list_options %}
         <option
                 value="{{ select_option }}"
-                {% if select_option in answer.response.content %} selected {% endif %}
+                {% if select_option in answer.content %} selected {% endif %}
         >
             {{ select_option }}
         </option>

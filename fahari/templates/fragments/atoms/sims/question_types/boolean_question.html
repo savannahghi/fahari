@@ -7,7 +7,7 @@
                 name="response:::{{ question.pk }}:::-"
                 type="radio"
                 value="true"
-                {% if answer.response.content == 'true' %} checked {% endif %}
+                {% if answer.content == 'true' %} checked {% endif %}
                 {% if questionnaire_is_complete %} disabled {% endif %}
         >
     </div>
@@ -19,7 +19,7 @@
                 name="response:::{{ question.pk }}:::-"
                 data-question="{{ question.pk }}"
                 value="false"
-                {% if answer.response.content == 'false' %} checked {% endif %}
+                {% if answer.content == 'false' %} checked {% endif %}
                 {% if questionnaire_is_complete %} disabled {% endif %}
         >
     </div>

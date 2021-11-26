@@ -1,7 +1,6 @@
 {% load static i18n compress %}
-{% load questionnaire_responses %}
 
-{% with question|answer_for_questionnaire:object as answer %}
+{% with question.stats_answer_for_responses_response as answer %}
     {% if question.answer_type == "yes_no" %}
         {% with on_label="Yes" off_label="No" %}
             {% include "fragments/atoms/sims/question_types/boolean_question.html" %}

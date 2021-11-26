@@ -6,7 +6,7 @@
             min="{{ min }}"
             name="response:::{{ question.pk }}:::-"
             placeholder="{{ placeholder }}"
-            value="{{ answer.response.content }}"
+            value="{{ answer.content }}"
             step="{{ step_interval }}"
             type="number"
             {% if questionnaire_is_complete %} disabled {% endif %}

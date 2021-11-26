@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static i18n compress %}
 {% load crispy_forms_tags %}
+{% load questionnaire_responses %}
 {% block title %}
     Capture {{ questionnaire }} Responses
 {% endblock title %}
@@ -17,7 +18,7 @@
             <form action="{% url 'api:questionnaireresponses-submit-questionnaire-responses' object.pk %}" method="post" id="fm_submit_form" class="submit_form">{% csrf_token %}</form>
             <div class="row">
                 <div class="col">
-                    {% for question_group in questionnaire.direct_decedents_only.active.by_precedence %}
+                    {% for question_group in questionnaire.direct_decedents_only.active.by_precedence|annotate_with_stats:object %}
                         {% include "fragments/atoms/sims/question_group_display.html" %}
                     {% endfor %}
                 </div>
@@ -29,7 +30,7 @@
                     <a class="btn btn-secondary px-5" href="{% url 'sims:questionnaire_responses_update' object.pk %}">Back</a>
                 </div>
                 <div class="col">
-                    {% if not object.is_complete %}
+                    {% if not questionnaire_is_complete %}
                         <button
                                 class="btn btn-primary float-right px-5"
                                 data-questionnaire_responses_stats_url="{% url 'api:questionnaireresponses-detail' object.pk %}"

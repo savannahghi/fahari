@@ -1,10 +1,24 @@
-from typing import Optional
+from typing import Optional, Union
 
 from django import template
 
-from ..models import Question, QuestionAnswer, QuestionGroup, QuestionnaireResponses
+from ..models import (
+    Question,
+    QuestionAnswer,
+    QuestionGroup,
+    QuestionGroupQuerySet,
+    QuestionnaireResponses,
+    QuestionQuerySet,
+)
 
 register = template.Library()
+
+
+@register.filter
+def annotate_with_stats(
+    value: Union[QuestionGroupQuerySet, QuestionQuerySet], responses: QuestionnaireResponses
+) -> Union[QuestionGroupQuerySet, QuestionQuerySet]:
+    return value.annotate_with_stats(responses)
 
 
 @register.filter

@@ -15,6 +15,9 @@ from fahari.common.models import AbstractBase, AbstractBaseManager, AbstractBase
 # CONSTANTS
 # =============================================================================
 
+_IS_VALID_ANSWER = models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
+"""The expression used to determine if a given answer is valid."""
+
 
 class MentorshipTeamMemberMetadata(TypedDict):
     """The structure of a mentorship metadata dictionary."""
@@ -125,6 +128,33 @@ class ChildrenMixinQuerySet(models.QuerySet):
 class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):  # noqa
     """Queryset for the Question model."""
 
+    def annotate_with_stats(self, responses: "QuestionnaireResponses") -> "QuestionQuerySet":
+        """Annotate each question with use-full stats relating to the given responses.
+
+        The stats added are:
+            * stats_is_parent - Indicates whether this is parent question.
+            * stats_answer_for_responses_comments
+            * stats_answer_for_responses_is_not_applicable
+            * stats_answer_for_responses_response
+
+        This method exists as on optimization when rendering a questionnaire
+        to reduce the number of queries made to the database when fetching
+        for the data contained in the stats.
+        """
+
+        return self.annotate(  # type: ignore
+            stats_is_parent=models.Exists(Question.objects.filter(parent=models.OuterRef("pk"))),
+            stats_answer_for_responses_comments=QuestionAnswer.objects.filter(
+                question=models.OuterRef("pk"), questionnaire_response=responses
+            ).values("comments"),
+            stats_answer_for_responses_is_not_applicable=QuestionAnswer.objects.filter(
+                question=models.OuterRef("pk"), questionnaire_response=responses
+            ).values("is_not_applicable"),
+            stats_answer_for_responses_response=QuestionAnswer.objects.filter(
+                question=models.OuterRef("pk"), questionnaire_response=responses
+            ).values("response"),
+        )
+
     def answerable(self) -> "QuestionQuerySet":
         """Return a queryset containing questions that accept none "none" answers."""
 
@@ -136,9 +166,9 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         """Return a queryset containing answered questions for the given questionnaire."""
 
         qs = self.alias(  # type: ignore
-            answered_questions_for_questionnaire=responses.answers.values_list(  # noqa
-                "question", flat=True
-            )  # noqa
+            answered_questions_for_questionnaire=responses.answers.filter(  # noqa
+                _IS_VALID_ANSWER
+            ).values("question")
         ).filter(pk__in=models.F("answered_questions_for_questionnaire"))
         return cast(QuestionQuerySet, qs)
 
@@ -172,6 +202,52 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
 
 class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixinQuerySet):  # noqa
     """Queryset for the QuestionGroup model."""
+
+    def annotate_with_stats(self, responses: "QuestionnaireResponses") -> "QuestionGroupQuerySet":
+        """Annotate each question group with use-full stats relating to the given responses.
+
+        The stats added are:
+            * stats_is_parent - Indicates whether this is parent question group.
+            * stats_is_answerable
+            * stats_is_complete_for_responses
+            * stats_is_not_applicable_for_responses
+
+        This method exists as on optimization when rendering a questionnaire
+        to reduce the number of queries made to the database when fetching
+        for the data contained in the stats.
+        """
+
+        return self.annotate(  # type: ignore
+            stats_is_parent=models.Exists(
+                QuestionGroup.objects.filter(parent=models.OuterRef("pk"))
+            ),
+            stats_is_answerable=models.Exists(
+                Question.objects.filter(question_group=models.OuterRef("pk"))
+            ),
+            stats_is_complete_for_responses=~models.Exists(
+                Question.objects.filter(question_group=models.OuterRef("pk")).exclude(
+                    pk__in=QuestionAnswer.objects.filter(
+                        _IS_VALID_ANSWER,
+                        question__question_group=models.OuterRef(models.OuterRef("pk")),
+                        questionnaire_response=responses,
+                    ).values("question")
+                )
+            ),
+            stats_is_not_applicable_for_responses=models.Case(
+                models.When(
+                    models.Q(stats_is_answerable=True)
+                    & models.Q(stats_is_complete_for_responses=True)
+                    & ~models.Exists(
+                        QuestionAnswer.objects.filter(
+                            question__question_group=models.OuterRef("pk"),
+                            questionnaire_response=responses,
+                        ).exclude(is_not_applicable=True)
+                    ),
+                    then=models.Value(True),
+                ),
+                default=models.Value(False),
+            ),
+        )
 
     def answered_for_questionnaire(
         self, responses: "QuestionnaireResponses"
@@ -222,7 +298,7 @@ class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse
                             models.OuterRef("facility")
                         ),
                     )
-                    .filter(models.Q(is_not_applicable=True) | ~models.Q(response__content=None))
+                    .filter(_IS_VALID_ANSWER)
                     .values("question")
                 )
                 .values("pk")
@@ -237,6 +313,22 @@ class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse
 
 class QuestionManager(AbstractBaseManager):
     """Manager for the Question model."""
+
+    def annotate_with_stats(self, responses: "QuestionnaireResponses") -> "QuestionQuerySet":
+        """Annotate each question with use-full stats relating to the given responses.
+
+        The stats added are:
+            * stats_is_parent - Indicates whether this is parent question.
+            * stats_answer_for_responses_comments
+            * stats_answer_for_responses_is_not_applicable
+            * stats_answer_for_responses_response
+
+        This method exists as on optimization when rendering a questionnaire
+        to reduce the number of queries made to the database when fetching
+        for the data contained in the stats.
+        """
+
+        return self.get_queryset().annotate_with_stats(responses)
 
     def answerable(self) -> "QuestionQuerySet":
         """Return a queryset containing questions that accept none "none" answers."""
@@ -279,6 +371,22 @@ class QuestionManager(AbstractBaseManager):
 
 class QuestionGroupManager(AbstractBaseManager):
     """Manager for the QuestionGroup model."""
+
+    def annotate_with_stats(self, responses: "QuestionnaireResponses") -> "QuestionGroupQuerySet":
+        """Annotate each question group with use-full stats relating to the given responses.
+
+        The stats added are:
+            * stats_is_parent - Indicates whether this is parent question group.
+            * stats_is_answerable
+            * stats_is_complete_for_responses
+            * stats_is_not_applicable_for_responses
+
+        This method exists as on optimization when rendering a questionnaire
+        to reduce the number of queries made to the database when fetching
+        for the data contained in the stats.
+        """
+
+        return self.get_queryset().annotate_with_stats(responses)
 
     def answered_for_questionnaire(
         self, responses: "QuestionnaireResponses"
@@ -581,8 +689,10 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
 
         return (
             not Question.objects.for_question_group(self)
-            .difference(
-                Question.objects.for_question_group(self).answered_for_questionnaire(responses)
+            .exclude(
+                pk__in=Question.objects.for_question_group(self).answered_for_questionnaire(
+                    responses
+                )
             )
             .exists()
         )
@@ -711,9 +821,7 @@ class QuestionnaireResponses(AbstractBase):
         """Return a queryset of all the fully answered questions for this responses."""
 
         return self.questions.filter(
-            pk__in=self.answers.filter(  # type: ignore
-                models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
-            ).values("question")
+            pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question")  # type: ignore
         )
 
     @property
@@ -723,9 +831,7 @@ class QuestionnaireResponses(AbstractBase):
         return self.finish_date is not None and not (
             Question.objects.for_questionnaire(self.questionnaire)
             .exclude(
-                pk__in=self.answers.filter(  # type: ignore
-                    models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
-                ).values("question")
+                pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question")  # type: ignore
             )
             .exists()
         )
@@ -735,9 +841,7 @@ class QuestionnaireResponses(AbstractBase):
         """Return the completion status of the given questionnaire as a percentage."""
 
         total_questions = Question.objects.for_questionnaire(self.questionnaire).count()
-        answered_count = self.answers.filter(  # noqa
-            models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
-        ).count()
+        answered_count = self.answers.filter(_IS_VALID_ANSWER).count()  # noqa
         return answered_count / total_questions
 
     @property
