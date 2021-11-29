@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from faker import Faker
 from model_bakery import baker
 
@@ -17,17 +18,6 @@ from fahari.sims.models import (
 fake = Faker()
 
 pytestmark = pytest.mark.django_db
-
-
-def test_string_reprs():
-    models = [
-        Questionnaire,
-        QuestionAnswer,
-        QuestionnaireResponses,
-    ]
-    for model in models:
-        instance = baker.prepare(model)
-        assert str(instance) != ""
 
 
 class _CommonTestCase(TestCase):
@@ -124,7 +114,7 @@ class QuestionTest(_CommonTestCase):
     """Tests for the Question model."""
 
     def test_answer_for_responses(self) -> None:
-        """Test the Question model's `answer_for_response` method."""
+        """Test Question model's `answer_for_response` method."""
 
         # Create an answer for question 1
         baker.make(
@@ -143,7 +133,7 @@ class QuestionTest(_CommonTestCase):
         assert not self.question4.answer_for_responses(self.responses)
 
     def test_children_property(self) -> None:
-        """Test the Question model's `children` property."""
+        """Test Question model's `children` property."""
 
         assert self.question1.children.count() == 0
         assert self.question2.children.count() == 1
@@ -152,15 +142,44 @@ class QuestionTest(_CommonTestCase):
         assert self.question4.children.count() == 0
 
     def test_is_answerable_property(self) -> None:
-        """Test the Question model's `is_answerable` property."""
+        """Test Question model's `is_answerable` property."""
 
         assert self.question1.is_answerable
         assert self.question3.is_answerable
         assert self.question3.is_answerable
         assert not self.question2.is_answerable
 
+    def test_is_answered_for_responses(self) -> None:
+        """Test Question model's `is_answered_for_responses` method."""
+
+        # Create answer for question 1 & question 2
+        baker.make(
+            QuestionAnswer,
+            comments="A comment",
+            is_not_applicable=False,
+            organisation=self.organisation,
+            question=self.question1,
+            questionnaire_response=self.responses,
+            response={"content": True},
+        )
+        baker.make(
+            QuestionAnswer,
+            comments=None,
+            is_not_applicable=True,
+            organisation=self.organisation,
+            question=self.question2,
+            questionnaire_response=self.responses,
+            response={"content": None},
+        )
+
+        assert self.question1.is_answered_for_responses(self.responses)
+        # Not True because it's sub-question(question3) is not answered
+        assert not self.question2.is_answered_for_responses(self.responses)
+        assert not self.question3.is_answered_for_responses(self.responses)
+        assert not self.question4.is_answered_for_responses(self.responses)
+
     def test_is_parent_property(self) -> None:
-        """Test the Question model's `is_parent` property."""
+        """Test Question model's `is_parent` property."""
 
         assert self.question2.is_parent
         assert not self.question1.is_parent
@@ -168,7 +187,7 @@ class QuestionTest(_CommonTestCase):
         assert not self.question3.is_parent
 
     def test_manager_annotate_with_stats_method(self) -> None:
-        """Test the Question model manager's `annotate_with_stats` method."""
+        """Test Question model manager's `annotate_with_stats` method."""
 
         # Create answer for question 1 & question 2
         baker.make(
@@ -214,7 +233,7 @@ class QuestionTest(_CommonTestCase):
         assert question3.stats_answer_for_responses_response is None  # type: ignore
 
     def test_manager_answerable_method(self) -> None:
-        """Test the Question model manager's `answerable` method."""
+        """Test Question model manager's `answerable` method."""
 
         answerable_questions = [q.pk for q in Question.objects.answerable()]
 
@@ -224,7 +243,7 @@ class QuestionTest(_CommonTestCase):
         assert self.question4.pk in answerable_questions
 
     def test_manager_answered_for_responses_method(self) -> None:
-        """Test the Question model manager's `answered_for_responses` method."""
+        """Test Question model manager's `answered_for_responses` method."""
 
         # Create answer for question 1 & question 2
         baker.make(
@@ -254,15 +273,21 @@ class QuestionTest(_CommonTestCase):
         assert self.question3.pk not in answered_questions
         assert self.question4.pk not in answered_questions
 
+    def test_manager_parents_only_method(self) -> None:
+        """Test Question model manager's `parent's only` method."""
+
+        assert Question.objects.all().parents_only().count() == 1  # type: ignore
+        assert self.question2 in Question.objects.all().parents_only()  # type: ignore
+
     def test_manager_by_precedence_method(self) -> None:  # noqa
-        """Test the Question model manager's `by_precedence` method."""
+        """Test Question model manager's `by_precedence` method."""
 
         qs = [q.precedence for q in Question.objects.by_precedence()]
 
         assert qs == [1, 1, 2, 3]
 
     def test_manager_for_question_method(self) -> None:
-        """Test the Question model manager's `for_question` method."""
+        """Test Question model manager's `for_question` method."""
 
         question5 = baker.make(
             Question,
@@ -305,7 +330,7 @@ class QuestionTest(_CommonTestCase):
         assert question6 in Question.objects.for_question(question5)
 
     def test_manager_for_question_group_method(self) -> None:
-        """Test the Question model manager's `for_question_group` method."""
+        """Test Question model manager's `for_question_group` method."""
 
         question_group2 = baker.make(
             QuestionGroup,
@@ -350,7 +375,7 @@ class QuestionTest(_CommonTestCase):
         assert question6 not in Question.objects.for_question_group(self.question_group1)
 
     def test_manager_for_questionnaire_method(self) -> None:
-        """Test the Question model manager's `for_questionnaire` method."""
+        """Test Question model manager's `for_questionnaire` method."""
 
         questionnaire = baker.make(
             Questionnaire,
@@ -401,12 +426,42 @@ class QuestionTest(_CommonTestCase):
         assert question6 not in Question.objects.for_questionnaire(self.questionnaire)
 
     def test_representation(self) -> None:
-        """Test the Question's model's `__str__` method."""
+        """Test Question model's `__str__` method."""
 
         assert str(self.question1) == self.question1.query
         assert str(self.question2) == self.question2.query
         assert str(self.question3) == self.question3.query
         assert str(self.question4) == self.question4.query
+
+
+class QuestionAnswerTest(_CommonTestCase):
+    """Tests for the QuestionAnswer model."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.question_answer = baker.make(
+            QuestionAnswer,
+            comments="A comment",
+            is_not_applicable=False,
+            organisation=self.organisation,
+            question=self.question1,
+            questionnaire_response=self.responses,
+            response={"content": True},
+        )
+
+    def test_is_valid_property(self) -> None:
+        """Test QuestionAnswer model's `is_valid` property."""
+
+        assert not self.question_answer.is_valid
+
+    def test_representation(self) -> None:
+        """Test QuestionAnswer model's `__str__` method."""
+
+        assert str(self.question_answer) == "Facility: %s, Question: %s, Response: %s" % (
+            self.question_answer.questionnaire_response.facility.name,
+            self.question_answer.question.query,
+            getattr(self.question_answer, "response", "-"),
+        )
 
 
 class QuestionGroupTest(_CommonTestCase):
@@ -443,7 +498,7 @@ class QuestionGroupTest(_CommonTestCase):
         )
 
     def test_children_property(self) -> None:
-        """Test the QuestionGroup model's `children` property."""
+        """Test QuestionGroup model's `children` property."""
 
         assert self.question_group1.children.count() == 0
         assert self.question_group2.children.count() == 1
@@ -452,7 +507,7 @@ class QuestionGroupTest(_CommonTestCase):
         assert self.question_group4.children.count() == 0
 
     def test_direct_decedents_only_property(self) -> None:
-        """Test the QuestionGroup model's `direct_decedents_only` property."""
+        """Test QuestionGroup model's `direct_decedents_only` property."""
 
         question5 = baker.make(
             Question,
@@ -475,7 +530,7 @@ class QuestionGroupTest(_CommonTestCase):
         assert question5 not in self.question_group1.direct_decedents_only
 
     def test_is_answerable_property(self) -> None:
-        """Test the QuestionGroup's model's `is_answerable` property."""
+        """Test QuestionGroup's model's `is_answerable` property."""
 
         baker.make(
             Question,
@@ -496,7 +551,7 @@ class QuestionGroupTest(_CommonTestCase):
         assert not self.question_group4.is_answerable
 
     def test_is_parent_property(self) -> None:
-        """Test the QuestionGroup's model's `is_parent` property."""
+        """Test QuestionGroup model's `is_parent` property."""
 
         assert self.question_group2.is_parent
         assert not self.question_group1.is_parent
@@ -504,7 +559,7 @@ class QuestionGroupTest(_CommonTestCase):
         assert not self.question_group3.is_parent
 
     def test_is_complete_for_responses(self) -> None:
-        """Test the QuestionGroup's model's `is_complete_for_responses` method."""
+        """Test QuestionGroup model's `is_complete_for_responses` method."""
 
         question5 = baker.make(
             Question,
@@ -580,7 +635,7 @@ class QuestionGroupTest(_CommonTestCase):
         assert self.question_group2.is_complete_for_responses(self.responses)
 
     def test_is_not_applicable_for_responses(self) -> None:
-        """Test the QuestionGroup's model's `is_not_applicable_for_responses` method."""
+        """Test QuestionGroup model's `is_not_applicable_for_responses` method."""
 
         question5 = baker.make(
             Question,
@@ -656,7 +711,7 @@ class QuestionGroupTest(_CommonTestCase):
         assert self.question_group2.is_not_applicable_for_responses(self.responses)
 
     def test_manager_annotate_with_stats_method(self) -> None:
-        """Test the QuestionGroup's model manager's `annotate_with_stats` method."""
+        """Test QuestionGroup model manager's `annotate_with_stats` method."""
 
         question5 = baker.make(
             Question,
@@ -755,7 +810,7 @@ class QuestionGroupTest(_CommonTestCase):
         assert question_group2.stats_is_not_applicable_for_responses  # type: ignore
 
     def test_manager_answered_for_responses_method(self) -> None:
-        """Test the QuestionGroup's model manager's `annotate_answered_for_responses` method."""
+        """Test QuestionGroup model manager's `annotate_answered_for_responses` method."""
 
         question5 = baker.make(
             Question,
@@ -833,14 +888,14 @@ class QuestionGroupTest(_CommonTestCase):
         assert self.question_group4 not in qs
 
     def test_manager_by_precedence_method(self) -> None:  # noqa
-        """Test the QuestionGroup's model manager's `by_precedence` method."""
+        """Test QuestionGroup model manager's `by_precedence` method."""
 
         qs = [q.precedence for q in QuestionGroup.objects.by_precedence()]
 
         assert qs == [1, 1, 2, 3]
 
     def test_manager_for_questionnaire_method(self) -> None:
-        """Test the QuestionGroup's model manager's `for_questionnaire` method."""
+        """Test QuestionGroup model manager's `for_questionnaire` method."""
 
         questionnaire = baker.make(
             Questionnaire,
@@ -879,9 +934,200 @@ class QuestionGroupTest(_CommonTestCase):
         assert self.question_group4 not in QuestionGroup.objects.for_questionnaire(questionnaire)
 
     def test_representation(self) -> None:
-        """Test the QuestionGroup's model's `__str__` method."""
+        """Test QuestionGroup model's `__str__` method."""
 
         assert str(self.question_group1) == self.question_group1.title
         assert str(self.question_group2) == self.question_group2.title
         assert str(self.question_group3) == self.question_group3.title
         assert str(self.question_group4) == self.question_group4.title
+
+
+class QuestionnaireTest(_CommonTestCase):
+    """Tests for the Questionnaire model."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.question_group2 = baker.make(
+            QuestionGroup,
+            organisation=self.organisation,
+            parent=None,
+            precedence=2,
+            precedence_display_type=ChildrenMixin.PrecedenceDisplayTypes.NUMBERED_TD.value,
+            questionnaire=self.questionnaire,
+            title="Test Question Group 2",
+        )
+        self.question_group3 = baker.make(
+            QuestionGroup,
+            organisation=self.organisation,
+            parent=self.question_group2,
+            precedence=1,
+            precedence_display_type=ChildrenMixin.PrecedenceDisplayTypes.NUMBERED_TD.value,
+            questionnaire=self.questionnaire,
+            title="Test Question Group 3",
+        )
+        self.question_group4 = baker.make(
+            QuestionGroup,
+            organisation=self.organisation,
+            parent=None,
+            precedence=3,
+            precedence_display_type=ChildrenMixin.PrecedenceDisplayTypes.NUMBERED_TD.value,
+            questionnaire=self.questionnaire,
+            title="Test Question Group 4",
+        )
+        self.questionnaire2 = baker.make(
+            Questionnaire,
+            name="Test Questionnaire 2",
+            organisation=self.organisation,
+            questionnaire_type=Questionnaire.QuestionnaireTypes.MENTORSHIP.value,
+        )
+
+    def test_direct_decedents_only_property(self) -> None:
+        """Test Questionnaire model's `direct_decedents_only` property."""
+
+        qs = self.questionnaire.direct_decedents_only
+
+        assert qs.count() == 3
+        assert self.question_group1 in qs
+        assert self.question_group2 in qs
+        assert self.question_group4 in qs
+        assert self.question_group3 not in qs
+
+    def test_representation(self) -> None:
+        """Test Questionnaire model's `__str__` method."""
+
+        assert str(self.questionnaire) == self.questionnaire.name
+        assert str(self.questionnaire2) == self.questionnaire2.name
+
+
+class QuestionnaireResponsesTest(_CommonTestCase):
+    """Tests for the QuestionnaireResponses model."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.question_answer1 = baker.make(
+            QuestionAnswer,
+            comments="A comment",
+            is_not_applicable=False,
+            organisation=self.organisation,
+            question=self.question1,
+            questionnaire_response=self.responses,
+            response={"content": True},
+        )
+        self.question_answer2 = baker.make(
+            QuestionAnswer,
+            comments=None,
+            is_not_applicable=True,
+            organisation=self.organisation,
+            question=self.question2,
+            questionnaire_response=self.responses,
+            response={"content": None},
+        )
+
+        self.responses2 = baker.make(
+            QuestionnaireResponses,
+            facility=self.facility,
+            organisation=self.organisation,
+            questionnaire=self.questionnaire,
+        )
+        self.question_answer3 = baker.make(
+            QuestionAnswer,
+            comments="A comment",
+            is_not_applicable=False,
+            organisation=self.organisation,
+            question=self.question1,
+            questionnaire_response=self.responses2,
+            response={"content": True},
+        )
+        self.question_answer4 = baker.make(
+            QuestionAnswer,
+            comments=None,
+            is_not_applicable=True,
+            organisation=self.organisation,
+            question=self.question2,
+            questionnaire_response=self.responses2,
+            response={"content": None},
+        )
+        self.question_answer5 = baker.make(
+            QuestionAnswer,
+            comments="A comment",
+            is_not_applicable=False,
+            organisation=self.organisation,
+            question=self.question3,
+            questionnaire_response=self.responses2,
+            response={"content": 16},
+        )
+        self.question_answer6 = baker.make(
+            QuestionAnswer,
+            comments=None,
+            is_not_applicable=False,
+            organisation=self.organisation,
+            question=self.question4,
+            questionnaire_response=self.responses2,
+            response={"content": "Some other service."},
+        )
+        self.responses2.finish_date = timezone.now()
+        self.responses2.save()
+
+    def test_answered_questions_property(self) -> None:
+        """Test QuestionnaireResponses model's `answered_questions` property."""
+
+        assert self.responses.answered_questions.count() == 2
+        assert self.responses2.answered_questions.count() == 4
+
+        assert self.question3 not in self.responses.answered_questions
+        assert self.question4 not in self.responses.answered_questions
+
+    def test_get_absolute_url(self) -> None:
+        """Test QuestionnaireResponses model's `get_absolute_url` method."""
+
+        assert self.responses.get_absolute_url() == (
+            "/sims/questionnaire_responses_update/%s" % self.responses.pk
+        )
+
+    def test_is_complete(self) -> None:
+        """Test QuestionnaireResponses model's `is_complete` property."""
+
+        assert not self.responses.is_complete
+        assert self.responses2.is_complete
+
+    def test_manager_draft_method(self) -> None:
+        """Test QuestionnaireResponses model manager's `draft` method."""
+
+        assert self.responses in QuestionnaireResponses.objects.draft()
+        assert self.responses2 not in QuestionnaireResponses.objects.draft()
+
+    def test_manager_complete_method(self) -> None:
+        """Test QuestionnaireResponses model manager's `complete` method."""
+
+        assert self.responses not in QuestionnaireResponses.objects.complete()
+        assert self.responses2 in QuestionnaireResponses.objects.complete()
+
+    def test_progress_property(self) -> None:
+        """Test QuestionnaireResponses model's `progress` property."""
+
+        assert self.responses.progress == 0.50
+        assert self.responses2.progress == 1.00
+
+    def test_questions_property(self) -> None:
+        """Test QuestionnaireResponses model's `questions` property."""
+
+        assert not self.responses.questions.difference(
+            Question.objects.for_questionnaire(self.responses.questionnaire)
+        ).exists()
+        assert not self.responses2.questions.difference(
+            Question.objects.for_questionnaire(self.responses2.questionnaire)
+        ).exists()
+
+    def test_representation(self) -> None:
+        """Test QuestionnaireResponses model's `__str__` method."""
+
+        assert str(self.responses) == "Facility: %s, Questionnaire: %s, Submitted: %s" % (
+            self.responses.facility.name,
+            self.responses.questionnaire.name,
+            False,
+        )
+        assert str(self.responses2) == "Facility: %s, Questionnaire: %s, Submitted: %s" % (
+            self.responses2.facility.name,
+            self.responses2.questionnaire.name,
+            True,
+        )

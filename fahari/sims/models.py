@@ -92,7 +92,7 @@ def get_metadata_processors_for_metadata_option(metadata_option: str) -> Sequenc
         try:
             processor: QuestionMetadataProcessor = import_string(_processor_dotted_path)()
             processors.append(processor)
-        except ImportError as exp:
+        except ImportError as exp:  # pragma: no cover
             raise ImproperlyConfigured(
                 "Cannot import question metadata processor from the following dotted path %s"
                 % _processor_dotted_path
@@ -612,7 +612,7 @@ class Question(AbstractBase, ChildrenMixin):
         ):
             try:
                 processor.process_on_question_save(self)
-            except InvalidQuestionMetadataError as exp:
+            except InvalidQuestionMetadataError as exp:  # pragma: no cover
                 raise ValidationError({"question": str(exp)}, code="invalid") from exp
 
     def save(self, *args, **kwargs):
