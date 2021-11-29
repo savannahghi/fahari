@@ -27,7 +27,7 @@ def answer_for_questionnaire(
 ) -> Optional[QuestionAnswer]:
     """Return the answer to the given question for the provided questionnaire responses."""
 
-    return value.answer_for_questionnaire(responses)
+    return value.answer_for_responses(responses)
 
 
 @register.filter
@@ -39,7 +39,7 @@ def is_answered_for_questionnaire(value: Question, responses: QuestionnaireRespo
     all it's sub-questions have also being answered.
     """
 
-    return value.is_answered_for_questionnaire(responses)
+    return value.is_answered_for_responses(responses)
 
 
 @register.filter
@@ -50,7 +50,7 @@ def is_complete_for_questionnaire(value: QuestionGroup, responses: Questionnaire
     given question group have answers for the provided questionnaire responses.
     """
 
-    return value.is_complete_for_questionnaire(responses)
+    return value.is_complete_for_responses(responses)
 
 
 @register.filter
@@ -63,4 +63,4 @@ def is_not_applicable_for_questionnaire(
     applicable answers have been provided for the provided questionnaire
     response.
     """
-    return value.is_not_applicable_for_questionnaire(responses)
+    return value.is_not_applicable_for_responses(responses)

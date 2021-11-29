@@ -160,10 +160,8 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
 
         return self.exclude(answer_type=Question.AnswerType.NONE.value)
 
-    def answered_for_questionnaire(
-        self, responses: "QuestionnaireResponses"
-    ) -> "QuestionQuerySet":
-        """Return a queryset containing answered questions for the given questionnaire."""
+    def answered_for_responses(self, responses: "QuestionnaireResponses") -> "QuestionQuerySet":
+        """Return a queryset containing answered questions for the given responses."""
 
         qs = self.alias(  # type: ignore
             answered_questions_for_questionnaire=responses.answers.filter(  # noqa
@@ -249,10 +247,10 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
             ),
         )
 
-    def answered_for_questionnaire(
+    def answered_for_responses(
         self, responses: "QuestionnaireResponses"
     ) -> "QuestionGroupQuerySet":
-        """Return a queryset containing answered question groups for the given questionnaire."""
+        """Return a queryset containing answered question groups for the given responses."""
 
         return self.alias(  # type: ignore
             answered_qg_pks=responses.answers.order_by("question__question_group__pk")  # noqa
@@ -267,8 +265,10 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
 
 
 class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponses"]):  # noqa
+    """QuerySet for the QuestionnaireResponses model."""
+
     def draft(self) -> "QuestionnaireResponsesQuerySet":
-        """Return a queryset containing responses that have not being fully filled."""
+        """Return a queryset containing responses that have *not* being fully filled."""
 
         return self._get_by_completion_status().filter(
             models.Q(finish_date__isnull=True) | models.Q(has_incomplete=True)
@@ -282,7 +282,7 @@ class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse
         )
 
     def _get_by_completion_status(self) -> "QuestionnaireResponsesQuerySet":
-        """Return a queryset composed of complete or non-complete questionnaire responses."""
+        """Return a queryset annotated with the current completion status."""
 
         return self.annotate(  # type: ignore
             has_incomplete=models.Exists(
@@ -335,12 +335,10 @@ class QuestionManager(AbstractBaseManager):
 
         return self.get_queryset().answerable()
 
-    def answered_for_questionnaire(
-        self, responses: "QuestionnaireResponses"
-    ) -> "QuestionQuerySet":
-        """Return a queryset containing answered questions for the given questionnaire."""
+    def answered_for_responses(self, responses: "QuestionnaireResponses") -> "QuestionQuerySet":
+        """Return a queryset containing answered questions for the given responses."""
 
-        return self.get_queryset().answered_for_questionnaire(responses)
+        return self.get_queryset().answered_for_responses(responses)
 
     def by_precedence(self) -> models.QuerySet:
         """Return a queryset of elements ordered by precedence."""
@@ -388,12 +386,12 @@ class QuestionGroupManager(AbstractBaseManager):
 
         return self.get_queryset().annotate_with_stats(responses)
 
-    def answered_for_questionnaire(
+    def answered_for_responses(
         self, responses: "QuestionnaireResponses"
     ) -> "QuestionGroupQuerySet":
-        """Return a queryset containing answered question groups for the given questionnaire."""
+        """Return a queryset containing answered question groups for the given responses."""
 
-        return self.get_queryset().answered_for_questionnaire(responses)
+        return self.get_queryset().answered_for_responses(responses)
 
     def by_precedence(self) -> models.QuerySet:
         """Return a queryset of elements ordered by precedence."""
@@ -569,14 +567,14 @@ class Question(AbstractBase, ChildrenMixin):
 
         return self.answer_type != self.AnswerType.NONE.value
 
-    def answer_for_questionnaire(
+    def answer_for_responses(
         self, responses: "QuestionnaireResponses"
     ) -> Optional["QuestionAnswer"]:
-        """Return the answer to this question the given questionnaire responses."""
+        """Return the answer to this question from the given questionnaire responses."""
 
         return responses.answers.filter(question=self).first()  # noqa
 
-    def is_answered_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
+    def is_answered_for_responses(self, responses: "QuestionnaireResponses") -> bool:
         """Return true if this question has been answered for the given questionnaire responses.
 
         If this is a parent question, true will only be returned if all it's
@@ -586,7 +584,7 @@ class Question(AbstractBase, ChildrenMixin):
         if self.is_parent:
             sub_questions: QuestionQuerySet = Question.objects.for_question(self)
             return not sub_questions.difference(
-                Question.objects.answered_for_questionnaire(responses)
+                Question.objects.answered_for_responses(responses)
             ).exists()
 
         return responses.answers.filter(question=self).exists()  # noqa
@@ -684,30 +682,28 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
 
         return self.questions.exists()  # noqa
 
-    def is_complete_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
-        """Return true if this question group has been answered for the given questionnaire."""
+    def is_complete_for_responses(self, responses: "QuestionnaireResponses") -> bool:
+        """Return true if this question group has been answered for the given responses."""
 
         return (
             not Question.objects.for_question_group(self)
             .exclude(
-                pk__in=Question.objects.for_question_group(self).answered_for_questionnaire(
-                    responses
-                )
+                pk__in=Question.objects.for_question_group(self).answered_for_responses(responses)
             )
             .exists()
         )
 
-    def is_not_applicable_for_questionnaire(self, responses: "QuestionnaireResponses") -> bool:
+    def is_not_applicable_for_responses(self, responses: "QuestionnaireResponses") -> bool:
         """Returns true if this group's questions are not answerable for the given responses.
 
         That is, for all the questions in this question group, only not
         applicable answers have been provided for the given questionnaire
-        response.
+        responses.
         """
 
         return (
             self.is_answerable
-            and self.is_complete_for_questionnaire(responses)
+            and self.is_complete_for_responses(responses)
             and (
                 not responses.answers.filter(question__question_group=self)  # type: ignore
                 .exclude(is_not_applicable=True)
@@ -853,9 +849,6 @@ class QuestionnaireResponses(AbstractBase):
     def get_absolute_url(self):
         update_url = reverse_lazy("sims:questionnaire_responses_update", kwargs={"pk": self.pk})
         return update_url
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return "Facility: %s, Questionnaire: %s, Submitted: %s" % (
