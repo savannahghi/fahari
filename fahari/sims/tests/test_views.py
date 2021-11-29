@@ -11,9 +11,8 @@ from fahari.common.tests.test_api import LoggedInMixin
 from fahari.sims.forms import QuestionnaireResponsesForm
 from fahari.sims.models import QuestionGroup, Questionnaire, QuestionnaireResponses
 from fahari.sims.views import (
-    MentorshipQuestionnaireResponsesView,
-    QuestionnaireResponseCreateView,
     QuestionnaireResponsesCaptureView,
+    QuestionnaireResponsesCreateView,
     QuestionnaireResponsesView,
     QuestionnaireResponseUpdateView,
     QuestionnaireSelectionView,
@@ -27,11 +26,6 @@ def test_questionnaire_response_context():
     ctx = v.get_context_data()
     assert ctx["active"] == "sims-nav"
     assert ctx["selected"] == "questionnaire-responses"
-
-
-def test_mentorship_questionnaire_context():
-    v = MentorshipQuestionnaireResponsesView()
-    v.get_context_data()
 
 
 class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
@@ -94,7 +88,7 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
                 kwargs={"pk": self.questionnaire_response.pk},
             )
         )
-        v = QuestionnaireResponseCreateView()
+        v = QuestionnaireResponsesCreateView()
         v.setup(request, pk=self.questionnaire_response.pk)
         url = "sims/questionnaire_responses"
         assert url in v.get_success_url()

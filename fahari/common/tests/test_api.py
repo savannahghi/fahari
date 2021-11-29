@@ -221,7 +221,6 @@ class FacilityViewsetTest(LoggedInMixin, APITestCase):
 
         response = self.client.post(self.url_list, data)
         assert response.status_code == 400, response.json()
-        print(response.json())
         assert "Ensure the organisation provided exists." in response.json()["organisation"]
 
     def test_retrieve_facility(self):

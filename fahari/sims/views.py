@@ -13,7 +13,7 @@ from rest_framework.response import Response
 
 from fahari.common.views import ApprovedMixin, BaseFormMixin, BaseView, FormContextMixin
 
-from .filters import QuestionAnswerFilter, QuestionGroupFilter, QuestionnaireResponsesFilter
+from .filters import QuestionnaireResponsesFilter
 from .forms import MentorshipTeamMemberForm, QuestionnaireResponsesForm
 from .models import Question, QuestionAnswer, QuestionGroup, Questionnaire, QuestionnaireResponses
 from .serializers import (
@@ -55,32 +55,6 @@ class QuestionnaireResponsesContextMixin(ContextMixin):
         return context
 
 
-class MentorShipQuestionnaireResponsesContextMixin(ContextMixin):
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        return context
-
-
-class QuestionAnswerViewSet(BaseView):
-    queryset = QuestionAnswer.objects.active()
-    serializer_class = QuestionAnswerSerializer
-    filterset_class = QuestionAnswerFilter
-    ordering = ("question__precedence",)
-    search_fields = ("question_response__questionnaire", "question", "comments")
-
-
-class QuestionGroupViewSet(BaseView):
-    queryset = QuestionGroup.objects.active()
-    serializer_class = QuestionGroupSerializer
-    filterset_class = QuestionGroupFilter
-    ordering = (
-        "title",
-        "precedence",
-    )
-    search_fields = ("title",)
-
-
 class QuestionnaireResponsesView(
     QuestionnaireResponsesContextMixin, LoginRequiredMixin, ApprovedMixin, TemplateView
 ):
@@ -104,7 +78,7 @@ class QuestionnaireResponsesCaptureView(QuestionnaireResponsesContextMixin, Deta
         return context
 
 
-class QuestionnaireResponseCreateView(
+class QuestionnaireResponsesCreateView(
     QuestionnaireResponsesContextMixin, BaseFormMixin, FormContextMixin, CreateView
 ):
     form_class = QuestionnaireResponsesForm
@@ -144,7 +118,7 @@ class QuestionnaireResponseCreateView(
 
 
 class QuestionnaireResponseUpdateView(
-    MentorShipQuestionnaireResponsesContextMixin, BaseFormMixin, FormContextMixin, UpdateView
+    QuestionnaireResponsesContextMixin, BaseFormMixin, FormContextMixin, UpdateView
 ):
     form_class = QuestionnaireResponsesForm
     model = QuestionnaireResponses
@@ -173,7 +147,7 @@ class QuestionnaireResponseUpdateView(
         )
 
 
-class QuestionnaireResponseViewSet(BaseView):
+class QuestionnaireResponsesViewSet(BaseView):
     queryset = QuestionnaireResponses.objects.active()
     serializer_class = QuestionnaireResponsesSerializer
     filterset_class = QuestionnaireResponsesFilter
@@ -389,9 +363,3 @@ class QuestionnaireSelectionView(LoginRequiredMixin, ApprovedMixin, TemplateView
         context["questionnaires"] = Questionnaire.objects.active()
 
         return context
-
-
-class MentorshipQuestionnaireResponsesView(
-    QuestionnaireResponsesView, MentorShipQuestionnaireResponsesContextMixin
-):
-    ...
