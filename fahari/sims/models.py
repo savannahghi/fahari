@@ -78,14 +78,12 @@ class QuestionMetadata(TypedDict):
 
 
 @lru_cache(maxsize=None)
-def get_metadata_processors_for_metadata_option(
-    metadata_option: str, metadata_processors: Optional[Dict[str, Sequence[str]]] = None
-) -> Sequence:  # type: ignore
+def get_metadata_processors_for_metadata_option(metadata_option: str) -> Sequence:
     from fahari.sims.question_metadata_processors import QuestionMetadataProcessor
 
     app_config: Dict[str, Any] = getattr(settings, "SIMS", {})
-    _metadata_processors: Dict[str, Sequence[str]] = metadata_processors or app_config.get(
-        "QUESTION_METADATA_PROCESSORS", {}
+    _metadata_processors: Dict[str, Sequence[str]] = cast(
+        Dict[str, Sequence[str]], app_config.get("QUESTION_METADATA_PROCESSORS", {})
     )
     _option_processors_dotted_paths = _metadata_processors.get(metadata_option, [])
 
@@ -595,27 +593,19 @@ class Question(AbstractBase, ChildrenMixin):
 
         return responses.answers.filter(question=self).exists()  # noqa
 
-    def run_metadata_processors_on_question_save(
-        self, metadata_processors: Optional[Dict[str, str]] = None
-    ) -> None:
-        metadata: QuestionMetadata = self.metadata or {}
+    def run_metadata_processors_on_question_save(self) -> None:
+        metadata: QuestionMetadata = cast(QuestionMetadata, self.metadata or {})
         for metadata_option in metadata:
-            self.run_metadata_option_processors_on_question_save(
-                metadata_option, metadata_processors
-            )
+            self.run_metadata_option_processors_on_question_save(metadata_option)
 
-    def run_metadata_option_processors_on_question_save(
-        self, metadata_option: str, metadata_processors: Optional[Dict[str, str]] = None
-    ) -> None:
+    def run_metadata_option_processors_on_question_save(self, metadata_option: str) -> None:
         from fahari.sims.exceptions import InvalidQuestionMetadataError
         from fahari.sims.question_metadata_processors import QuestionMetadataProcessor
         from fahari.sims.question_metadata_processors import (
             QuestionMetadataProcessorRunModes as Qrm,
         )
 
-        processors = get_metadata_processors_for_metadata_option(
-            metadata_option, metadata_processors
-        )
+        processors = get_metadata_processors_for_metadata_option(metadata_option)
         processor: QuestionMetadataProcessor
         for processor in filter(
             lambda p: p.run_mode == Qrm.ON_BOTH or p.run_mode == Qrm.ON_QUESTION_SAVE, processors
@@ -713,7 +703,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
             self.is_answerable
             and self.is_complete_for_responses(responses)
             and (
-                not responses.answers.filter(question__question_group=self)  # type: ignore
+                not responses.answers.filter(question__question_group=self)  # noqa
                 .exclude(is_not_applicable=True)
                 .exists()
             )
@@ -825,7 +815,7 @@ class QuestionnaireResponses(AbstractBase):
         """Return a queryset of all the fully answered questions for this responses."""
 
         return self.questions.filter(
-            pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question")  # type: ignore
+            pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question")  # noqa
         )
 
     @property
@@ -834,9 +824,7 @@ class QuestionnaireResponses(AbstractBase):
 
         return self.finish_date is not None and not (
             Question.objects.for_questionnaire(self.questionnaire)
-            .exclude(
-                pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question")  # type: ignore
-            )
+            .exclude(pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question"))  # noqa
             .exists()
         )
 

@@ -50,7 +50,7 @@ class MaxValueConstraintChecker(AbstractConstraintChecker[Number, Number]):
         super().__init__(ConstraintCheckActivationModes.ON)
 
     def check(self, constraint_value: Number, value: Optional[Number]) -> None:
-        if value is not None and value > constraint_value:
+        if value is not None and value > constraint_value:  # type: ignore
             raise ValueError
 
 
@@ -59,5 +59,5 @@ class MinValueConstraintChecker(AbstractConstraintChecker[Number, Number]):
         super().__init__(ConstraintCheckActivationModes.ON)
 
     def check(self, constraint_value: Number, value: Optional[Number]) -> None:
-        if value is not None and value < constraint_value:
+        if value is not None and value < constraint_value:  # type: ignore
             raise ValueError

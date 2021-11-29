@@ -16,7 +16,6 @@ from fahari.sims.views import (
     QuestionnaireResponsesCaptureView,
     QuestionnaireResponsesView,
     QuestionnaireResponseUpdateView,
-    QuestionnaireResponseViewSet,
     QuestionnaireSelectionView,
 )
 
@@ -75,9 +74,9 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
 
     def test_form_valid(self):
         form = QuestionnaireResponsesForm()
-        form.facility = self.facility
-        form.questionnaire = self.questionnaire
-        form.mentors = json.dumps(
+        form.facility = self.facility  # type: ignore
+        form.questionnaire = self.questionnaire  # type: ignore
+        form.mentors = json.dumps(  # type: ignore
             {"name": "mentor", "email": "abc@yahoo.com", "member_org": "sil", "role": "s.e"}
         )
         form.cleaned_data = []
@@ -117,17 +116,3 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
         v = QuestionnaireSelectionView()
         ctx = v.get_context_data()
         assert "questionnaires" in ctx
-
-    def test_questionnaire_response_viewset(self):
-        data = {
-            {"question_group": self.question_group.pk},
-        }
-        v = QuestionnaireResponseViewSet()
-        self.factory.post(
-            reverse(
-                "api:questionnaireresponses-mark-question-group-as-applicable",
-                kwargs={"pk": self.questionnaire_response.pk},
-            ),
-            data=data,
-        )
-        v.mark_question_group_as_applicable(data, pk=self.questionnaire_response.pk)

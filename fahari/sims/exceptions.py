@@ -11,7 +11,7 @@ class InvalidQuestionMetadataError(ValueError):
     def __init__(
         self,
         metadata_option: str,
-        question: Question,  # type: ignore
+        question: Question,
         error_message: Optional[str] = None,
     ):
         self.metadata_option: str = metadata_option
