@@ -253,7 +253,8 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
         """Return a queryset containing answered question groups for the given responses."""
 
         return self.alias(  # type: ignore
-            answered_qg_pks=responses.answers.order_by("question__question_group__pk")  # noqa
+            answered_qg_pks=responses.answers.filter(_IS_VALID_ANSWER)  # noqa
+            .order_by("question__question_group__pk")  # noqa
             .values_list("question__question_group", flat=True)
             .distinct("question__question_group")
         ).filter(pk__in=models.F("answered_qg_pks"))
@@ -389,7 +390,12 @@ class QuestionGroupManager(AbstractBaseManager):
     def answered_for_responses(
         self, responses: "QuestionnaireResponses"
     ) -> "QuestionGroupQuerySet":
-        """Return a queryset containing answered question groups for the given responses."""
+        """Return a queryset containing answered question groups for the given responses.
+
+        *NB: This will return any question group with answered questions
+        for the given responses even if they haven't been fully answered.
+        That is, partially answered question groups will also be returned.*
+        """
 
         return self.get_queryset().answered_for_responses(responses)
 
@@ -680,7 +686,7 @@ class QuestionGroup(AbstractBase, ChildrenMixin):
 
     @property
     def is_answerable(self) -> bool:
-        """Return true if this question group has at-least one answer."""
+        """Return true if this question group has at-least one question."""
 
         return self.questions.exists()  # noqa
 
