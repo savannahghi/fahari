@@ -620,6 +620,8 @@ class Question(AbstractBase, ChildrenMixin):
                 raise ValidationError({"question": str(exp)}, code="invalid") from exp
 
     def save(self, *args, **kwargs):
+        """Extend the base implementation to also run metadata processors before save."""
+
         self.run_metadata_processors_on_question_save()
         super().save(*args, **kwargs)
 
