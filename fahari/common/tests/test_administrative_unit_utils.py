@@ -27,7 +27,7 @@ def test_get_constituencies():
     assert ("Dagoretti North", "Dagoretti North") in constituencies
     assert ("Kajiado East", "Kajiado East") in constituencies
     assert ("Starehe", "Starehe") in constituencies
-    assert len(constituencies) == 22
+    assert len(constituencies) == 23
 
 
 def test_get_constituencies_for_county():
@@ -35,7 +35,8 @@ def test_get_constituencies_for_county():
     assert ("Magadi", "Magadi") in constituencies
     assert ("Kajiado Central", "Kajiado Central") in constituencies
     assert ("Kajiado East", "Kajiado East") in constituencies
-    assert len(constituencies) == 5
+    assert ("Kajiado South", "Kajiado South") in constituencies
+    assert len(constituencies) == 6
 
 
 def test_get_constituencies_for_county_with_missing_county():

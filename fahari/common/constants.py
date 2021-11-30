@@ -94,6 +94,7 @@ ADMINISTRATIVE_UNITS = {
             "Kajiado Central",
             "Kajiado East",
             "Kajiado North",
+            "Kajiado South",
             "Kajiado West",
             "Magadi",
         ),
