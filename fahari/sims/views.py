@@ -179,7 +179,6 @@ class QuestionnaireResponsesViewSet(BaseView):
     @action(detail=True, methods=["POST"])
     def mark_question_group_as_non_applicable(self, request: Request, pk) -> Response:
         """Mark question group as non-applicable."""
-
         payload: QuestionGroupOperationsPayload = request.data
         question_group: QuestionGroup
         try:

@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from django.urls import reverse
@@ -296,3 +297,45 @@ class QuestionnaireResponsesViewSetTest(LoggedInMixin):
         assert response.status_code == 302
         assert self.responses.is_complete
         assert self.responses.finish_date is not None
+
+    def test_questionnaireresponse_create_view(self):
+        data = {
+            "organisation": self.global_organisation.pk,
+            "facility": self.facility.pk,
+            "questionnaire": self.questionnaire.pk,
+            "mentors": json.dumps(
+                [
+                    {
+                        "name": fake.name(),
+                        "phone": "0754987654",
+                        "email": fake.email(),
+                        "member_org": fake.name(),
+                    }
+                ],
+            ),
+        }
+        req = self.client.post(
+            reverse("sims:questionnaire_responses_create", kwargs={"pk": self.questionnaire.pk}),
+            data,
+        )
+        assert req.status_code == 302
+
+    def test_questionnaireresponse_update_view(self):
+        data = {
+            "organisation": self.global_organisation.pk,
+            "facility": self.facility.pk,
+            "questionnaire": self.questionnaire.pk,
+            "mentors": json.dumps(
+                [
+                    {
+                        "name": fake.name(),
+                        "email": fake.email(),
+                        "member_org": fake.name(),
+                    }
+                ],
+            ),
+        }
+        response = self.client.post(
+            reverse("sims:questionnaire_responses_update", kwargs={"pk": self.responses.pk}), data
+        )
+        assert response.status_code == 302
