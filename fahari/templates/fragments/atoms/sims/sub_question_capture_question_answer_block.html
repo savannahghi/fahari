@@ -1,0 +1,12 @@
+{% load static i18n compress %}
+{% load questionnaire_responses %}
+<div class="row">
+    <div class="col">
+        {% include "fragments/atoms/sims/capture_question_answer_block.html" %}
+    </div>
+</div>
+{% with question as parent_question %}
+    {% for question in parent_question.sub_questions.active.by_precedence|annotate_with_stats:object %}
+        {% include "fragments/atoms/sims/sub_question_capture_question_answer_block.html" %}
+    {% endfor %}
+{% endwith %}

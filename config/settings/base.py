@@ -349,3 +349,23 @@ WHITELISTED_DOMAINS = env.list(
         "savannahghi.org",
     ],
 )
+
+
+SIMS = {
+    "QUESTION_METADATA_PROCESSORS": {
+        "constraints": [
+            "fahari.sims.question_metadata_processors.ConstraintsQuestionMetadataProcessor",
+        ],
+        "depends_on": [
+            "fahari.sims.question_metadata_processors.DependsOnQuestionMetadataProcessor",
+        ],
+    },
+    "CONSTRAINT_CHECKERS": {
+        "max_value": [
+            "fahari.sims.question_answer_constraints_checkers.MaxValueConstraintChecker",
+        ],
+        "min_value": [
+            "fahari.sims.question_answer_constraints_checkers.MinValueConstraintChecker",
+        ],
+    },
+}

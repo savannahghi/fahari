@@ -1,7 +1,6 @@
 {% load static i18n compress %}
-{% load questionnaire_responses %}
 
-{% with question|answer_for_questionnaire:object as answer %}
+{% with question.stats_answer_for_responses_response as answer %}
     {% if question.answer_type == "yes_no" %}
         {% with on_label="Yes" off_label="No" %}
             {% include "fragments/atoms/sims/question_types/boolean_question.html" %}
@@ -10,29 +9,29 @@
         {% with on_label="True" off_label="False" %}
             {% include "fragments/atoms/sims/question_types/boolean_question.html" %}
         {% endwith %}
-    {% elif question.answer_type == "fraction" %}
-        {% with step_interval="0.1" placeholder="Enter a fraction" min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional %}
+    {% elif question.answer_type == "real" %}
+        {% with step_interval="0.0001" placeholder="Enter a fraction" min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional %}
             {% include "fragments/atoms/sims/question_types/number_question.html" %}
         {% endwith %}
-    {% elif question.answer_type == "number" %}
+    {% elif question.answer_type == "int" %}
         {% with step_interval="1" placeholder="Enter a number" min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional %}
             {% include "fragments/atoms/sims/question_types/number_question.html" %}
         {% endwith %}
-    {% elif question.answer_type == "short_answer" %}
-        {% with optional=question.metadata.optional %}
+    {% elif question.answer_type == "text_answer" %}
+        {% with optional=question.metadata.optional placeholder="Enter a response" %}
             {% include "fragments/atoms/sims/question_types/text_question.html" %}
         {% endwith %}
-    {% elif question.answer_type == "radio_option" %}
+    {% elif question.answer_type == "select_one" %}
         {% with optional=question.metadata.optional multiple=False %}
             {% include "fragments/atoms/sims/question_types/options_question.html" %}
         {% endwith %}
-    {% elif question.answer_type == "select_list" %}
+    {% elif question.answer_type == "select_multiple" %}
         {% with optional=question.metadata.optional multiple=True %}
             {% include "fragments/atoms/sims/question_types/options_question.html" %}
         {% endwith %}
-    {% elif question.answer_type == "ratio" %}
-        {% with optional=question.metadata.optional multiple=True %}
-            {% include "fragments/atoms/sims/question_types/ratio_question.html" %}
+    {% elif question.answer_type == "fraction" %}
+        {% with denominator_non_editable=question.metadata.denominator_non_editable denominator_value=question.metadata.denominator_value multiple=True optional=question.metadata.optional numerator_non_editable=question.metadata.numerator_non_editable numerator_value=question.metadata.numerator_value %}
+            {% include "fragments/atoms/sims/question_types/fraction_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "none" %}
         <input type="hidden" data-non_applicable="true" hidden value=":::N/A:::" name="response:::{{ question.pk }}:::-">

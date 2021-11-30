@@ -29,9 +29,9 @@ class QuestionnaireResponsesFilter(CommonFieldsFilterset):
     search = filters.SearchFilter()
 
     def get_by_complete_status(self, queryset, field, value: bool):  # noqa
-        if value:
-            return queryset.none()
-        return queryset
+        """Filter by completion status."""
+
+        return queryset.complete() if value else queryset.draft()
 
     is_complete = django_filters.BooleanFilter(method="get_by_complete_status")
 

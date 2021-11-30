@@ -1,8 +1,8 @@
 from django.urls import path
 
 from .views import (
-    QuestionnaireResponseCreateView,
     QuestionnaireResponsesCaptureView,
+    QuestionnaireResponsesCreateView,
     QuestionnaireResponsesView,
     QuestionnaireResponseUpdateView,
     QuestionnaireSelectionView,
@@ -17,7 +17,7 @@ urlpatterns = [
     ),
     path(
         "questionnaire_responses_create/<pk>",
-        view=QuestionnaireResponseCreateView.as_view(),
+        view=QuestionnaireResponsesCreateView.as_view(),
         name="questionnaire_responses_create",
     ),
     path(
