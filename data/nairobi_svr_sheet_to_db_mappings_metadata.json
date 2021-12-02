@@ -10,10 +10,20 @@
     "commodity": {
     	"column_index": 6,
     	"value_mappings": {
+			"Abacavir/Lamivudine ABC/3Tc": "Abacavir/Lamivudine (ABC/3TC) 600mg/300mg FDC Tablets",
+			"Abacavir/Lamivudine ABC/3Tc 600/300 MG": "Abacavir/Lamivudine (ABC/3TC) 600mg/300mg FDC Tablets",
+			"Atazanavir/Ritonavir ATV/r": "Atazanavir/Ritonavir (ATV/r) 300/100mg Tablets",
+			"Atazanavir/Ritonavir ATV/r 300/100 MG": "Atazanavir/Ritonavir (ATV/r) 300/100mg Tablets",
+			"Dolutegravir 50mg": "Dolutegravir(DTG) 50mg tabs",
+			"Lamivudine Syrup 3Tc": "Lamivudine (3TC) liquid 10mg/ml (240ml Bottles)",
+			"Lamivudine Syrup 3Tc 10mg/ml": "Lamivudine (3TC) liquid 10mg/ml (240ml Bottles)",
+			"Tenofovir/Lamivudine TDF/3Tc 300/300 MG": "Tenofovir/Lamivudine (TDF/3TC) FDC (300/300mg) Tablets",
     		"Tenofovir/Lamivudine/Dolutegravir TLD": "Tenofovir/Lamivudine/Dolutegravir (TDF/3TC/DTG) FDC (300/300/50mg) FDC Tablets",
-    		"Dolutegravir 50mg": "Dolutegravir(DTG) 50mg tabs",
-    		"Zidovudine/Lamivudine AZT/3tC": "Zidovudine/Lamivudine (AZT/3TC) FDC (300/150mg) Tablets"
-    	},
+			"Tenofovir/Lamivudine/Dolutegravir TLD 300/300/50 MG": "Tenofovir/Lamivudine/Dolutegravir (TDF/3TC/DTG) FDC (300/300/50mg) FDC Tablets",
+    		"Tenofovir/Lamivudine TDF/3Tc": "Tenofovir/Lamivudine (TDF/3TC) FDC (300/300mg) Tablets",
+			"Zidovudine/Lamivudine AZT/3tC": "Zidovudine/Lamivudine (AZT/3TC) FDC (300/150mg) Tablets",
+			"Zidovudine/Lamivudine AZT/3tC 300/150 MG": "Zidovudine/Lamivudine (AZT/3TC) FDC (300/150mg) Tablets"
+		},
         "lookup": "name"
     },
     "delivery_date": {
@@ -39,7 +49,8 @@
     	"value_mappings": {
     		"30": "Packs of 30s",
     		"60": "Packs of 60s",
-    		"90": "Packs of 90s"
+    		"90": "Packs of 90s",
+			"240": "240ml bottle"
     	},
         "lookup": "name"
     },
