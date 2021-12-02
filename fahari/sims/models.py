@@ -829,12 +829,16 @@ class QuestionnaireResponses(AbstractBase):
         )
 
     @property
+    def total_questions(self) -> float:
+        """Return the total questions in the questionnaire"""
+        return Question.objects.for_questionnaire(self.questionnaire).count()
+
+    @property
     def progress(self) -> float:
         """Return the completion status of the given questionnaire as a percentage."""
 
-        total_questions = Question.objects.for_questionnaire(self.questionnaire).count()
         answered_count = self.answers.filter(_IS_VALID_ANSWER).count()  # noqa
-        return answered_count / total_questions
+        return answered_count / self.total_questions
 
     @property
     def questions(self) -> QuestionQuerySet:
@@ -842,9 +846,16 @@ class QuestionnaireResponses(AbstractBase):
 
         return Question.objects.for_questionnaire(questionnaire=self.questionnaire)
 
+    @property
+    def mentors(self):
+        return self.metadata["mentors"]
+
     def get_absolute_url(self):
-        update_url = reverse_lazy("sims:questionnaire_responses_update", kwargs={"pk": self.pk})
-        return update_url
+        is_complete = bool(self.finish_date is not None)
+        if is_complete:
+            return reverse_lazy("sims:questionnaire_responses_capture", kwargs={"pk": self.pk})
+        else:
+            return reverse_lazy("sims:questionnaire_responses_update", kwargs={"pk": self.pk})
 
     def __str__(self) -> str:
         return "Facility: %s, Questionnaire: %s, Submitted: %s" % (

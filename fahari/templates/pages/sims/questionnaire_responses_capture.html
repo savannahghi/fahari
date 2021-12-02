@@ -7,11 +7,46 @@
 {% endblock title %}
 {% block content %}
     {% block page_title %}
-        <p class="font-weight-bolder">
-            Step {{ current_step }} of {{ total_steps }}
-        </p>
-        <h1 class="h3 text-gray-800"> {{ questionnaire }} </h1>
-        <h6 class="h6 text-muted text-gray-800 mb-4"> {{ object.facility.name }} </h6>
+    <div class="col pt-2">
+
+            <h3 class"text-gray-800">
+                {{ questionnaire }}
+            </h3>
+
+            <p class="font-weight-bolder">
+                Step {{ current_step }} of {{ total_steps }}
+            </p>
+            <h6 class="h6 text-muted text-gray-800 mb-4">{{ object.facility.name }} </h6>
+
+    {% if questionnaire_is_complete %}
+        <a data-toggle="collapse" href="#collapseMentorsList"
+            aria-expanded="false" aria-controls="collapseMentorsList">
+            <h5>Mentors list</h5>
+        </a>
+    {% endif %}
+        <div class="collapse" id="collapseMentorsList">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Organisation</th>
+                </thead>
+                <tbody>
+                    {%for mentor in object.mentors%}
+                    <tr>
+                        <td>{{forloop.counter}}.</td>
+                        <td>{{mentor.name}}</td>
+                        <td>{{mentor.phone_number}}</td>
+                        <td>{{mentor.role}}</td>
+                        <td>{{mentor.member_org}}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     {% endblock page_title %}
     {% if perms.sims.change_questionnaireresponses %}
         {% block questionnaire_metadata_container %}
@@ -27,7 +62,11 @@
         {% block questionnaire_navigate_container %}
             <div class="row align-items-end my-3">
                 <div class="col">
+                {% if questionnaire_is_complete %}
+                    <a class="btn btn-secondary px-5" href="{% url 'sims:questionnaire_responses' %}">Back</a>
+                {% else %}
                     <a class="btn btn-secondary px-5" href="{% url 'sims:questionnaire_responses_update' object.pk %}">Back</a>
+                {% endif %}
                 </div>
                 <div class="col">
                     {% if not questionnaire_is_complete %}
@@ -57,7 +96,7 @@
                         <p id="p_submission_content" class="lead"></p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                         <button id="btn_submit_confirm" type="button" class="btn btn-primary">
                             <span class="text">Proceed</span>
                         </button>
