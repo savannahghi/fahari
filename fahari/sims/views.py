@@ -74,7 +74,6 @@ class QuestionnaireResponsesCaptureView(QuestionnaireResponsesContextMixin, Deta
         context["questionnaire"] = questionnaire_obj
         context["questionnaire_is_complete"] = responses.is_complete
         context["total_steps"] = 2
-
         return context
 
 

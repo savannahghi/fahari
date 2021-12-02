@@ -31,7 +31,7 @@ def load_facilities(source_path):
     for pos, r in enumerate(records):
         if r["Code"] is not None and r["Code"] != "None":
             try:
-                facility, created = Facility.objects.get_or_create(
+                facility, created = Facility.objects.update_or_create(
                     mfl_code=r["Code"],
                     defaults={
                         "name": r["Name"],

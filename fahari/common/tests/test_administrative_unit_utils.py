@@ -83,7 +83,7 @@ def test_get_wards():
     assert ("Ziwani/Kariokor", "Ziwani/Kariokor") in wards
     assert ("Landimawe", "Landimawe") in wards
     assert ("Nairobi South", "Nairobi South") in wards
-    assert len(wards) == 109
+    assert len(wards) == 110
 
 
 def test_get_wards_for_sub_county_with_missing_sub_county():

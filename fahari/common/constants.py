@@ -58,6 +58,7 @@ ADMINISTRATIVE_UNITS = {
                 "Mowlem",
                 "Umoja I",
                 "Umoja II",
+                "Utawala",
             ),
             "Kamukunji": (
                 "Airbase",
