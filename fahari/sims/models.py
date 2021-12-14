@@ -846,10 +846,6 @@ class QuestionnaireResponses(AbstractBase):
 
         return Question.objects.for_questionnaire(questionnaire=self.questionnaire)
 
-    @property
-    def mentors(self):
-        return self.metadata["mentors"]
-
     def get_absolute_url(self):
         is_complete = bool(self.finish_date is not None)
         if is_complete:

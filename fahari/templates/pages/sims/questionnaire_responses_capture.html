@@ -34,7 +34,7 @@
                     <th>Organisation</th>
                 </thead>
                 <tbody>
-                    {%for mentor in object.mentors%}
+                    {%for mentor in object.metadata.mentors%}
                     <tr>
                         <td>{{forloop.counter}}.</td>
                         <td>{{mentor.name}}</td>
