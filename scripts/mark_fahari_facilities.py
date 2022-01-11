@@ -8,7 +8,7 @@ import pyexcel
 from django.core.exceptions import ValidationError
 
 MFL_CODE_COLNAME = "MFL CODE"
-MFL_SHEET_NAME = "fyj_sites"
+MFL_SHEET_NAME = "fyj_facilities"
 
 
 def mark_facilities(source_path):
@@ -40,5 +40,5 @@ if __name__ == "__main__":
     django.setup()
 
     data_dir = os.path.join(base_path, "data")
-    source_file = os.path.join(data_dir, "updated_fyj_sites.xlsx")
+    source_file = os.path.join(data_dir, "updated_fyj_facilities.xlsx")
     mark_facilities(source_file)
