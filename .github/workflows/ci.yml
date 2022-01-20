@@ -96,6 +96,18 @@ jobs:
         env:
           SECRET_PASSPHRASE: ${{ secrets.SECRET_PASSPHRASE }}
 
+      - name: Purge postgres 
+        run: |
+          sudo apt-get --purge remove postgresql postgresql-*
+      
+      - name: Upgrade packages
+        run: |
+          sudo apt-get update && sudo apt-get upgrade
+        
+      - name: Install Postgresql/PostGIS 12
+        run: |
+          sudo apt-get install postgresql-12 postgresql-12-postgis-3
+    
       - name: Install requirements
         run: |
           sudo apt-get update
@@ -104,9 +116,13 @@ jobs:
           npm ci
           npm install -g mjml
 
+      - name: Setup and start postgres service
+        run: |
+          sudo pg_ctlcluster 12 main start
+          sudo -u ${POSTGRES_USER} psql -p ${POSTGRES_PORT} -c "ALTER USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';" 
+    
       - name: Set up Django
         run: |
-          sudo apt-get update  && sudo apt-get upgrade
           python manage.py migrate
           python manage.py createcachetable
           python manage.py collectstatic --noinput
@@ -121,3 +137,5 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           parallel-finished: true
+
+# close this PR. it just triggers the github workflows
