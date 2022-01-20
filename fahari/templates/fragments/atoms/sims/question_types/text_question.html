@@ -1,10 +1,18 @@
-<div class="form-group">
-    <textarea
-            class="form-control"
-            name="response:::{{ question.pk }}:::-"
-            data-question="{{ question.pk }}"
-            placeholder="{{ placeholder }}"
-            rows="5"
-            {% if questionnaire_is_complete %} disabled {% endif %}
-    >{{ answer.content }}</textarea>
+<div class="row">
+    <div class="row">
+        <div class="form-group">
+            <textarea
+                    class="form-control"
+                    name="response:::{{ question.pk }}:::-"
+                    data-question="{{ question.pk }}"
+                    placeholder="{{ placeholder }}"
+                    rows="5"
+                    {% if questionnaire_is_complete %} disabled {% endif %}
+                    {% if not optional %} required {% endif %}
+            >{% firstof answer.content "" %}</textarea>
+        </div>
+    </div>
+    <div class="row">
+        <div id="div_question_error_{{ question.pk }}" class="d-none text-danger"></div>
+    </div>
 </div>

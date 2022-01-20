@@ -24,8 +24,10 @@ if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
     env.read_env(io.StringIO(payload))
     print("set env from secrets...")
 
+
+# =============================================================================
 # GENERAL
-# ------------------------------------------------------------------------------
+# =============================================================================
 DEBUG = env.bool("DJANGO_DEBUG", False)
 TIME_ZONE = "Africa/Nairobi"
 LANGUAGE_CODE = "en-us"
@@ -35,8 +37,10 @@ USE_L10N = True
 USE_TZ = True
 LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 
-# DATABASES
-# ------------------------------------------------------------------------------
+
+# =============================================================================
+# DATABASE CONFIG
+# =============================================================================
 DATABASES = {
     "default": {
         "NAME": env.str("POSTGRES_DB"),
@@ -49,14 +53,18 @@ DATABASES = {
     },
 }
 
+
+# =============================================================================
 # URLS
-# ------------------------------------------------------------------------------
+# =============================================================================
 ROOT_URLCONF = "config.urls"
 ASGI_APPLICATION = "config.asgi.application"
 WSGI_APPLICATION = "config.wsgi.application"
 
+
+# =============================================================================
 # APPS
-# ------------------------------------------------------------------------------
+# =============================================================================
 DJANGO_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -95,12 +103,16 @@ LOCAL_APPS = [
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+
+# =============================================================================
 # MIGRATIONS
-# ------------------------------------------------------------------------------
+# =============================================================================
 MIGRATION_MODULES = {"sites": "fahari.contrib.sites.migrations"}
 
+
+# =============================================================================
 # AUTHENTICATION
-# ------------------------------------------------------------------------------
+# =============================================================================
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
@@ -109,8 +121,10 @@ AUTH_USER_MODEL = "users.User"
 LOGIN_REDIRECT_URL = "users:redirect"
 LOGIN_URL = "account_login"
 
+
+# =============================================================================
 # PASSWORDS
-# ------------------------------------------------------------------------------
+# =============================================================================
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
@@ -124,8 +138,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+
+# =============================================================================
 # MIDDLEWARE
-# ------------------------------------------------------------------------------
+# =============================================================================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -140,8 +156,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+
+# =============================================================================
 # STATIC
-# ------------------------------------------------------------------------------
+# =============================================================================
 STATIC_ROOT = str(ROOT_DIR / "staticfiles")
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [str(APPS_DIR / "static")]
@@ -150,13 +168,17 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
+
+# =============================================================================
 # MEDIA
-# ------------------------------------------------------------------------------
+# =============================================================================
 MEDIA_ROOT = str(APPS_DIR / "media")
 MEDIA_URL = "/media/"
 
+
+# =============================================================================
 # TEMPLATES
-# ------------------------------------------------------------------------------
+# =============================================================================
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -184,19 +206,26 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 CRISPY_FAIL_SILENTLY = not DEBUG
 
+
+# =============================================================================
 # FIXTURES
-# ------------------------------------------------------------------------------
+# =============================================================================
 FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 
+
+# =============================================================================
 # SECURITY
-# ------------------------------------------------------------------------------
-SESSION_COOKIE_HTTPONLY = True
+# =============================================================================
 CSRF_COOKIE_HTTPONLY = True
+CSRF_USE_SESSIONS = False
+SESSION_COOKIE_HTTPONLY = True
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = "SAMEORIGIN"  # needs to be SAMEORIGIN for the jet admin to work
 
+
+# =============================================================================
 # EMAIL
-# ------------------------------------------------------------------------------
+# =============================================================================
 EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND",
     default="anymail.backends.mailgun.EmailBackend",
@@ -219,8 +248,10 @@ ANYMAIL = {
 }
 EMAIL_TIMEOUT = 5
 
+
+# =============================================================================
 # ADMIN
-# ------------------------------------------------------------------------------
+# =============================================================================
 ADMIN_URL = "admin/"
 ADMINS = [
     (
@@ -234,8 +265,10 @@ ADMINS = [
 ]
 MANAGERS = ADMINS
 
+
+# =============================================================================
 # LOGGING
-# ------------------------------------------------------------------------------
+# =============================================================================
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -254,8 +287,10 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
-# django-allauth
-# ------------------------------------------------------------------------------
+
+# =============================================================================
+# DJANGO ALL AUTH
+# =============================================================================
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
 ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_EMAIL_REQUIRED = True
@@ -271,12 +306,17 @@ ACCOUNT_USERNAME_MIN_LENGTH = 5
 SOCIALACCOUNT_AUTO_SIGNUP = True
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
 
-# django-compressor
-# ------------------------------------------------------------------------------
+
+# =============================================================================
+# DJANGO COMPRESSOR
+# =============================================================================
 INSTALLED_APPS += ["compressor"]
 STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
-# django-rest-framework
-# -------------------------------------------------------------------------------
+
+
+# =============================================================================
+# DRF
+# =============================================================================
 REST_FRAMEWORK = {
     "DEFAULT_MODEL_SERIALIZER_CLASS": ("rest_framework.serializers.ModelSerializer",),
     "DEFAULT_RENDERER_CLASSES": (
@@ -317,32 +357,27 @@ REST_FRAMEWORK = {
     "DATE_FORMAT": "iso-8601",
     "TIME_FORMAT": "iso-8601",
 }
-
 CORS_URLS_REGEX = r"^/api/.*$"
 
-# Project specific settings
-# ------------------------------------------------------------------------------
-# these are used by the base model classes for validation
+
+# =============================================================================
+# PROJECT SPECIFIC SETTINGS
+# =============================================================================
 DECIMAL_PLACES = 4
 MAX_IMAGE_HEIGHT = 4320
 MAX_IMAGE_WIDTH = 7680
+ORGANISATION_EMAIL = env("ORGANISATION_EMAIL", default="info@savannahghi.org")
 ORGANISATION_NAME = env(
     "ORGANISATION_NAME", default="Savannah Informatics Global Health Institute"
 )
-ORGANISATION_EMAIL = env("ORGANISATION_EMAIL", default="info@savannahghi.org")
 ORGANISATION_PHONE = env("ORGANISATION_PHONE", default="+254790360360")
 
-# used by the user model to assign a default organisation to a user during creation
+# Used by the user model to assign a default organisation to a user during creation
 DEFAULT_ORG_ID = env("DEFAULT_ORG_ID", default="4181df12-ca96-4f28-b78b-8e8ad88b25df")
 
 # BigAutoField needs migration of existing data and either changes to
 # dependencies or overriding dependencies
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
-
-# mjml responsive emails
-MJML_BACKEND_MODE = "cmd"
-MJML_EXEC_CMD = "mjml"
-MJML_CHECK_CMD_ON_STARTUP = True
 WHITELISTED_DOMAINS = env.list(
     "WHITELISTED_DOMAINS",
     default=[
@@ -350,22 +385,41 @@ WHITELISTED_DOMAINS = env.list(
     ],
 )
 
+# =============================================================================
+# MJML CONFIG (FOR RESPONSIVE EMAILS)
+# =============================================================================
+MJML_BACKEND_MODE = "cmd"
+MJML_CHECK_CMD_ON_STARTUP = True
+MJML_EXEC_CMD = "mjml"
 
+
+# =============================================================================
+# METADATA PROCESSORS REGISTRATION
+# =============================================================================
+METADATA_PROCESSORS = {
+    "fahari.sims.models.Question": [
+        "fahari.sims.metadata_processors.DenominatorValueExistIfDenominatorNonEditable",
+        "fahari.sims.metadata_processors.DependentQuestionExistsMetadataProcessor",
+    ],
+    "fahari.sims.models.QuestionAnswer": [
+        "fahari.sims.metadata_processors.ConstraintsCheckMetadataProcessor",
+    ],
+}
+
+# =============================================================================
+# SIMS APP CONFIG
+# =============================================================================
 SIMS = {
-    "QUESTION_METADATA_PROCESSORS": {
-        "constraints": [
-            "fahari.sims.question_metadata_processors.ConstraintsQuestionMetadataProcessor",
-        ],
-        "depends_on": [
-            "fahari.sims.question_metadata_processors.DependsOnQuestionMetadataProcessor",
-        ],
-    },
     "CONSTRAINT_CHECKERS": {
         "max_value": [
-            "fahari.sims.question_answer_constraints_checkers.MaxValueConstraintChecker",
+            "fahari.sims.constraints_checkers.MaxValueConstraintChecker",
         ],
         "min_value": [
-            "fahari.sims.question_answer_constraints_checkers.MinValueConstraintChecker",
+            "fahari.sims.constraints_checkers.MinValueConstraintChecker",
         ],
+        "numerator_max_value": [
+            "fahari.sims.constraints_checkers.NumeratorMaxValueConstraintChecker"
+        ],
+        "optional": ["fahari.sims.constraints_checkers.RequiredByDefaultConstraintChecker"],
     },
 }

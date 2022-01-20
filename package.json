@@ -76,7 +76,7 @@
         "gulp-uglify-es": "^1.0.4",
         "merge-stream": "2.0.0",
         "pixrem": "^5.0.0",
-        "trim-newlines": ">=3.0.1"
+        "trim-newlines": "^4.0.2"
     },
     "engines": {
         "node": ">=8"

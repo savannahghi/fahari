@@ -1,22 +1,25 @@
+from __future__ import annotations
+
 from functools import lru_cache
 from numbers import Number
 from typing import Any, Dict, List, Literal, Optional, Sequence, TypedDict, Union, cast
 
-from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.module_loading import import_string
 
 from fahari.common.models import AbstractBase, AbstractBaseManager, AbstractBaseQuerySet, Facility
+from fahari.utils.metadata_utils import MetadataEntryProcessor, MetadataProcessor
+
+from .answer_type_validity_checkers import (
+    DEFAULT_ANSWER_TYPE_VALIDITY_CHECKERS,
+    AnswerTypeValidityChecker,
+)
 
 # =============================================================================
 # CONSTANTS
 # =============================================================================
-
-_IS_VALID_ANSWER = models.Q(is_not_applicable=True) | ~models.Q(response__content=None)
-"""The expression used to determine if a given answer is valid."""
 
 
 class MentorshipTeamMemberMetadata(TypedDict):
@@ -78,27 +81,16 @@ class QuestionMetadata(TypedDict):
 
 
 @lru_cache(maxsize=None)
-def get_metadata_processors_for_metadata_option(metadata_option: str) -> Sequence:
-    from fahari.sims.question_metadata_processors import QuestionMetadataProcessor
-
-    app_config: Dict[str, Any] = getattr(settings, "SIMS", {})
-    _metadata_processors: Dict[str, Sequence[str]] = cast(
-        Dict[str, Sequence[str]], app_config.get("QUESTION_METADATA_PROCESSORS", {})
+def _get_combined_answer_validity_expression() -> Any:
+    cases = (
+        models.When(
+            question__answer_type=answer_type.value,  # noqa
+            then=answer_type.answer_type_validity_checker.valid_answer_query_expression,  # noqa
+        )
+        for answer_type in Question.AnswerTypes
     )
-    _option_processors_dotted_paths = _metadata_processors.get(metadata_option, [])
 
-    processors: List[QuestionMetadataProcessor] = []
-    for _processor_dotted_path in _option_processors_dotted_paths:
-        try:
-            processor: QuestionMetadataProcessor = import_string(_processor_dotted_path)()
-            processors.append(processor)
-        except ImportError as exp:  # pragma: no cover
-            raise ImproperlyConfigured(
-                "Cannot import question metadata processor from the following dotted path %s"
-                % _processor_dotted_path
-            ) from exp
-
-    return processors
+    return models.Case(*cases, output_field=models.BooleanField())
 
 
 # =============================================================================
@@ -156,21 +148,22 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
     def answerable(self) -> "QuestionQuerySet":
         """Return a queryset containing questions that accept none "none" answers."""
 
-        return self.exclude(answer_type=Question.AnswerType.NONE.value)
+        return self.exclude(answer_type=Question.AnswerTypes.NONE.value)
 
     def answered_for_responses(self, responses: "QuestionnaireResponses") -> "QuestionQuerySet":
         """Return a queryset containing answered questions for the given responses."""
 
         qs = self.alias(  # type: ignore
-            answered_questions_for_questionnaire=responses.answers.filter(  # noqa
-                _IS_VALID_ANSWER
-            ).values("question")
+            answered_questions_for_questionnaire=responses.answers.valid().values(  # type: ignore
+                "question"
+            )
         ).filter(pk__in=models.F("answered_questions_for_questionnaire"))
         return cast(QuestionQuerySet, qs)
 
     def for_question(self, question: "Question") -> "QuestionQuerySet":
         """Return all the sub-questions and nested sub-questions belonging to a given question."""
 
+        # TODO: Optimize this implementation
         def visit(questions: "QuestionQuerySet") -> "QuestionQuerySet":
             for _question in questions:
                 if _question.is_parent:
@@ -194,6 +187,24 @@ class QuestionQuerySet(AbstractBaseQuerySet["Question"], ChildrenMixinQuerySet):
         """Return all the questions belonging to the given questionnaire."""
 
         return self.filter(question_group__questionnaire=questionnaire)
+
+
+class QuestionAnswerQuerySet(AbstractBaseQuerySet["QuestionAnswer"]):  # noqa
+    """QuerySet for the QuestionAnswer model."""
+
+    def invalid(self) -> "QuestionAnswerQuerySet":
+        """Return a queryset composed of answers without valid responses."""
+
+        return self.annotate(valid=_get_combined_answer_validity_expression()).filter(  # noqa
+            valid=False
+        )  # type: ignore
+
+    def valid(self) -> "QuestionAnswerQuerySet":
+        """Return a queryset composed of only answers with valid responses."""
+
+        return self.annotate(valid=_get_combined_answer_validity_expression()).filter(  # noqa
+            valid=True
+        )  # type: ignore
 
 
 class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixinQuerySet):  # noqa
@@ -223,10 +234,11 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
             stats_is_complete_for_responses=~models.Exists(
                 Question.objects.filter(question_group=models.OuterRef("pk")).exclude(
                     pk__in=QuestionAnswer.objects.filter(
-                        _IS_VALID_ANSWER,
                         question__question_group=models.OuterRef(models.OuterRef("pk")),
                         questionnaire_response=responses,
-                    ).values("question")
+                    )
+                    .valid()
+                    .values("question")
                 )
             ),
             stats_is_not_applicable_for_responses=models.Case(
@@ -251,7 +263,7 @@ class QuestionGroupQuerySet(AbstractBaseQuerySet["QuestionGroup"], ChildrenMixin
         """Return a queryset containing answered question groups for the given responses."""
 
         return self.alias(  # type: ignore
-            answered_qg_pks=responses.answers.filter(_IS_VALID_ANSWER)  # noqa
+            answered_qg_pks=responses.answers.valid()  # type: ignore
             .order_by("question__question_group__pk")  # noqa
             .values_list("question__question_group", flat=True)
             .distinct("question__question_group")
@@ -297,7 +309,7 @@ class QuestionnaireResponsesQuerySet(AbstractBaseQuerySet["QuestionnaireResponse
                             models.OuterRef("facility")
                         ),
                     )
-                    .filter(_IS_VALID_ANSWER)
+                    .valid()
                     .values("question")
                 )
                 .values("pk")
@@ -364,6 +376,23 @@ class QuestionManager(AbstractBaseManager):
 
     def get_queryset(self) -> QuestionQuerySet:
         return QuestionQuerySet(self.model, using=self.db)
+
+
+class QuestionAnswerManager(AbstractBaseManager):
+    """Manager for the QuestionAnswer model."""
+
+    def get_queryset(self) -> QuestionAnswerQuerySet:
+        return QuestionAnswerQuerySet(self.model, using=self.db)
+
+    def invalid(self) -> QuestionAnswerQuerySet:
+        """Return a queryset composed of answers without valid responses."""
+
+        return self.get_queryset().invalid()
+
+    def valid(self) -> QuestionAnswerQuerySet:
+        """Return a queryset composed of only answers with valid responses."""
+
+        return self.get_queryset().valid()
 
 
 class QuestionGroupManager(AbstractBaseManager):
@@ -503,21 +532,26 @@ class ChildrenMixin(models.Model):
         ]
 
 
-class Question(AbstractBase, ChildrenMixin):
+class Question(AbstractBase, ChildrenMixin, MetadataProcessor):
     """A question in a questionnaire."""
 
-    class AnswerType(models.TextChoices):
-        """The possible types of answer expected for a question."""
+    class AnswerTypes(models.TextChoices):
+        """The possible types of answers expected for a question."""
 
-        DEPENDENT = "dependent", "Dependent on Another Answer"
         FRACTION = "fraction", "Fraction"
         INTEGER = "int", "Whole Number"
         NONE = "none", "Not Applicable"
         REAL = "real", "Real Number"
         SELECT_ONE = "select_one", "Select One"
         SELECT_MULTIPLE = "select_multiple", "Select Multiple"
-        TEXT_ANSWER = "text_answer", "Text Answer"
+        TEXT = "text", "Text Answer"
         YES_NO = "yes_no", "Yes/No"
+
+        @property
+        def answer_type_validity_checker(self) -> AnswerTypeValidityChecker:
+            """Return an answer type validity checker for a given answer type."""
+
+            return DEFAULT_ANSWER_TYPE_VALIDITY_CHECKERS[self.name]
 
     parent_field_help_text = "The parent question that this question is part of."
     parent_field_related_name = "sub_questions"
@@ -525,7 +559,6 @@ class Question(AbstractBase, ChildrenMixin):
         'The rank of a question within it\'s "container". Used to position '
         "the question when rendering a questionnaire."
     )
-
     query = models.TextField(verbose_name="Question")
     question_code = models.CharField(
         max_length=100,
@@ -539,8 +572,8 @@ class Question(AbstractBase, ChildrenMixin):
     )
     answer_type = models.CharField(
         max_length=15,
-        choices=AnswerType.choices,
-        default=AnswerType.TEXT_ANSWER.value,
+        choices=AnswerTypes.choices,
+        default=AnswerTypes.TEXT.value,
         help_text="Expected answer type",
     )
     question_group = models.ForeignKey(
@@ -569,7 +602,7 @@ class Question(AbstractBase, ChildrenMixin):
     def is_answerable(self) -> bool:
         """Return true if this question accepts non "none" answers."""
 
-        return self.answer_type != self.AnswerType.NONE.value
+        return self.answer_type != self.AnswerTypes.NONE.value
 
     def answer_for_responses(
         self, responses: "QuestionnaireResponses"
@@ -577,6 +610,11 @@ class Question(AbstractBase, ChildrenMixin):
         """Return the answer to this question from the given questionnaire responses."""
 
         return responses.answers.filter(question=self).first()  # noqa
+
+    def get_metadata(self) -> QuestionMetadata:
+        """Return the question metadata to use during processing."""
+
+        return cast(QuestionMetadata, self.metadata or {})
 
     def is_answered_for_responses(self, responses: "QuestionnaireResponses") -> bool:
         """Return true if this question has been answered for the given questionnaire responses.
@@ -593,32 +631,19 @@ class Question(AbstractBase, ChildrenMixin):
 
         return responses.answers.filter(question=self).exists()  # noqa
 
-    def run_metadata_processors_on_question_save(self) -> None:
-        metadata: QuestionMetadata = cast(QuestionMetadata, self.metadata or {})
-        for metadata_option in metadata:
-            self.run_metadata_option_processors_on_question_save(metadata_option)
+    def run_metadata_entry_processor(self, processor: MetadataEntryProcessor["Question"]) -> None:
+        from .exceptions import QuestionMetadataProcessingError
 
-    def run_metadata_option_processors_on_question_save(self, metadata_option: str) -> None:
-        from fahari.sims.exceptions import InvalidQuestionMetadataError
-        from fahari.sims.question_metadata_processors import QuestionMetadataProcessor
-        from fahari.sims.question_metadata_processors import (
-            QuestionMetadataProcessorRunModes as Qrm,
-        )
-
-        processors = get_metadata_processors_for_metadata_option(metadata_option)
-        processor: QuestionMetadataProcessor
-        for processor in filter(
-            lambda p: p.run_mode == Qrm.ON_BOTH or p.run_mode == Qrm.ON_QUESTION_SAVE, processors
-        ):
-            try:
-                processor.process_on_question_save(self)
-            except InvalidQuestionMetadataError as exp:  # pragma: no cover
-                raise ValidationError({"question": str(exp)}, code="invalid") from exp
+        try:
+            metadata_entry_value: Any = self.metadata[processor.metadata_entry_name]
+            processor.process(metadata_entry_value, self)
+        except QuestionMetadataProcessingError as exp:
+            raise ValidationError({"metadata": str(exp)}, code="invalid") from exp
 
     def save(self, *args, **kwargs):
         """Extend the base implementation to also run metadata processors before save."""
 
-        self.run_metadata_processors_on_question_save()
+        self.run()  # Run metadata processors before save
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -756,7 +781,7 @@ class Questionnaire(AbstractBase):
         ordering = ("name",)
 
 
-class QuestionAnswer(AbstractBase):
+class QuestionAnswer(AbstractBase, MetadataProcessor):
     """An answer to a question."""
 
     questionnaire_response = models.ForeignKey(
@@ -771,6 +796,10 @@ class QuestionAnswer(AbstractBase):
     answered_on = models.DateTimeField(auto_now=True, editable=False)
     comments = models.TextField(null=True, blank=True)
 
+    objects = QuestionAnswerManager()
+
+    model_validators = ["ensure_answer_response_is_valid"]
+
     @property
     def is_valid(self) -> bool:
         """Return true if this answer is valid for the given question.
@@ -780,8 +809,49 @@ class QuestionAnswer(AbstractBase):
         max_value, min_value, etc.
         """
 
-        # TODO: Add implementation
-        return False
+        answer_type: Question.AnswerTypes = next(
+            filter(lambda at: at.value == self.question.answer_type, Question.AnswerTypes)
+        )
+        return answer_type.answer_type_validity_checker.is_valid_answer_value(
+            self.response.get("content"), self.is_not_applicable
+        )
+
+    def ensure_answer_response_is_valid(self) -> None:
+        """Validate this answer to ensure it's valid for the expected answer type."""
+
+        if not self.is_valid:
+            raise ValidationError(
+                {
+                    "response": "The provided answer response is not valid "
+                    'for an answer of type "%s"' % self.question.answer_type
+                },
+                code="invalid",
+            )
+
+    def get_metadata(self) -> QuestionMetadata:
+        """Return the metadata entries to use during metadata processing."""
+
+        return cast(QuestionMetadata, self.question.metadata or {})
+
+    def run_metadata_entry_processor(
+        self, processor: MetadataEntryProcessor["QuestionAnswer"]
+    ) -> None:
+        """Run the given metadata entry processor."""
+
+        from .exceptions import QuestionAnswerMetadataProcessingError
+        from .metadata_processors import AbstractQuestionAnswerMetadataProcessor as Qmp
+
+        # Skip QuestionAnswer MetadataProcessor not designed to be run on non-applicable answers
+        if isinstance(processor, Qmp) and (
+            self.is_not_applicable and not processor.run_on_non_applicable_answers
+        ):
+            return
+
+        try:
+            metadata_entry_value: Any = self.question.metadata[processor.metadata_entry_name]
+            processor.process(metadata_entry_value, self)
+        except QuestionAnswerMetadataProcessingError as exp:  # pragma: no cover
+            raise ValidationError({"question": str(exp.args[0])}, code="invalid") from exp
 
     def __str__(self) -> str:
         return "Facility: %s, Question: %s, Response: %s" % (
@@ -815,7 +885,7 @@ class QuestionnaireResponses(AbstractBase):
         """Return a queryset of all the fully answered questions for this responses."""
 
         return self.questions.filter(
-            pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question")  # noqa
+            pk__in=self.answers.valid().values("question")  # type: ignore
         )
 
     @property
@@ -824,7 +894,7 @@ class QuestionnaireResponses(AbstractBase):
 
         return self.finish_date is not None and not (
             Question.objects.for_questionnaire(self.questionnaire)
-            .exclude(pk__in=self.answers.filter(_IS_VALID_ANSWER).values("question"))  # noqa
+            .exclude(pk__in=self.answers.valid().values("question"))  # type: ignore
             .exists()
         )
 
@@ -837,7 +907,7 @@ class QuestionnaireResponses(AbstractBase):
     def progress(self) -> float:
         """Return the completion status of the given questionnaire as a percentage."""
 
-        answered_count = self.answers.filter(_IS_VALID_ANSWER).count()  # noqa
+        answered_count = self.answers.valid().count()  # type: ignore
         return answered_count / self.total_questions
 
     @property

@@ -13,8 +13,8 @@ from fahari.sims.models import QuestionGroup, Questionnaire, QuestionnaireRespon
 from fahari.sims.views import (
     QuestionnaireResponsesCaptureView,
     QuestionnaireResponsesCreateView,
+    QuestionnaireResponsesUpdateView,
     QuestionnaireResponsesView,
-    QuestionnaireResponseUpdateView,
     QuestionnaireSelectionView,
 )
 
@@ -101,7 +101,7 @@ class TestQuestionnaireResponseCapture(LoggedInMixin, TestCase):
                 kwargs={"pk": self.questionnaire_response.pk},
             )
         )
-        v = QuestionnaireResponseUpdateView()
+        v = QuestionnaireResponsesUpdateView()
         v.setup(request, pk=self.questionnaire_response.pk)
         v.get(request, pk=self.questionnaire_response.pk)
         v.get_context_data()

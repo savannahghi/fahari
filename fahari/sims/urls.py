@@ -3,8 +3,8 @@ from django.urls import path
 from .views import (
     QuestionnaireResponsesCaptureView,
     QuestionnaireResponsesCreateView,
+    QuestionnaireResponsesUpdateView,
     QuestionnaireResponsesView,
-    QuestionnaireResponseUpdateView,
     QuestionnaireSelectionView,
 )
 
@@ -22,7 +22,7 @@ urlpatterns = [
     ),
     path(
         "questionnaire_responses_update/<pk>",
-        view=QuestionnaireResponseUpdateView.as_view(),
+        view=QuestionnaireResponsesUpdateView.as_view(),
         name="questionnaire_responses_update",
     ),
     path(

@@ -48,7 +48,7 @@ class _CommonTestCase(TestCase):
         )
         self.question1 = baker.make(
             Question,
-            answer_type=Question.AnswerType.YES_NO.value,
+            answer_type=Question.AnswerTypes.YES_NO.value,
             organisation=self.organisation,
             parent=None,
             precedence=1,
@@ -62,7 +62,7 @@ class _CommonTestCase(TestCase):
         )
         self.question2 = baker.make(
             Question,
-            answer_type=Question.AnswerType.NONE.value,
+            answer_type=Question.AnswerTypes.NONE.value,
             organisation=self.organisation,
             parent=None,
             precedence=2,
@@ -75,7 +75,7 @@ class _CommonTestCase(TestCase):
         )
         self.question3 = baker.make(
             Question,
-            answer_type=Question.AnswerType.INTEGER.value,
+            answer_type=Question.AnswerTypes.INTEGER.value,
             organisation=self.organisation,
             parent=self.question2,
             precedence=1,
@@ -89,7 +89,7 @@ class _CommonTestCase(TestCase):
         )
         self.question4 = baker.make(
             Question,
-            answer_type=Question.AnswerType.TEXT_ANSWER.value,
+            answer_type=Question.AnswerTypes.TEXT.value,
             organisation=self.organisation,
             parent=None,
             precedence=3,
@@ -291,7 +291,7 @@ class QuestionTest(_CommonTestCase):
 
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.SELECT_ONE.value,
+            answer_type=Question.AnswerTypes.SELECT_ONE.value,
             metadata={"select_list_options": ["VIA", "HPV"]},
             organisation=self.organisation,
             parent=self.question3,
@@ -303,7 +303,7 @@ class QuestionTest(_CommonTestCase):
         )
         question6 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"constraints": {"min_value": 0}},
             organisation=self.organisation,
             parent=question5,
@@ -343,7 +343,7 @@ class QuestionTest(_CommonTestCase):
         )
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.SELECT_ONE.value,
+            answer_type=Question.AnswerTypes.SELECT_ONE.value,
             metadata={"select_list_options": ["VIA", "HPV"]},
             organisation=self.organisation,
             parent=self.question3,
@@ -355,7 +355,7 @@ class QuestionTest(_CommonTestCase):
         )
         question6 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"constraints": {"min_value": 0}},
             organisation=self.organisation,
             parent=None,
@@ -394,7 +394,7 @@ class QuestionTest(_CommonTestCase):
         )
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.SELECT_ONE.value,
+            answer_type=Question.AnswerTypes.SELECT_ONE.value,
             metadata={"select_list_options": ["VIA", "HPV"]},
             organisation=self.organisation,
             parent=self.question3,
@@ -406,7 +406,7 @@ class QuestionTest(_CommonTestCase):
         )
         question6 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"constraints": {"min_value": 0}},
             organisation=self.organisation,
             parent=None,
@@ -452,7 +452,7 @@ class QuestionAnswerTest(_CommonTestCase):
     def test_is_valid_property(self) -> None:
         """Test QuestionAnswer model's `is_valid` property."""
 
-        assert not self.question_answer.is_valid
+        assert self.question_answer.is_valid
 
     def test_representation(self) -> None:
         """Test QuestionAnswer model's `__str__` method."""
@@ -511,7 +511,7 @@ class QuestionGroupTest(_CommonTestCase):
 
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.SELECT_ONE.value,
+            answer_type=Question.AnswerTypes.SELECT_ONE.value,
             metadata={"select_list_options": ["VIA", "HPV"]},
             organisation=self.organisation,
             parent=self.question3,
@@ -534,7 +534,7 @@ class QuestionGroupTest(_CommonTestCase):
 
         baker.make(
             Question,
-            answer_type=Question.AnswerType.SELECT_ONE.value,
+            answer_type=Question.AnswerTypes.SELECT_ONE.value,
             metadata={"select_list_options": ["VIA", "HPV"]},
             organisation=self.organisation,
             parent=None,
@@ -563,7 +563,7 @@ class QuestionGroupTest(_CommonTestCase):
 
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"constraints": {"ratio_upper_bound": 20}},
             organisation=self.organisation,
             parent=None,
@@ -580,7 +580,7 @@ class QuestionGroupTest(_CommonTestCase):
         )
         question6 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"depends_on": "1415", "constraints": {"dependency_type": "numerator"}},
             organisation=self.organisation,
             parent=question5,
@@ -639,7 +639,7 @@ class QuestionGroupTest(_CommonTestCase):
 
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"constraints": {"ratio_upper_bound": 20}},
             organisation=self.organisation,
             parent=None,
@@ -656,7 +656,7 @@ class QuestionGroupTest(_CommonTestCase):
         )
         question6 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"depends_on": "1415", "constraints": {"dependency_type": "numerator"}},
             organisation=self.organisation,
             parent=question5,
@@ -715,7 +715,7 @@ class QuestionGroupTest(_CommonTestCase):
 
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"constraints": {"ratio_upper_bound": 20}},
             organisation=self.organisation,
             parent=None,
@@ -732,7 +732,7 @@ class QuestionGroupTest(_CommonTestCase):
         )
         question6 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"depends_on": "1415", "constraints": {"dependency_type": "numerator"}},
             organisation=self.organisation,
             parent=question5,
@@ -814,7 +814,7 @@ class QuestionGroupTest(_CommonTestCase):
 
         question5 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"constraints": {"ratio_upper_bound": 20}},
             organisation=self.organisation,
             parent=None,
@@ -831,7 +831,7 @@ class QuestionGroupTest(_CommonTestCase):
         )
         question6 = baker.make(
             Question,
-            answer_type=Question.AnswerType.FRACTION.value,
+            answer_type=Question.AnswerTypes.FRACTION.value,
             metadata={"depends_on": "1415", "constraints": {"dependency_type": "numerator"}},
             organisation=self.organisation,
             parent=question5,

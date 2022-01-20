@@ -44,7 +44,7 @@ class QuestionnaireResponsesViewSetTest(LoggedInMixin):
         )
         self.question1 = baker.make(
             Question,
-            answer_type=Question.AnswerType.YES_NO.value,
+            answer_type=Question.AnswerTypes.YES_NO.value,
             organisation=self.global_organisation,
             parent=None,
             precedence=1,
@@ -58,7 +58,7 @@ class QuestionnaireResponsesViewSetTest(LoggedInMixin):
         )
         self.question2 = baker.make(
             Question,
-            answer_type=Question.AnswerType.NONE.value,
+            answer_type=Question.AnswerTypes.NONE.value,
             organisation=self.global_organisation,
             parent=None,
             precedence=2,
@@ -71,7 +71,7 @@ class QuestionnaireResponsesViewSetTest(LoggedInMixin):
         )
         self.question3 = baker.make(
             Question,
-            answer_type=Question.AnswerType.INTEGER.value,
+            answer_type=Question.AnswerTypes.INTEGER.value,
             organisation=self.global_organisation,
             parent=self.question2,
             precedence=1,
@@ -85,7 +85,7 @@ class QuestionnaireResponsesViewSetTest(LoggedInMixin):
         )
         self.question4 = baker.make(
             Question,
-            answer_type=Question.AnswerType.TEXT_ANSWER.value,
+            answer_type=Question.AnswerTypes.TEXT.value,
             organisation=self.global_organisation,
             parent=None,
             precedence=3,
@@ -214,7 +214,7 @@ class QuestionnaireResponsesViewSetTest(LoggedInMixin):
         data = {
             "question_group": self.question_group1.pk,
             "question_answers": {
-                str(self.question1.pk): {"comments": "A comment.", "response": True},
+                str(self.question1.pk): {"comments": "A comment.", "response": "true"},
                 str(self.question4.pk): {"comments": None, "response": "A response."},
             },
         }

@@ -1,15 +1,22 @@
-<div class="form-group">
-    <input
-            class="form-control"
-            data-question="{{ question.pk }}"
-            max="{{ max }}"
-            min="{{ min }}"
-            name="response:::{{ question.pk }}:::-"
-            placeholder="{{ placeholder }}"
-            value="{{ answer.content }}"
-            step="{{ step_interval }}"
-            type="number"
-            {% if questionnaire_is_complete %} disabled {% endif %}
-            {% if not optional %} required {% endif %}
-    >
+<div class="row">
+    <div class="row">
+        <div class="form-group">
+            <input
+                    class="form-control"
+                    data-question="{{ question.pk }}"
+                    max="{{ max }}"
+                    min="{{ min }}"
+                    name="response:::{{ question.pk }}:::-"
+                    placeholder="{{ placeholder }}"
+                    value="{{ answer.content }}"
+                    step="{{ step_interval }}"
+                    type="number"
+                    {% if questionnaire_is_complete %} disabled {% endif %}
+                    {% if not optional %} required {% endif %}
+            >
+        </div>
+    </div>
+    <div class="row">
+        <div id="div_question_error_{{ question.pk }}" class="d-none text-danger"></div>
+    </div>
 </div>

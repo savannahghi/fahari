@@ -1,6 +1,6 @@
 {% load static i18n compress %}
 
-{% with question.stats_answer_for_responses_response as answer %}
+{% with answer=question.stats_answer_for_responses_response min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional zero="0" %}
     {% if question.answer_type == "yes_no" %}
         {% with on_label="Yes" off_label="No" %}
             {% include "fragments/atoms/sims/question_types/boolean_question.html" %}
@@ -10,23 +10,23 @@
             {% include "fragments/atoms/sims/question_types/boolean_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "real" %}
-        {% with step_interval="0.0001" placeholder="Enter a fraction" min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional %}
+        {% with step_interval="0.0001" placeholder="Enter a fraction" %}
             {% include "fragments/atoms/sims/question_types/number_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "int" %}
-        {% with step_interval="1" placeholder="Enter a number" min=question.metadata.min_value max=question.metadata.max_value optional=question.metadata.optional %}
+        {% with step_interval="1" placeholder="Enter a number" %}
             {% include "fragments/atoms/sims/question_types/number_question.html" %}
         {% endwith %}
-    {% elif question.answer_type == "text_answer" %}
-        {% with optional=question.metadata.optional placeholder="Enter a response" %}
+    {% elif question.answer_type == "text" %}
+        {% with placeholder="Enter a response" %}
             {% include "fragments/atoms/sims/question_types/text_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "select_one" %}
-        {% with optional=question.metadata.optional multiple=False %}
+        {% with multiple=False %}
             {% include "fragments/atoms/sims/question_types/options_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "select_multiple" %}
-        {% with optional=question.metadata.optional multiple=True %}
+        {% with multiple=True %}
             {% include "fragments/atoms/sims/question_types/options_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "fraction" %}
@@ -34,6 +34,10 @@
             {% include "fragments/atoms/sims/question_types/fraction_question.html" %}
         {% endwith %}
     {% elif question.answer_type == "none" %}
-        <input type="hidden" data-non_applicable="true" hidden value=":::N/A:::" name="response:::{{ question.pk }}:::-">
+        <input type="hidden" data-non_applicable="true" hidden value name="response:::{{ question.pk }}:::-">
     {% endif %}
+
+    <div class="d-none">
+
+    </div>
 {% endwith %}

@@ -52,6 +52,9 @@
         {% block questionnaire_metadata_container %}
             <form action="{% url 'api:questionnaireresponses-submit-questionnaire-responses' object.pk %}" method="post" id="fm_submit_form" class="submit_form">{% csrf_token %}</form>
             <div class="row">
+                <div id="div_questionnaire_error" class="alert alert-danger d-none w-100" role="alert"></div>
+            </div>
+            <div class="row">
                 <div class="col">
                     {% for question_group in questionnaire.direct_decedents_only.active.by_precedence|annotate_with_stats:object %}
                         {% include "fragments/atoms/sims/question_group_display.html" %}
