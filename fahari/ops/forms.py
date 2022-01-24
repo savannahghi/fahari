@@ -29,7 +29,11 @@ class FacilitySystemForm(GetAllottedFacilitiesMixin, BaseModelForm):
     field_order = (
         "facility",
         "system",
+        "previous_node",
         "version",
+        "release_notes",
+        "trainees",
+        "attachment",
         "active",
     )
 
@@ -37,6 +41,7 @@ class FacilitySystemForm(GetAllottedFacilitiesMixin, BaseModelForm):
         super().__init__(*args, **kwargs)
         self.helper.form_id = "facility_system_form"
         self.fields["facility"].queryset = self.get_allotted_facilities().active()
+        self.fields["previous_node"].label = "Previous version"
 
     class Meta(BaseModelForm.Meta):
         model = FacilitySystem
