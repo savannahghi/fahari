@@ -1,0 +1,49 @@
+{
+	"batch_number": {
+		"column_index": 10
+	},
+	"comments": {
+		"column_index": 12,
+        "default_value": "-",
+        "optional": true
+	},
+    "commodity": {
+    	"column_index": 6,
+    	"value_mappings": {
+    		"Tenofovir/Lamivudine/Dolutegravir TLD": "Tenofovir/Lamivudine/Dolutegravir (TDF/3TC/DTG) FDC (300/300/50mg) FDC Tablets",
+    		"Dolutegravir 50mg": "Dolutegravir(DTG) 50mg tabs",
+    		"Zidovudine/Lamivudine AZT/3tC": "Zidovudine/Lamivudine (AZT/3TC) FDC (300/150mg) Tablets"
+    	},
+        "lookup": "name"
+    },
+    "delivery_date": {
+    	"column_index": 5,
+    	"datetime_format": "%m/%d/%Y"
+    },
+    "delivery_note_number": {
+    	"column_index": 4
+    },
+    "delivery_note_quantity": {
+    	"column_index": 8
+    },
+    "expiry_date": {
+    	"column_index": 11,
+    	"datetime_format": "%m/%d/%Y"
+    },
+    "facility": {
+    	"column_index": 3,
+    	"lookup": "mfl_code"
+    },
+    "pack_size": {
+    	"column_index": 7,
+    	"value_mappings": {
+    		"30": "Packs of 30s",
+    		"60": "Packs of 60s",
+    		"90": "Packs of 90s"
+    	},
+        "lookup": "name"
+    },
+    "quantity_received": {
+    	"column_index": 9
+    }
+}

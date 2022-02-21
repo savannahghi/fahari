@@ -166,7 +166,7 @@ class DRFSerializerExcelIO(Generic[S, T], ExcelIO[DT]):
                 self.get_fields(), self.get_nested_entries_delimiter()
             )
 
-        return template_class(*args, **kwargs)  # type: ignore
+        return template_class(*args, **kwargs)
 
     def get_template_class(self) -> Type[T]:
         """Return a class to use for the template. Defaults to using `self.template_class`."""
