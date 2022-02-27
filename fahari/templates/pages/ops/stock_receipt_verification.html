@@ -36,12 +36,12 @@
                     <tr>
                         <th>Facility</th>
                         <th>Commodity Description</th>
+                        <th>Delivered On</th>
                         <th>Pack Size</th>
                         <th>Delivery Note Number</th>
                         <th>Quantity Received</th>
                         <th>Batch Number</th>
                         <th>Expiry Date</th>
-                        <th>Comments</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -69,12 +69,12 @@ window.addEventListener("load", function(){
             columns: [
                 {data: 'facility_data.name', name: "facility__name"},
                 {data: "commodity_data.name", name: "commodity__name"},
+                {data: "delivery_date", name: "delivery_date"},
                 {data: "pack_size_name", name: "pack_size__name"},
                 {data: "delivery_note_number", name: "delivery_note_number"},
                 {data: "quantity_received", name: "quantity_received"},
                 {data: "batch_number", name: "batch_number"},
                 {data: "expiry_date", name: "expiry_date"},
-                {data: "comments", name: "comments"},
                 {
                     data: "url",
                     name: "id",

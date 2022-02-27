@@ -65,7 +65,7 @@ class ExcelIOMixin(Generic[EIO, EIO_T], GenericViewSet):
         excel_io_class = self.get_excel_io_class()
         default_kwargs = self.get_excel_io_kwargs()
         default_kwargs.update(kwargs)
-        return excel_io_class(**default_kwargs)  # type: ignore
+        return excel_io_class(**default_kwargs)
 
     def get_excel_io_kwargs(self) -> Dict[str, Any]:
         """Return kwargs to be used when initializing an excel io instance."""

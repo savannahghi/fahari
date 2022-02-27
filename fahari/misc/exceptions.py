@@ -7,4 +7,4 @@ class ProcessGoogleSheetRowError(RuntimeError):
     def __init__(self, row: Sequence[str], row_index: int, *args, **kwargs):
         self.row: Sequence[str] = tuple(row)
         self.row_index: int = row_index
-        super().__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)  # noqa

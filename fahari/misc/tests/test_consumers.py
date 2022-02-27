@@ -1,5 +1,6 @@
 import json
 from typing import List, Sequence
+from unittest.mock import patch
 
 import pytest
 from channels.db import database_sync_to_async
@@ -15,9 +16,11 @@ from fahari.common.tests.test_api import global_organisation
 from fahari.ops.models import Commodity, StockReceiptVerification, UoM, UoMCategory
 
 from ..models import SheetToDBMappingsMetadata, StockVerificationReceiptsAdapter
+from .helpers import load_google_sheet_test_data
 
 fake = Faker()
 pytestmark = pytest.mark.django_db
+patcher_config = {"return_value": load_google_sheet_test_data()}
 
 
 @pytest.fixture
@@ -118,7 +121,7 @@ async def get_test_svr_mappings_metadata() -> SheetToDBMappingsMetadata:
             SheetToDBMappingsMetadata,
             name="Nairobi SVR Sheet to DB Mappings Metadata",
             mappings_metadata=json.load(
-                open("data/nairobi_svr_sheet_to_db_mappings_metadata.json")
+                open("fahari/misc/tests/resources/svr_sheet_to_db_mappings_test_metadata.json")
             ),
             version="1.0.0",
             organisation=global_organisation(),
@@ -139,7 +142,7 @@ async def get_test_svr_adapter_instance(
             field_mappings_meta=get_test_svr_mappings_metadata,
             last_column="M",
             organisation=global_organisation(),
-            sheet_id="1ATZKDHRQzZWNFQgFUMZ2yc_-R4TamfoK6jg--7KFTic",
+            sheet_id="15hbMRyTmukwsUGQN1afzTiLZ4zijXvxbInqr2fJ3m7o",
         )
 
     return await database_sync_to_async(make_svr_adapter)()
@@ -182,8 +185,10 @@ async def test_svr_adapter_consumer_connect(async_client) -> None:
     await authenticated_communicator.disconnect()
 
 
+@patch("fahari.misc.models.read_spreadsheet", **patcher_config)  # type: ignore
 @pytest.mark.asyncio
 async def test_svr_adapter_consumer_ingest_from_last_position(
+    read_spreadsheet_mock,
     get_svr_adapter_test_facilities,
     get_svr_adapter_test_commodities,
     get_test_svr_adapter_instance,
@@ -209,8 +214,10 @@ async def test_svr_adapter_consumer_ingest_from_last_position(
     await communicator.disconnect()
 
 
+@patch("fahari.misc.models.read_spreadsheet", **patcher_config)  # type: ignore
 @pytest.mark.asyncio
 async def test_svr_adapter_consumer_ingest_from_last_position_failure(
+    read_spreadsheet_mock,
     get_svr_adapter_test_facilities,
     get_svr_adapter_test_commodities,
     get_test_svr_adapter_instance,
