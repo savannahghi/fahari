@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -11,6 +12,7 @@ from fahari.ops.models import Commodity, UoM, UoMCategory
 
 from ..exceptions import ProcessGoogleSheetRowError
 from ..models import SheetToDBMappingsMetadata, StockVerificationReceiptsAdapter
+from .helpers import load_google_sheet_test_data
 
 fake = Faker()
 
@@ -25,7 +27,7 @@ class SheetToDBMappingsMetadataTest(TestCase):
             SheetToDBMappingsMetadata,
             name="Nairobi SVR Sheet to DB Mappings Metadata",
             mappings_metadata=json.load(
-                open("data/nairobi_svr_sheet_to_db_mappings_metadata.json")
+                open("fahari/misc/tests/resources/svr_sheet_to_db_mappings_test_metadata.json")
             ),
             version="1.0.0",
             organisation=self.organisation,
@@ -34,7 +36,7 @@ class SheetToDBMappingsMetadataTest(TestCase):
             SheetToDBMappingsMetadata,
             name="Nairobi SVR Sheet to DB Mappings Metadata",
             mappings_metadata=json.load(
-                open("data/nairobi_svr_sheet_to_db_mappings_metadata.json")
+                open("fahari/misc/tests/resources/svr_sheet_to_db_mappings_test_metadata.json")
             ),
             organisation=self.organisation,
         )
@@ -126,7 +128,7 @@ class TestSheetVerificationReceiptsAdapter(TestCase):
             SheetToDBMappingsMetadata,
             name="Nairobi SVR Sheet to DB Mappings Metadata",
             mappings_metadata=json.load(
-                open("data/nairobi_svr_sheet_to_db_mappings_metadata.json")
+                open("fahari/misc/tests/resources/svr_sheet_to_db_mappings_test_metadata.json")
             ),
             version="1.0.0",
             organisation=self.organisation,
@@ -138,8 +140,14 @@ class TestSheetVerificationReceiptsAdapter(TestCase):
             field_mappings_meta=self.mappings_meta,
             last_column="M",
             organisation=self.organisation,
-            sheet_id="1ATZKDHRQzZWNFQgFUMZ2yc_-R4TamfoK6jg--7KFTic",
+            sheet_id="15hbMRyTmukwsUGQN1afzTiLZ4zijXvxbInqr2fJ3m7o",
         )
+
+        # Mock the "read_spreadsheet" method.
+        patcher_config = {"return_value": load_google_sheet_test_data()}
+        patcher = patch("fahari.misc.models.read_spreadsheet", **patcher_config)  # type: ignore
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_ingest_from_last_position(self) -> None:
         """Test the `self.__ingest_from_last_position()` method."""

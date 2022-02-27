@@ -3,7 +3,9 @@ from typing import Sequence
 from googleapiclient.discovery import build
 
 
-def read_spreadsheet(spreadsheet_id: str, range_name: str) -> Sequence[Sequence[str]]:
+def read_spreadsheet(
+    spreadsheet_id: str, range_name: str
+) -> Sequence[Sequence[str]]:  # pragma: no cover
     """Retrieve the specified data from the given Google spreadsheet."""
 
     sheet_service = build("sheets", "v4").spreadsheets()
