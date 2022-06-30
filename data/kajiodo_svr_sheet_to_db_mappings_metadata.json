@@ -10,18 +10,32 @@
     "commodity": {
     	"column_index": 4,
     	"value_mappings": {
+			"ABC/3TC 120/60 MG": "Abacavir/Lamivudine (ABC/3TC) 120mg/60mg FDC Tablets",
 			"Abacavir/Lamivudine ABC/3Tc 600/300 MG": "Abacavir/Lamivudine (ABC/3TC) 600mg/300mg FDC Tablets",
 			"Atazanavir/Ritonavir ATV/r": "Atazanavir/Ritonavir (ATV/r) 300/100mg Tablets",
 			"Atazanavir/Ritonavir ATV/r 300/100 MG": "Atazanavir/Ritonavir (ATV/r) 300/100mg Tablets",
+			"Amphotericin B 50 mg IV injection": "Amphotericin B 50mg IV Injection",
+			"Cotrimoxazole 240mg/5ml 100 ml bottle": "Cotrimoxazole suspension 240mg/5ml",
+			"Cotrimoxazole Tablets 960 MG": "Cotrimoxazole 960mg Tablets",
+			"Determine HIV 1/2 kits": "Determine HIV 1/2 kits",
+			"Dolutegravire 10mg Tabs": "Dolutegravir(DTG) 10mg Dispersible.Scored Tablets",
 			"Dolutegravir 50mg": "Dolutegravir(DTG) 50mg tabs",
+			"Efavirenz (EFV) 200 MG": "Efavirenz (EFV) 200mg Tablets",
+			"Nevirapine Oral Solution 10mg/ml 100 ml bottle": "Nevirapine (NVP) Susp 10mg/ml",
+			"Nevirapine Suspension 240ML": "Nevirapine (NVP) Susp 10mg/ml",
 			"Lamivudine Syrup 3Tc 10mg/ml": "Lamivudine (3TC) liquid 10mg/ml (240ml Bottles)",
+			"Lopinavir/ritonavir (LPV/r) 100/25 MG": "Lopinavir/ritonavir (LPV/r) 100/25mg Tabs",
+			"Lopinavir/Ritonavir 200/50 mg Tablets": "Lopinavir/ritonavir (LPV/r) 200/50mg Tablets",
+			"Rifapentine/Isoniazid 300/300 mg": "Rifapentine/Isoniazid (P) 300mg/300mg tabs",
 			"Tenofovir/Lamivudine TDF/3Tc 300/300 MG": "Tenofovir/Lamivudine (TDF/3TC) FDC (300/300mg) Tablets",
 			"Tenofovir/Lamivudine/Dolutegravir TLD": "Tenofovir/Lamivudine/Dolutegravir (TDF/3TC/DTG) FDC (300/300/50mg) FDC Tablets",
 			"Tenofovir/Lamivudine/Dolutegravir TLD 300/300/50 MG": "Tenofovir/Lamivudine/Dolutegravir (TDF/3TC/DTG) FDC (300/300/50mg) FDC Tablets",
 			"Tenofovir/Lamivudine TDF/3Tc": "Tenofovir/Lamivudine (TDF/3TC) FDC (300/300mg) Tablets",
 			"Tenovofivir 300mg+Lamuvidine 300mg+Dolutengravir 50mg": "Tenofovir/Lamivudine/Dolutegravir (TDF/3TC/DTG) FDC (300/300/50mg) FDC Tablets",
+			"Vitamin B6 50MG": "Pyridoxine 50mg Tablets",
     		"Zidovudine/Lamivudine AZT/3tC": "Zidovudine/Lamivudine (AZT/3TC) FDC (300/150mg) Tablets",
-			"Zidovudine/Lamivudine AZT/3tC 300/150 MG": "Zidovudine/Lamivudine (AZT/3TC) FDC (300/150mg) Tablets"
+			"Zidovudine/Lamivudine AZT/3tC 300/150 MG": "Zidovudine/Lamivudine (AZT/3TC) FDC (300/150mg) Tablets",
+			"Zidovidine (AZT) Oral Solution 10mg/ml 240 mls": "Zidovudine (AZT) liquid 10mg/ml"
     	},
         "lookup": "name"
     },
@@ -46,9 +60,14 @@
     "pack_size": {
     	"column_index": 5,
     	"value_mappings": {
+			"1": "1 vail",
     		"30": "Packs of 30s",
+			"36": "Packs of 36s",
     		"60": "Packs of 60s",
     		"90": "Packs of 90s",
+			"100": "Packs of 100s",
+			"120": "Packs of 120s",
+			"100ml": "100ml bottle",
 			"240": "240ml bottle"
     	},
         "lookup": "name"
